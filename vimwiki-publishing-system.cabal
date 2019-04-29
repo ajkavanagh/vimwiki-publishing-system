@@ -1,0 +1,62 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.31.1.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 8be77cbdb83b69f188140fe22f241dfbd9d30905608c82e4cb606b9d68ac6249
+
+name:           vimwiki-publishing-system
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/ajkavanagh/vimwiki-publishing-system#readme>
+homepage:       https://github.com/ajkavanagh/vimwiki-publishing-system#readme
+bug-reports:    https://github.com/ajkavanagh/vimwiki-publishing-system/issues
+author:         Alex Kavanagh
+maintainer:     alex@ajkavanagh.co.uk
+copyright:      (c) AJKavanagh
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/ajkavanagh/vimwiki-publishing-system
+
+library
+  exposed-modules:
+      Lib
+  other-modules:
+      Paths_vimwiki_publishing_system
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+  default-language: Haskell2010
+
+executable vimwiki-publishing-system-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_vimwiki_publishing_system
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , vimwiki-publishing-system
+  default-language: Haskell2010
+
+test-suite vimwiki-publishing-system-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_vimwiki_publishing_system
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , vimwiki-publishing-system
+  default-language: Haskell2010
