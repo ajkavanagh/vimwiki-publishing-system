@@ -24,15 +24,23 @@ dependencies:
 
 library:
   source-dirs: src
+  dependencies:
+    - conduit
+    - filepath
+    - pandoc
+    - text
+    - optparse-applicative
+    - directory
 
 executables:
-  vimwiki-publishing-system-exe:
-    main:                Main.hs
+  vimwiki-publishing-system:
+    main:                VPS.hs
     source-dirs:         app
     ghc-options:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -main-is VPS
     dependencies:
     - vimwiki-publishing-system
 

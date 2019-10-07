@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.31.1.
+-- This file has been generated from package.yaml by hpack version 0.31.2.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 8be77cbdb83b69f188140fe22f241dfbd9d30905608c82e4cb606b9d68ac6249
+-- hash: da1fde8577a053af224117a8c2ec6389edf369969988036e6527315254f1ed28
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -28,21 +28,28 @@ source-repository head
 library
   exposed-modules:
       Lib
+      LibVps
   other-modules:
       Paths_vimwiki_publishing_system
   hs-source-dirs:
       src
   build-depends:
       base >=4.7 && <5
+    , conduit
+    , directory
+    , filepath
+    , optparse-applicative
+    , pandoc
+    , text
   default-language: Haskell2010
 
-executable vimwiki-publishing-system-exe
-  main-is: Main.hs
+executable vimwiki-publishing-system
+  main-is: VPS.hs
   other-modules:
       Paths_vimwiki_publishing_system
   hs-source-dirs:
       app
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -main-is VPS
   build-depends:
       base >=4.7 && <5
     , vimwiki-publishing-system
