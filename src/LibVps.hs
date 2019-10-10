@@ -10,6 +10,7 @@ module LibVps
       where
 
 -- for Pandoc processing
+import qualified Data.List as L
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import qualified Text.Pandoc as TP
@@ -90,6 +91,7 @@ data VimwikiSingleFileCliArgs = VimwikiSingleFileCliArgs
     , templateDefault :: !String
     , templateExtension :: !String
     , rootPath :: !String
+    , extraArgs :: ![String]
     }
 
 forceArg :: ReadM Bool
@@ -131,14 +133,24 @@ argsOptions = VimwikiSingleFileCliArgs
     <*> argument str
         ( metavar "ROOT_PATH"
        <> help "a count of ../ for pages buried in subdirs" )
+    <*> some (argument str
+        ( metavar "EXTRA"
+       <> help "Extra argments"))
 
 opts :: ParserInfo VimwikiSingleFileCliArgs
 opts = info
     ( argsOptions <**> helper )
     ( fullDesc
     <> progDesc "Transform a Pandoc markdown file into an HTML file"
-    <> header "vw-html-converter - convert vimwiki/markdown to html" )
+    <> header "vw-html-converter - convert vimwiki/markdown to html"
+    <> noIntersperse )
 
+
+debugArgs :: IO ()
+debugArgs = do
+    args <- getArgs
+    putStrLn $ L.intercalate " " args
+    mainProgram
 
 mainProgram :: IO ()
 mainProgram = vimwikiSingleFileCli =<< execParser opts

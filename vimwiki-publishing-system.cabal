@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: da1fde8577a053af224117a8c2ec6389edf369969988036e6527315254f1ed28
+-- hash: 4b2577fc5cbe21313d5f9d5a08ef02e7bca83d306d02eb498a12a379527b0720
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -43,7 +43,7 @@ library
     , text
   default-language: Haskell2010
 
-executable vimwiki-publishing-system
+executable vimwiki-pandoc-convert-page
   main-is: VPS.hs
   other-modules:
       Paths_vimwiki_publishing_system

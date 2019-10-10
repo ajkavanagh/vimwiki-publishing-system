@@ -33,7 +33,7 @@ library:
     - directory
 
 executables:
-  vimwiki-publishing-system:
+  vimwiki-pandoc-convert-page:
     main:                VPS.hs
     source-dirs:         app
     ghc-options:
