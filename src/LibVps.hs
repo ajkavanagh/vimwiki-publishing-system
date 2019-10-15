@@ -18,7 +18,7 @@ import qualified Text.Pandoc.Error as TPE
 
 -- for system environment, etc.
 import System.Directory (doesFileExist, doesDirectoryExist)
-import System.Environment (getProgName, getArgs)
+import System.Environment (getProgName, getArgs, getEnvironment)
 import System.FilePath (FilePath, (</>), (<.>), takeBaseName)
 
 -- monad related stuff
@@ -39,20 +39,24 @@ mainProgram = vimwikiSingleFileCli =<< execParser opts
 
 vimwikiSingleFileCli :: VimwikiSingleFileCliArgs -> IO ()
 vimwikiSingleFileCli args = do
-    debugArgs
-    debugParams args
+    debug <- isDebug
+    when debug $ do
+        putStrLn "-- Debug Trace On --"
+        debugArgs
+        debugParams args
     argsOk <- validateArgs args
     when argsOk $ runPanDoc args
 
 
 runPanDoc :: VimwikiSingleFileCliArgs -> IO ()
 runPanDoc args = do
-    text <- TIO.readFile $ inputFile args
+    text <- TIO.readFile $ inputFileArg args
     template <- TIO.readFile $ templateFilePath args
     writerOptions <- pandocHtmlArgs args
     let result = convertMarkdownToHtml text writerOptions
     rst <- TP.handleError result
     TIO.writeFile (outputFilePath args) rst
+
 
 pandocHtmlArgs :: VimwikiSingleFileCliArgs -> IO TP.WriterOptions
 pandocHtmlArgs args = do
@@ -60,8 +64,9 @@ pandocHtmlArgs args = do
     let jt = Just $ T.unpack template
     return TP.def { TP.writerTemplate = jt
                   , TP.writerVariables = [
-                    ("css", cssFile args)]
+                    ("css", cssFileArg args)]
                   }
+
 
 convertMarkdownToHtml :: T.Text -> TP.WriterOptions -> Either TPE.PandocError T.Text
 convertMarkdownToHtml input options = TP.runPure $ do
@@ -69,7 +74,30 @@ convertMarkdownToHtml input options = TP.runPure $ do
     TP.writeHtml5String options doc
 
 
--- Let's do some option parsing for the single file conversion
+isDebug :: IO Bool
+isDebug = do
+    envVars <- getEnvironment
+    let debug = filter ((=="DEBUG").fst) envVars
+    if null debug
+      then return False
+      else return $ case head debug of
+          (_, "") -> False
+          otherwise -> True
+
+
+outputFilePath :: VimwikiSingleFileCliArgs -> FilePath
+outputFilePath args = outputDirArg args </> takeBaseName (inputFileArg args) <.> "html"
+
+
+templateFilePath :: VimwikiSingleFileCliArgs -> FilePath
+templateFilePath args =
+    templatePathArg args
+    </> templateNameArg args
+    <.> templateExtensionArg args
+
+
+-- OPTION parsing of the command line
+--
 -- This is called from VimWiki directly and just converts a single file.
 --
 -- we want to grab the following which is called from Vimwiki
@@ -104,29 +132,31 @@ convertMarkdownToHtml input options = TP.runPure $ do
 --  $VIMHOME/autoload/vimwiki/customwiki2html.sh
 
 data VimwikiSingleFileCliArgs = VimwikiSingleFileCliArgs
-    { force :: !Bool
-    , syntax :: !String
-    , extension :: !String
-    , output_dir :: !String
-    , inputFile :: !String
-    , cssFile :: !String
-    , templatePath :: !String
-    , templateDefault :: !String
-    , templateExtension :: !String
-    , rootPath :: !String
+    { forceArg :: !Bool
+    , syntaxArg :: !String
+    , extensionArg :: !String
+    , outputDirArg :: !String
+    , inputFileArg :: !String
+    , cssFileArg :: !String
+    , templatePathArg :: !String
+    , templateNameArg :: !String
+    , templateExtensionArg :: !String
+    , rootPathArg :: !String
     , extraArgs :: ![String]
     }
 
-forceArg :: ReadM Bool
-forceArg =
+
+forceArgReader :: ReadM Bool
+forceArgReader =
     readerAsk >>= \case
         "0" -> pure False
         "1" -> pure True
         _ -> fail "<force> arg must be 0 or 1"
 
+
 argsOptions :: Parser VimwikiSingleFileCliArgs
 argsOptions = VimwikiSingleFileCliArgs
-    <$> argument forceArg
+    <$> argument forceArgReader
         ( metavar "FORCE"
        <> help "[0|1] - 1 = force/overwrite the output file" )
     <*> argument str
@@ -160,6 +190,7 @@ argsOptions = VimwikiSingleFileCliArgs
         ( metavar "EXTRA"
        <> help "Extra argments"))
 
+
 opts :: ParserInfo VimwikiSingleFileCliArgs
 opts = info
     ( argsOptions <**> helper )
@@ -172,16 +203,20 @@ opts = info
 debugArgs :: IO ()
 debugArgs = do
     args <- getArgs
+    putStrLn "The args passed to the app on the command line were:"
     putStrLn $ unwords args
+    putStrLn "------"
 
 
 debugParams :: VimwikiSingleFileCliArgs -> IO ()
 debugParams args = do
-    putStrLn $ "Template path is: " ++ templatePath args
-    putStrLn $ "Template name is " ++  templateDefault args
-    putStrLn $ "InputFile is " ++ inputFile args
-    putStrLn $ "Template ext is " ++  templateExtension args
+    putStrLn "Decoded args are:"
+    putStrLn $ "Template path is: " ++ templatePathArg args
+    putStrLn $ "Template name is " ++  templateNameArg args
+    putStrLn $ "InputFile is " ++ inputFileArg args
+    putStrLn $ "Template ext is " ++  templateExtensionArg args
     putStrLn $ "Template file is " ++ templateFilePath args
+    putStrLn $ "CssFile is " ++ cssFileArg args
 
 
 validateArgs :: VimwikiSingleFileCliArgs -> IO Bool
@@ -198,22 +233,21 @@ validateArgs args = foldM ander True tests
               , validateCssFileArg
               ]
 
-outputFilePath :: VimwikiSingleFileCliArgs -> FilePath
-outputFilePath args = output_dir args </> takeBaseName (inputFile args) <.> "html"
 
 validateForceArg :: VimwikiSingleFileCliArgs -> IO Bool
 validateForceArg args = do
     let outputFileName = outputFilePath args
     exists <- doesFileExist outputFileName
-    if not (force args) && exists
+    if not (forceArg args) && exists
       then do
           putStrLn $ "File '" ++ outputFileName ++ "' exists and FORCE is 0"
           return False
       else return True
 
+
 validateSyntaxArg :: VimwikiSingleFileCliArgs -> IO Bool
 validateSyntaxArg args = do
-    let syn = strToLower $ syntax args
+    let syn = strToLower $ syntaxArg args
     if syn /= "markdown"
       then do
           progName <- getProgName
@@ -221,9 +255,10 @@ validateSyntaxArg args = do
           return False
       else return True
 
+
 validateExtensionArg :: VimwikiSingleFileCliArgs -> IO Bool
 validateExtensionArg args = do
-    let ext = extension args
+    let ext = extensionArg args
     if not (isMarkDownStr ext)
       then do
           putStrLn $ "Extension " ++ ext ++ " is not a understood "
@@ -231,18 +266,14 @@ validateExtensionArg args = do
           return False
       else return True
 
+
 validateInputFileArg :: VimwikiSingleFileCliArgs -> IO Bool
 validateInputFileArg args = do
-    let path = inputFile args
+    let path = inputFileArg args
     exists <- doesFileExist path
     printIfDoesntExist exists path "Input file "
     return exists
 
-templateFilePath :: VimwikiSingleFileCliArgs -> FilePath
-templateFilePath args =
-    templatePath args
-    </> templateDefault args
-    <.> templateExtension args
 
 validateTemplateArgs :: VimwikiSingleFileCliArgs -> IO Bool
 validateTemplateArgs args = do
@@ -251,12 +282,14 @@ validateTemplateArgs args = do
     printIfDoesntExist exists path "Template File "
     return exists
 
+
 validateCssFileArg :: VimwikiSingleFileCliArgs -> IO Bool
 validateCssFileArg args = do
-    let path = cssFile args
+    let path = cssFileArg args
     exists <- doesFileExist path
     printIfDoesntExist exists path "Css File "
     return exists
+
 
 printIfDoesntExist :: Bool -> String -> String -> IO ()
 printIfDoesntExist True _ _   = return ()
