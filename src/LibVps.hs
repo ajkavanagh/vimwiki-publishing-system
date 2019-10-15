@@ -22,7 +22,7 @@ import System.Environment (getProgName, getArgs)
 import System.FilePath (FilePath, (</>), (<.>), takeBaseName)
 
 -- monad related stuff
-import Control.Monad (when, unless)
+import Control.Monad (when, unless, foldM)
 
 -- for optparse
 import Data.Semigroup ((<>))
@@ -32,18 +32,41 @@ import Options.Applicative.Types (ReadM, readerAsk)
 -- local library
 import Lib (isMarkDownStr, isMarkDownFile, strToLower)
 
-runPanDoc :: FilePath -> FilePath -> IO ()
-runPanDoc infile outfile = do
-    text <- TIO.readFile infile
-    let result = convertMarkdownToHtml text
+
+mainProgram :: IO ()
+mainProgram = vimwikiSingleFileCli =<< execParser opts
+
+
+vimwikiSingleFileCli :: VimwikiSingleFileCliArgs -> IO ()
+vimwikiSingleFileCli args = do
+    debugArgs
+    debugParams args
+    argsOk <- validateArgs args
+    when argsOk $ runPanDoc args
+
+
+runPanDoc :: VimwikiSingleFileCliArgs -> IO ()
+runPanDoc args = do
+    text <- TIO.readFile $ inputFile args
+    template <- TIO.readFile $ templateFilePath args
+    writerOptions <- pandocHtmlArgs args
+    let result = convertMarkdownToHtml text writerOptions
     rst <- TP.handleError result
-    TIO.writeFile outfile rst
+    TIO.writeFile (outputFilePath args) rst
 
+pandocHtmlArgs :: VimwikiSingleFileCliArgs -> IO TP.WriterOptions
+pandocHtmlArgs args = do
+    template <- TIO.readFile $ templateFilePath args
+    let jt = Just $ T.unpack template
+    return TP.def { TP.writerTemplate = jt
+                  , TP.writerVariables = [
+                    ("css", cssFile args)]
+                  }
 
-convertMarkdownToHtml :: T.Text -> Either TPE.PandocError T.Text
-convertMarkdownToHtml md = TP.runPure $ do
-    doc <- TP.readMarkdown TP.def md
-    TP.writeHtml5String TP.def doc
+convertMarkdownToHtml :: T.Text -> TP.WriterOptions -> Either TPE.PandocError T.Text
+convertMarkdownToHtml input options = TP.runPure $ do
+    doc <- TP.readMarkdown TP.def input
+    TP.writeHtml5String options doc
 
 
 -- Let's do some option parsing for the single file conversion
@@ -149,38 +172,31 @@ opts = info
 debugArgs :: IO ()
 debugArgs = do
     args <- getArgs
-    putStrLn $ L.intercalate " " args
-    mainProgram
-
-mainProgram :: IO ()
-mainProgram = vimwikiSingleFileCli =<< execParser opts
+    putStrLn $ unwords args
 
 
--- This is the program proper
-vimwikiSingleFileCli :: VimwikiSingleFileCliArgs -> IO ()
-vimwikiSingleFileCli args = do
-    argsOk <- validateArgs args
-    when argsOk $ 
-        runPanDoc (inputFile args) (outputFilePath args)
+debugParams :: VimwikiSingleFileCliArgs -> IO ()
+debugParams args = do
+    putStrLn $ "Template path is: " ++ templatePath args
+    putStrLn $ "Template name is " ++  templateDefault args
+    putStrLn $ "InputFile is " ++ inputFile args
+    putStrLn $ "Template ext is " ++  templateExtension args
+    putStrLn $ "Template file is " ++ templateFilePath args
 
-
--- How to convert a single file?
--- 1. check that the extension is isMarkDownExt
--- 2. construct the input and output file paths
--- 3. If force is 0, verify that the target doesn't exist
--- 4. Verify that the input file exists
--- 5. Verify that the syntax is okay (i.e. markdown or vimwiki) - or something
--- that Pandoc can deal with
--- 6. do the conversion (textwise)
--- 7. Write the converted text.
 
 validateArgs :: VimwikiSingleFileCliArgs -> IO Bool
-validateArgs args = do
-    forceOk <- validateForceArg args
-    syntaxOk <- validateSyntaxArg args
-    extOk <- validateExtensionArg args
-    inOk <- validateInputFileArg args
-    return $ and [forceOk, syntaxOk, extOk, inOk]
+validateArgs args = foldM ander True tests
+  where
+      ander acc test = do
+          res <- test args
+          return $ res && acc
+      tests = [ validateForceArg
+              , validateSyntaxArg
+              , validateExtensionArg
+              , validateInputFileArg
+              , validateTemplateArgs
+              , validateCssFileArg
+              ]
 
 outputFilePath :: VimwikiSingleFileCliArgs -> FilePath
 outputFilePath args = output_dir args </> takeBaseName (inputFile args) <.> "html"
@@ -219,9 +235,29 @@ validateInputFileArg :: VimwikiSingleFileCliArgs -> IO Bool
 validateInputFileArg args = do
     let path = inputFile args
     exists <- doesFileExist path
-    _printHelper exists path
+    printIfDoesntExist exists path "Input file "
     return exists
 
-_printHelper :: Bool -> String -> IO ()
-_printHelper True _    = return ()
-_printHelper False  path = putStrLn $ "Input file '" ++ path ++ "' doesn't exist!"
+templateFilePath :: VimwikiSingleFileCliArgs -> FilePath
+templateFilePath args =
+    templatePath args
+    </> templateDefault args
+    <.> templateExtension args
+
+validateTemplateArgs :: VimwikiSingleFileCliArgs -> IO Bool
+validateTemplateArgs args = do
+    let path = templateFilePath args
+    exists <- doesFileExist path
+    printIfDoesntExist exists path "Template File "
+    return exists
+
+validateCssFileArg :: VimwikiSingleFileCliArgs -> IO Bool
+validateCssFileArg args = do
+    let path = cssFile args
+    exists <- doesFileExist path
+    printIfDoesntExist exists path "Css File "
+    return exists
+
+printIfDoesntExist :: Bool -> String -> String -> IO ()
+printIfDoesntExist True _ _   = return ()
+printIfDoesntExist False path prefix = putStrLn $ prefix ++ path ++ " doesn't exist!"
