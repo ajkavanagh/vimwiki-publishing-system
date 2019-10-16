@@ -28,9 +28,12 @@ library:
     - conduit
     - filepath
     - pandoc
+    - pandoc-types
     - text
     - optparse-applicative
     - directory
+    - pcre-heavy
+    - pcre-light
 
 executables:
   vimwiki-pandoc-convert-page:

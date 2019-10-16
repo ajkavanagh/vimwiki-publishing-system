@@ -1,6 +1,9 @@
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE QuasiQuotes #-}
+{-# LANGUAGE FlexibleContexts #-}
+
 
 module LibVps
     {-( someFunc-}
@@ -15,7 +18,9 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import qualified Text.Pandoc as TP
 import qualified Text.Pandoc.Error as TPE
-
+import qualified Text.Pandoc.Walk as TPW
+import qualified Text.Regex.PCRE.Heavy as PCRE
+import qualified Qq as Q
 -- for system environment, etc.
 import System.Directory (doesFileExist, doesDirectoryExist)
 import System.Environment (getProgName, getArgs, getEnvironment)
@@ -23,6 +28,7 @@ import System.FilePath (FilePath, (</>), (<.>), takeBaseName)
 
 -- monad related stuff
 import Control.Monad (when, unless, foldM)
+import Control.Monad.IO.Class (liftIO)
 
 -- for optparse
 import Data.Semigroup ((<>))
@@ -50,12 +56,52 @@ vimwikiSingleFileCli args = do
 
 runPanDoc :: VimwikiSingleFileCliArgs -> IO ()
 runPanDoc args = do
+    -- read the source file
     text <- TIO.readFile $ inputFileArg args
+    putStrLn $ T.unpack text
+    -- process it for wikilinks -- turn them into markdown links
+    let pText = processForLinks text
+    putStrLn $ T.unpack pText
+    -- read the template file
     template <- TIO.readFile $ templateFilePath args
     writerOptions <- pandocHtmlArgs args
-    let result = convertMarkdownToHtml text writerOptions
+    -- parse the markdown and then convert to HTML5 document
+    result <- TP.runIO $ do
+        doc <- TP.readMarkdown TP.def pText
+        let es = collectElems doc
+        liftIO $ putStrLn $ unlines es
+        TP.writeHtml5String writerOptions doc
     rst <- TP.handleError result
+    -- finally write out the HTML5 document
     TIO.writeFile (outputFilePath args) rst
+
+collectElems :: TP.Pandoc -> [String]
+collectElems = TPW.query elems
+  where
+      elems :: TP.Block -> [String]
+      elems x = [show x]
+
+
+processForLinks :: T.Text -> T.Text
+processForLinks = T.unlines . replaceLinks . T.lines
+
+
+-- replace [[xxx]] with [xxx](xxx.html)
+replaceLinks :: [T.Text] -> [T.Text]
+replaceLinks = map (replace1 . replace2)
+  where
+      -- Q.re is a ungreedy utf-8 PCRE matcher.
+      -- replace [[xxx]] links
+      replace1 :: T.Text -> T.Text
+      replace1 =  PCRE.gsub
+                    [Q.re|\[\[(.+)\]\]|]
+                    (\(l:_) -> "[" ++ l ++ "](" ++ l ++ ".html)" :: String)
+
+      -- replace [[link|description]] pages
+      replace2 :: T.Text -> T.Text
+      replace2 = PCRE.gsub
+                   [Q.re|\[\[([^|\]]+)\|(.*)\]\]|]
+                   (\(l:d:_) -> "[" ++ d ++ "](" ++ l ++ ".html)" :: String)
 
 
 pandocHtmlArgs :: VimwikiSingleFileCliArgs -> IO TP.WriterOptions
@@ -68,6 +114,7 @@ pandocHtmlArgs args = do
                   }
 
 
+-- old, not using, but shows how the sandbox is done.
 convertMarkdownToHtml :: T.Text -> TP.WriterOptions -> Either TPE.PandocError T.Text
 convertMarkdownToHtml input options = TP.runPure $ do
     doc <- TP.readMarkdown TP.def input
@@ -78,22 +125,21 @@ isDebug :: IO Bool
 isDebug = do
     envVars <- getEnvironment
     let debug = filter ((=="DEBUG").fst) envVars
-    if null debug
-      then return False
-      else return $ case head debug of
-          (_, "") -> False
-          otherwise -> True
+    return $ not (null debug) && case head debug of
+        (_,"") -> False
+        _      -> True
 
 
 outputFilePath :: VimwikiSingleFileCliArgs -> FilePath
-outputFilePath args = outputDirArg args </> takeBaseName (inputFileArg args) <.> "html"
+outputFilePath args = outputDirArg args
+                  </> takeBaseName (inputFileArg args)
+                  <.> "html"
 
 
 templateFilePath :: VimwikiSingleFileCliArgs -> FilePath
-templateFilePath args =
-    templatePathArg args
-    </> templateNameArg args
-    <.> templateExtensionArg args
+templateFilePath args = templatePathArg args
+                    </> templateNameArg args
+                    <.> templateExtensionArg args
 
 
 -- OPTION parsing of the command line
@@ -228,9 +274,9 @@ validateArgs args = foldM ander True tests
       tests = [ validateForceArg
               , validateSyntaxArg
               , validateExtensionArg
-              , validateInputFileArg
-              , validateTemplateArgs
-              , validateCssFileArg
+              , validateFileExists inputFileArg     "Input file "
+              , validateFileExists templateFilePath "Template File "
+              , validateFileExists cssFileArg       "css file "
               ]
 
 
@@ -267,27 +313,14 @@ validateExtensionArg args = do
       else return True
 
 
-validateInputFileArg :: VimwikiSingleFileCliArgs -> IO Bool
-validateInputFileArg args = do
-    let path = inputFileArg args
+validateFileExists :: (VimwikiSingleFileCliArgs -> String)
+                   -> String
+                   -> VimwikiSingleFileCliArgs
+                   -> IO Bool
+validateFileExists test errorStr args = do
+    let path = test args
     exists <- doesFileExist path
-    printIfDoesntExist exists path "Input file "
-    return exists
-
-
-validateTemplateArgs :: VimwikiSingleFileCliArgs -> IO Bool
-validateTemplateArgs args = do
-    let path = templateFilePath args
-    exists <- doesFileExist path
-    printIfDoesntExist exists path "Template File "
-    return exists
-
-
-validateCssFileArg :: VimwikiSingleFileCliArgs -> IO Bool
-validateCssFileArg args = do
-    let path = cssFileArg args
-    exists <- doesFileExist path
-    printIfDoesntExist exists path "Css File "
+    printIfDoesntExist exists path errorStr
     return exists
 
 
