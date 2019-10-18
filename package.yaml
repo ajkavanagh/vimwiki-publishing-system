@@ -34,6 +34,7 @@ library:
     - directory
     - pcre-heavy
     - pcre-light
+    - titlecase
 
 executables:
   vimwiki-pandoc-convert-page:

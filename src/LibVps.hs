@@ -16,11 +16,13 @@ module LibVps
 import qualified Data.List as L
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
+import           Data.Text.Titlecase (titlecase)
 import qualified Text.Pandoc as TP
 import qualified Text.Pandoc.Error as TPE
 import qualified Text.Pandoc.Walk as TPW
 import qualified Text.Regex.PCRE.Heavy as PCRE
 import qualified Qq as Q
+
 -- for system environment, etc.
 import System.Directory (doesFileExist, doesDirectoryExist)
 import System.Environment (getProgName, getArgs, getEnvironment)
@@ -58,18 +60,14 @@ runPanDoc :: VimwikiSingleFileCliArgs -> IO ()
 runPanDoc args = do
     -- read the source file
     text <- TIO.readFile $ inputFileArg args
-    putStrLn $ T.unpack text
     -- process it for wikilinks -- turn them into markdown links
     let pText = processForLinks text
-    putStrLn $ T.unpack pText
     -- read the template file
     template <- TIO.readFile $ templateFilePath args
     writerOptions <- pandocHtmlArgs args
     -- parse the markdown and then convert to HTML5 document
     result <- TP.runIO $ do
         doc <- TP.readMarkdown TP.def pText
-        let es = collectElems doc
-        liftIO $ putStrLn $ unlines es
         TP.writeHtml5String writerOptions doc
     rst <- TP.handleError result
     -- finally write out the HTML5 document
@@ -109,8 +107,10 @@ pandocHtmlArgs args = do
     template <- TIO.readFile $ templateFilePath args
     let jt = Just $ T.unpack template
     return TP.def { TP.writerTemplate = jt
-                  , TP.writerVariables = [
-                    ("css", cssFileArg args)]
+                  , TP.writerVariables =
+                      [ ("css", cssFileArg args)
+                      , ("pagetitle", pageTitleFromArgs args)
+                      ]
                   }
 
 
@@ -134,6 +134,9 @@ outputFilePath :: VimwikiSingleFileCliArgs -> FilePath
 outputFilePath args = outputDirArg args
                   </> takeBaseName (inputFileArg args)
                   <.> "html"
+
+pageTitleFromArgs :: VimwikiSingleFileCliArgs -> String
+pageTitleFromArgs = titlecase . takeBaseName . inputFileArg
 
 
 templateFilePath :: VimwikiSingleFileCliArgs -> FilePath
