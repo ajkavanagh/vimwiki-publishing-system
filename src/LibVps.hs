@@ -110,8 +110,15 @@ pandocHtmlArgs args = do
                   , TP.writerVariables =
                       [ ("css", cssFileArg args)
                       , ("pagetitle", pageTitleFromArgs args)
+                      , ("include-before", homeLinkText args)
                       ]
                   }
+
+homeLinkText :: VimwikiSingleFileCliArgs -> String
+homeLinkText args = "<div><a href=\"" ++ index ++ "\">Index</a></div><hr/>"
+  where
+      root = rootPathArg args
+      index = if root == "-" then "index.html" else root </> "index.html"
 
 
 -- old, not using, but shows how the sandbox is done.
@@ -193,6 +200,7 @@ data VimwikiSingleFileCliArgs = VimwikiSingleFileCliArgs
     , rootPathArg :: !String
     , extraArgs :: ![String]
     }
+    deriving Show
 
 
 forceArgReader :: ReadM Bool
