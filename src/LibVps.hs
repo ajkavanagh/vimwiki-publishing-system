@@ -67,7 +67,7 @@ runPanDoc args = do
     writerOptions <- pandocHtmlArgs args
     -- parse the markdown and then convert to HTML5 document
     result <- TP.runIO $ do
-        doc <- TP.readMarkdown TP.def pText
+        doc <- TP.readMarkdown pandocMarkdownArgs pText
         TP.writeHtml5String writerOptions doc
     rst <- TP.handleError result
     -- finally write out the HTML5 document
@@ -114,6 +114,13 @@ pandocHtmlArgs args = do
                       ]
                   }
 
+pandocMarkdownArgs :: TP.ReaderOptions
+pandocMarkdownArgs = TP.def { TP.readerExtensions = TP.extensionsFromList
+                              [ TP.Ext_autolink_bare_uris
+                              , TP.Ext_backtick_code_blocks
+                              ]
+                            }
+
 homeLinkText :: VimwikiSingleFileCliArgs -> String
 homeLinkText args = "<div><a href=\"" ++ index ++ "\">Index</a></div><hr/>"
   where
@@ -122,10 +129,10 @@ homeLinkText args = "<div><a href=\"" ++ index ++ "\">Index</a></div><hr/>"
 
 
 -- old, not using, but shows how the sandbox is done.
-convertMarkdownToHtml :: T.Text -> TP.WriterOptions -> Either TPE.PandocError T.Text
-convertMarkdownToHtml input options = TP.runPure $ do
-    doc <- TP.readMarkdown TP.def input
-    TP.writeHtml5String options doc
+convertMarkdownToHtml :: T.Text -> TP.ReaderOptions -> TP.WriterOptions -> Either TPE.PandocError T.Text
+convertMarkdownToHtml input readerOptions writerOptions = TP.runPure $ do
+    doc <- TP.readMarkdown readerOptions input
+    TP.writeHtml5String writerOptions doc
 
 
 isDebug :: IO Bool
