@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 1409531782a6b1e027319a665dcfdca812ddacac94be3faa1921d5f18d7ee95d
+-- hash: 89ed5b270682b9bdcff7bb5bb05f5265f638d7445e04659b3cc2519d695d73a8
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -30,6 +30,7 @@ library
       Lib
       LibVps
       Qq
+      SiteGen
   other-modules:
       Paths_vimwiki_publishing_system
   hs-source-dirs:
@@ -42,13 +43,14 @@ library
     , optparse-applicative
     , pandoc
     , pandoc-types
+    , parsec
     , pcre-heavy
     , pcre-light
     , text
     , titlecase
   default-language: Haskell2010
 
-executable vimwiki-pandoc-convert-page
+executable vw2html
   main-is: VPS.hs
   other-modules:
       Paths_vimwiki_publishing_system

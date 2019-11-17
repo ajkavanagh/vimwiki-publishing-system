@@ -37,7 +37,7 @@ library:
     - titlecase
 
 executables:
-  vimwiki-pandoc-convert-page:
+  vw2html:
     main:                VPS.hs
     source-dirs:         app
     ghc-options:

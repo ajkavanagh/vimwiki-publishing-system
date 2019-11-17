@@ -29,7 +29,7 @@ import System.Environment (getProgName, getArgs, getEnvironment)
 import System.FilePath (FilePath, (</>), (<.>), takeBaseName)
 
 -- monad related stuff
-import Control.Monad (when, unless, foldM)
+import Control.Monad (when, unless, foldM, liftM2)
 import Control.Monad.IO.Class (liftIO)
 
 -- for optparse
@@ -38,11 +38,18 @@ import Options.Applicative
 import Options.Applicative.Types (ReadM, readerAsk)
 
 -- local library
-import Lib (isMarkDownStr, isMarkDownFile, strToLower)
+import Lib ( isMarkDownStr
+           , isMarkDownFile
+           , strToLower
+           , validateWithTests
+           , printIfDoesntExist
+           , validateFileExists
+           , isDebug
+           )
 
 
-mainProgram :: IO ()
-mainProgram = vimwikiSingleFileCli =<< execParser opts
+vw2html :: IO ()
+vw2html = vimwikiSingleFileCli =<< execParser opts
 
 
 vimwikiSingleFileCli :: VimwikiSingleFileCliArgs -> IO ()
@@ -50,7 +57,6 @@ vimwikiSingleFileCli args = do
     debug <- isDebug
     when debug $ do
         putStrLn "-- Debug Trace On --"
-        debugArgs
         debugParams args
     argsOk <- validateArgs args
     when argsOk $ runPanDoc args
@@ -72,6 +78,7 @@ runPanDoc args = do
     rst <- TP.handleError result
     -- finally write out the HTML5 document
     TIO.writeFile (outputFilePath args) rst
+
 
 collectElems :: TP.Pandoc -> [String]
 collectElems = TPW.query elems
@@ -133,15 +140,6 @@ convertMarkdownToHtml :: T.Text -> TP.ReaderOptions -> TP.WriterOptions -> Eithe
 convertMarkdownToHtml input readerOptions writerOptions = TP.runPure $ do
     doc <- TP.readMarkdown readerOptions input
     TP.writeHtml5String writerOptions doc
-
-
-isDebug :: IO Bool
-isDebug = do
-    envVars <- getEnvironment
-    let debug = filter ((=="DEBUG").fst) envVars
-    return $ not (null debug) && case head debug of
-        (_,"") -> False
-        _      -> True
 
 
 outputFilePath :: VimwikiSingleFileCliArgs -> FilePath
@@ -264,14 +262,6 @@ opts = info
     <> noIntersperse )
 
 
-debugArgs :: IO ()
-debugArgs = do
-    args <- getArgs
-    putStrLn "The args passed to the app on the command line were:"
-    putStrLn $ unwords args
-    putStrLn "------"
-
-
 debugParams :: VimwikiSingleFileCliArgs -> IO ()
 debugParams args = do
     putStrLn "Decoded args are:"
@@ -284,11 +274,8 @@ debugParams args = do
 
 
 validateArgs :: VimwikiSingleFileCliArgs -> IO Bool
-validateArgs args = foldM ander True tests
+validateArgs args = validateWithTests args tests
   where
-      ander acc test = do
-          res <- test args
-          return $ res && acc
       tests = [ validateForceArg
               , validateSyntaxArg
               , validateExtensionArg
@@ -329,19 +316,3 @@ validateExtensionArg args = do
                       ++ "as an EXTENSION."
           return False
       else return True
-
-
-validateFileExists :: (VimwikiSingleFileCliArgs -> String)
-                   -> String
-                   -> VimwikiSingleFileCliArgs
-                   -> IO Bool
-validateFileExists test errorStr args = do
-    let path = test args
-    exists <- doesFileExist path
-    printIfDoesntExist exists path errorStr
-    return exists
-
-
-printIfDoesntExist :: Bool -> String -> String -> IO ()
-printIfDoesntExist True _ _   = return ()
-printIfDoesntExist False path prefix = putStrLn $ prefix ++ path ++ " doesn't exist!"
