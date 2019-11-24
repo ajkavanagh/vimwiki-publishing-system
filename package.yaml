@@ -35,6 +35,9 @@ library:
     - pcre-heavy
     - pcre-light
     - titlecase
+    - generic-deriving
+    - yaml
+    - safe-exceptions
 
 executables:
   vw2html:

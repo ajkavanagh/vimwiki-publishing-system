@@ -20,7 +20,7 @@ import qualified Data.Text.IO as TIO
 import Control.Applicative (liftA2)
 
 -- for system environment, etc.
-import System.Directory (doesFileExist)
+import System.Directory (doesFileExist, doesDirectoryExist)
 import System.Environment (getProgName, getArgs, getEnvironment)
 
 -- for optparse
@@ -121,9 +121,24 @@ validateFileExists :: (a -> String)
                    -> String
                    -> a
                    -> IO Bool
-validateFileExists test errorStr args = do
-    let path = test args
-    exists <- doesFileExist path
+validateFileExists = validateThingExists doesFileExist
+
+
+validateDirExists :: (a -> FilePath)
+                  -> String
+                  -> a
+                  -> IO Bool
+validateDirExists = validateThingExists doesDirectoryExist
+
+
+validateThingExists :: (FilePath -> IO Bool)
+                    -> (a -> FilePath)
+                    -> String
+                    -> a
+                    -> IO Bool
+validateThingExists test f errorStr args = do
+    let path = f args
+    exists <- test path
     printIfDoesntExist exists path errorStr
     return exists
 

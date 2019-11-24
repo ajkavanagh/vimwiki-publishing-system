@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 89ed5b270682b9bdcff7bb5bb05f5265f638d7445e04659b3cc2519d695d73a8
+-- hash: ead0bec053b5db693142efc1c338f2fe2de44c0783ee0dd882dd98c50d4291d3
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -31,6 +31,7 @@ library
       LibVps
       Qq
       SiteGen
+      SiteGenConfig
   other-modules:
       Paths_vimwiki_publishing_system
   hs-source-dirs:
@@ -40,14 +41,16 @@ library
     , conduit
     , directory
     , filepath
+    , generic-deriving
     , optparse-applicative
     , pandoc
     , pandoc-types
-    , parsec
     , pcre-heavy
     , pcre-light
+    , safe-exceptions
     , text
     , titlecase
+    , yaml
   default-language: Haskell2010
 
 executable vw2html
