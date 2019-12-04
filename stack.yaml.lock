@@ -3,10 +3,88 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    cabal-file:
+      size: 5878
+      sha256: d9cfa7942940c7c6d07d1f26ae70c4f1170f9bd6c331bdbe586e810fafc25f17
+    name: polysemy
+    version: 1.2.3.0
+    git: https://github.com/polysemy-research/polysemy.git
+    pantry-tree:
+      size: 5673
+      sha256: d5d009f7ad411e9e9ad27879e76c991450d13d4db4101713a07c18d715d5b5aa
+    commit: d7d3a938f4c1374161949c2d0aeee542e895e821
+  original:
+    git: https://github.com/polysemy-research/polysemy.git
+    commit: d7d3a938f4c1374161949c2d0aeee542e895e821
+- completed:
+    subdir: polysemy-plugin
+    cabal-file:
+      size: 2826
+      sha256: 7e360f6d815b178889a8fc9cdc27b31da054b4bae88a00f9057bb561fa31eae9
+    name: polysemy-plugin
+    version: 0.2.3.0
+    git: https://github.com/polysemy-research/polysemy.git
+    pantry-tree:
+      size: 1334
+      sha256: 69d4fcc591e078af82fc4f40b9f25267cbf296cc0c1e95517d0668342ad82eac
+    commit: d7d3a938f4c1374161949c2d0aeee542e895e821
+  original:
+    subdir: polysemy-plugin
+    git: https://github.com/polysemy-research/polysemy.git
+    commit: d7d3a938f4c1374161949c2d0aeee542e895e821
+- completed:
+    subdir: co-log
+    cabal-file:
+      size: 4421
+      sha256: aec995c0bf6f585722578860a0aafdcf9e70bd7702bab60034c6d299d723220b
+    name: co-log
+    version: 0.3.0.0
+    git: https://github.com/kowainik/co-log.git
+    pantry-tree:
+      size: 1258
+      sha256: 33650b4f6997baa195a50e3443752bbbb75368c5ab3affad21ec8b787da1207d
+    commit: 947f9fb0a0b8bfdfad21255157cec53b48382c89
+  original:
+    subdir: co-log
+    git: https://github.com/kowainik/co-log.git
+    commit: 947f9fb0a0b8bfdfad21255157cec53b48382c89
+- completed:
+    subdir: co-log-core
+    cabal-file:
+      size: 3149
+      sha256: bd4dddd996841d16a335f04dddfb495de7bd8b6b6fca954f971d7b321c87bbee
+    name: co-log-core
+    version: 0.2.0.0
+    git: https://github.com/kowainik/co-log.git
+    pantry-tree:
+      size: 584
+      sha256: 36f51549a113d1ecd05d6045f2de53cb522222e57953677ba5330b4afb5d072b
+    commit: 947f9fb0a0b8bfdfad21255157cec53b48382c89
+  original:
+    subdir: co-log-core
+    git: https://github.com/kowainik/co-log.git
+    commit: 947f9fb0a0b8bfdfad21255157cec53b48382c89
+- completed:
+    subdir: co-log-polysemy
+    cabal-file:
+      size: 3442
+      sha256: a4f0c2c4e3e6dc230b1479e775ce3a0d81f78511737193581af6e63ab7d3122c
+    name: co-log-polysemy
+    version: 0.0.0.0
+    git: https://github.com/kowainik/co-log.git
+    pantry-tree:
+      size: 400
+      sha256: e13132d4ae74956ab85b87c7177de76ba8d5d61544d4193941962d9f73074148
+    commit: 947f9fb0a0b8bfdfad21255157cec53b48382c89
+  original:
+    subdir: co-log-polysemy
+    git: https://github.com/kowainik/co-log.git
+    commit: 947f9fb0a0b8bfdfad21255157cec53b48382c89
 snapshots:
 - completed:
-    size: 498155
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/13/19.yaml
-    sha256: b9367a80d4393d02e58a46b8a9fdfbd7bc19f59c0c2bbf90034ba15cf52cf213
-  original: lts-13.19
+    size: 524804
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/14/16.yaml
+    sha256: 4d1519a4372d051d47a5eae2241cf3fb54e113d7475f89707ddb6ec06add2888
+  original: lts-14.16

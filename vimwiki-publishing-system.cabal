@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ead0bec053b5db693142efc1c338f2fe2de44c0783ee0dd882dd98c50d4291d3
+-- hash: 69356648ecc490a2af0a0051bfa900651781fb5667d022b66e2aa279a6f3430c
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -27,6 +27,8 @@ source-repository head
 
 library
   exposed-modules:
+      Dates
+      Header
       Lib
       LibVps
       Qq
@@ -36,8 +38,13 @@ library
       Paths_vimwiki_publishing_system
   hs-source-dirs:
       src
+  default-extensions: DataKinds FlexibleContexts GADTs LambdaCase PolyKinds RankNTypes ScopedTypeVariables TypeApplications TypeOperators TypeFamilies
   build-depends:
-      base >=4.7 && <5
+      aeson
+    , base >=4.7 && <5
+    , bytestring
+    , co-log-core
+    , co-log-polysemy
     , conduit
     , directory
     , filepath
@@ -45,10 +52,13 @@ library
     , optparse-applicative
     , pandoc
     , pandoc-types
+    , parser-combinators
     , pcre-heavy
     , pcre-light
-    , safe-exceptions
+    , polysemy
+    , polysemy-plugin
     , text
+    , time
     , titlecase
     , yaml
   default-language: Haskell2010
@@ -59,9 +69,12 @@ executable vw2html
       Paths_vimwiki_publishing_system
   hs-source-dirs:
       app
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N -main-is VPS
+  default-extensions: DataKinds FlexibleContexts GADTs LambdaCase PolyKinds RankNTypes ScopedTypeVariables TypeApplications TypeOperators TypeFamilies
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -main-is VPS -O2 -flate-specialise -fspecialise-aggressively -fplugin=Polysemy.Plugin
   build-depends:
       base >=4.7 && <5
+    , polysemy
+    , polysemy-plugin
     , vimwiki-publishing-system
   default-language: Haskell2010
 

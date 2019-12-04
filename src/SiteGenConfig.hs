@@ -1,26 +1,43 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE GADTs               #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE PolyKinds           #-}
+{-# LANGUAGE RankNTypes          #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications    #-}
+{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE TypeOperators       #-}
 
 module SiteGenConfig where
 
-import System.Directory ( doesFileExist
-                        , doesDirectoryExist
-                        , makeAbsolute
-                        )
-import System.FilePath        (FilePath, takeDirectory, pathSeparator, (</>))
+-- hide log, as we're pulling it in from co-log
+import           Prelude          hiding (log)
 
-import Control.Monad.IO.Class (MonadIO, liftIO)
-import Control.Exception.Safe (Exception, MonadThrow, SomeException, throwM, catch, try)
-import Data.Typeable          (TypeRep, Typeable, typeRep)
+import           System.Directory (doesDirectoryExist, doesFileExist,
+                                   makeAbsolute)
+import           System.FilePath  (FilePath, pathSeparator, takeDirectory,
+                                   (</>))
 
-import Data.Yaml
-import Data.Maybe             (fromJust, isNothing)
+import           Data.List        (intercalate)
+import           Data.Maybe       (fromJust, isNothing)
+import           Data.Yaml
+
+-- For Polysemy logging of things going on.
+import           Colog.Polysemy   (Log, log)
+import           Polysemy         (Embed, Members, Sem, embed)
+import           Polysemy.Error   (Error, throw)
 
 
-data ConfigException = ConfigException String
+data ConfigException = ConfigException {unString :: String}
                      | ConfigExceptions [ConfigException]
-                      deriving (Show, Typeable)
 
-instance Exception ConfigException
+instance Show ConfigException where
+    show ex = "Config Loading failed due to: " ++ ss
+      where
+          ss = case ex of
+              (ConfigException s)   -> s
+              (ConfigExceptions xs) -> intercalate ", " $ map unString xs
 
 {-
 site: <site-identifier>
@@ -38,17 +55,18 @@ generate-categories: true  # should sitegen generate categories
 -}
 
 data RawSiteGenConfig = RawSiteGenConfig
-    { _siteID :: !String
-    , _source :: !FilePath
-    , _outputDir :: !FilePath
-    , _extension :: !String
-    , _indexPageName :: !String
-    , _templatesDir :: !FilePath
-    , _templateExt :: !String
-    , _cssDir :: !FilePath
-    , _defaultStyle :: !String
-    , _generateTags :: !Bool
+    { _siteID             :: !String
+    , _source             :: !FilePath
+    , _outputDir          :: !FilePath
+    , _extension          :: !String
+    , _indexPageName      :: !String
+    , _templatesDir       :: !FilePath
+    , _templateExt        :: !String
+    , _cssDir             :: !FilePath
+    , _defaultStyle       :: !String
+    , _generateTags       :: !Bool
     , _generateCategories :: !Bool
+    , _publishDrafts      :: !Bool
     } deriving (Show)
 
 
@@ -65,54 +83,69 @@ instance FromJSON RawSiteGenConfig where
         <*> v .:? "default-style"       .!= "style.css"        -- name of the default style sheet.
         <*> v .:? "generate-tags"       .!= False              -- should sitegen generate a tags page
         <*> v .:? "generate-categories" .!= False              -- should sitegen generate categories
+        <*> v .:? "publish-drafts"      .!= False              -- should we publish drafs?
     parseJSON _ = error "Can't parse SitegenConfig from YAML/JSON"
 
 
-readConfig :: (MonadIO m, MonadThrow m) => FilePath -> m RawSiteGenConfig
+readConfig :: Members '[ Log String
+                       , Embed IO
+                       , Error ConfigException
+                       ] r
+              => FilePath
+              -> Sem r RawSiteGenConfig
 readConfig fp = do
-    res <- liftIO $ decodeFileEither fp
+    res <- embed $ decodeFileEither fp
     case res of
-        Left parseException -> throwM $ ConfigException $ show parseException
-        Right conf -> return conf
+        Left parseException -> throw $ ConfigException $ show parseException
+        Right conf          -> return conf
 
 
 data SiteGenConfig = SiteGenConfig
-    { siteYaml :: !FilePath
-    , siteID :: !String
-    , source :: !FilePath
-    , outputDir :: !FilePath
-    , extension :: !String
-    , indexPageName :: !String
-    , templatesDir :: !FilePath
-    , templateExt :: !String
-    , cssDir :: !FilePath
-    , defaultStyle :: !String
-    , generateTags :: !Bool
+    { siteYaml           :: !FilePath
+    , siteID             :: !String
+    , source             :: !FilePath
+    , outputDir          :: !FilePath
+    , extension          :: !String
+    , indexPageName      :: !String
+    , templatesDir       :: !FilePath
+    , templateExt        :: !String
+    , cssDir             :: !FilePath
+    , defaultStyle       :: !String
+    , generateTags       :: !Bool
     , generateCategories :: !Bool
+    , publishDrafts      :: !Bool
     } deriving (Show)
 
 
-getSiteGenConfig :: (MonadIO m, MonadThrow m)
-                 => FilePath
-                 -> m SiteGenConfig
-getSiteGenConfig configFileName = do
-    configPath <- liftIO $ makeAbsolute configFileName
+getSiteGenConfig :: Members '[ Log String
+                             , Embed IO
+                             , Error ConfigException
+                             ] r
+                    => FilePath
+                    -> Bool
+                    -> Sem r SiteGenConfig
+getSiteGenConfig configFileName forceDrafts = do
+    configPath <- embed $ makeAbsolute configFileName
     rawConfig <- readConfig configPath
-    makeSiteGenConfigFromRaw configPath rawConfig
+    makeSiteGenConfigFromRaw configPath rawConfig forceDrafts
 
 
-makeSiteGenConfigFromRaw :: (MonadIO m, MonadThrow m)
-                          => FilePath
-                          -> RawSiteGenConfig
-                          -> m SiteGenConfig
-makeSiteGenConfigFromRaw configPath rawConfig = do
+makeSiteGenConfigFromRaw :: Members '[ Log String
+                                     , Embed IO
+                                     , Error ConfigException
+                                     ] r
+                            => FilePath
+                            -> RawSiteGenConfig
+                            -> Bool
+                            -> Sem r SiteGenConfig
+makeSiteGenConfigFromRaw configPath rawConfig forceDrafts = do
     let root = takeDirectory configPath
-    source_ <- liftIO $ resolvePathMaybe (_source rawConfig) root "source dir"
-    outputDir_ <- liftIO $ resolvePathMaybe (_outputDir rawConfig) root "output dir"
-    templatesDir_ <- liftIO $ resolvePathMaybe (_templatesDir rawConfig) root "templates dir"
-    cssDir_ <- liftIO $ resolvePathMaybe (_cssDir rawConfig) root "css dir"
+    source_ <- resolvePath (_source rawConfig) root "source dir"
+    outputDir_ <- resolvePath (_outputDir rawConfig) root "output dir"
+    templatesDir_ <- resolvePath (_templatesDir rawConfig) root "templates dir"
+    cssDir_ <- resolvePath (_cssDir rawConfig) root "css dir"
     if any isNothing [source_, outputDir_, templatesDir_, cssDir_]
-      then throwM $ ConfigException "One or more directories didn't exist"
+      then throw $ ConfigException "One or more directories didn't exist"
       else return $ SiteGenConfig
           { siteYaml=configPath
           , siteID=_siteID rawConfig
@@ -126,35 +159,25 @@ makeSiteGenConfigFromRaw configPath rawConfig = do
           , defaultStyle=_defaultStyle rawConfig
           , generateTags=_generateTags rawConfig
           , generateCategories=_generateCategories rawConfig
+          , publishDrafts=_publishDrafts rawConfig || forceDrafts
           }
 
 
-resolvePathMaybe :: FilePath
-                  -> FilePath
-                  -> String
-                  -> IO (Maybe FilePath)
-resolvePathMaybe path root errorStr = do
-    res <- try (resolvePath path root errorStr) :: IO (Either ConfigException FilePath)
-    case res of
-        Left ex -> do
-             print ex
-             return Nothing
-        Right p -> return $ Just p
-
-
-resolvePath :: (MonadIO m, MonadThrow m)
-            => FilePath    -- the path to resolve
-            -> FilePath    -- the root to perhaps append to it.
-            -> String      -- an handy error string
-            -> m FilePath  -- what to return
+resolvePath :: Members '[Log String, Embed IO] r
+            => FilePath        -- The path to resolve
+            -> FilePath        -- the root to perhaps append to it.
+            -> String          -- A handy error string to log with (maybe)
+            -> Sem r (Maybe FilePath)  -- what to return
+reolvedPath "" _ errorStr = do
+    log @String $ "Path  is empty for: " ++ errorStr
+    return Nothing
 resolvePath path root errorStr = do
     resolvedPath <- if head path /= pathSeparator
-                      then liftIO $ makeAbsolute (root </> path)
+                      then embed $ makeAbsolute (root </> path)
                       else pure path
-    exists <- liftIO $ doesDirectoryExist resolvedPath
+    exists <- embed $ doesDirectoryExist resolvedPath
     if exists
-      then return resolvedPath
-      else throwM $ ConfigException ( "Path "
-                                   ++ resolvedPath
-                                   ++ " doesn't exist for: "
-                                   ++ errorStr)
+      then return $ Just resolvedPath
+      else do
+          log @String $ "Path " ++ resolvedPath ++ " doesn't exist for: " ++ errorStr
+          return Nothing

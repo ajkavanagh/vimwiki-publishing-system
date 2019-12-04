@@ -104,6 +104,7 @@ author: [tinwood]  # Authors of this page.
 draft: true        # The default is true; set to false to actually publish it.
 site: <site-identifier> # the site that this belongs to.
 <maybe more>
+---                # this indicates the end of the header.
 ```
 
 ### The `sitegen` program
