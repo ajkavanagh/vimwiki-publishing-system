@@ -1,2 +1,20 @@
+import           Test.Hspec        (Spec)
+import           Test.Hspec.Runner (configFastFail, defaultConfig, hspecWith)
+
+import           HeaderSpecs       (dropWithNewLineSpecs,
+                                    findEndSiteGenHeaderSpecs, isHeaderSpecs,
+                                    maybeExtractHeaderBlockSpecs,
+                                    maybeDecodeHeaderSpecs)
+
+
 main :: IO ()
-main = putStrLn "Test suite not yet implemented"
+main = hspecWith defaultConfig {configFastFail = True} specs
+
+
+specs :: Spec
+specs = do
+    isHeaderSpecs
+    dropWithNewLineSpecs
+    findEndSiteGenHeaderSpecs
+    maybeExtractHeaderBlockSpecs
+    maybeDecodeHeaderSpecs

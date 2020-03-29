@@ -114,6 +114,10 @@ runSiteGen args = do
             exitWith (ExitFailure 1)
 
 
+-- | run the Sem m to final to load the config
+-- This is resolved too low down, eventually, we want to hoist the Sem r monad
+-- up to runSiteGen to deal with all the effects in one place and let the
+-- program be a collection of monads
 runGetSiteGenConfig :: SitegenArgs -> IO (Either ConfigException SiteGenConfig)
 runGetSiteGenConfig args = do
     --  Resolve the Sem monads with each interpret function to get the sitegen

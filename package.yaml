@@ -30,6 +30,7 @@ library:
     - conduit
     - directory
     - filepath
+    - ginger
     - generic-deriving
     - optparse-applicative
     - parser-combinators
@@ -94,5 +95,13 @@ tests:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -fplugin=Polysemy.Plugin
     dependencies:
     - vimwiki-publishing-system
+    - hspec
+    - text
+    - raw-strings-qq
+    - polysemy
+    - polysemy-plugin
+    - co-log-core
+    - co-log-polysemy

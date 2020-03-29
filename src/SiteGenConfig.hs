@@ -146,7 +146,7 @@ makeSiteGenConfigFromRaw configPath rawConfig forceDrafts = do
     cssDir_ <- resolvePath (_cssDir rawConfig) root "css dir"
     if any isNothing [source_, outputDir_, templatesDir_, cssDir_]
       then throw $ ConfigException "One or more directories didn't exist"
-      else return $ SiteGenConfig
+      else pure $ SiteGenConfig
           { siteYaml=configPath
           , siteID=_siteID rawConfig
           , source= fromJust source_
@@ -168,16 +168,16 @@ resolvePath :: Members '[Log String, Embed IO] r
             -> FilePath        -- the root to perhaps append to it.
             -> String          -- A handy error string to log with (maybe)
             -> Sem r (Maybe FilePath)  -- what to return
-reolvedPath "" _ errorStr = do
+reolvePath "" _ errorStr = do
     log @String $ "Path  is empty for: " ++ errorStr
-    return Nothing
+    pure Nothing
 resolvePath path root errorStr = do
     resolvedPath <- if head path /= pathSeparator
                       then embed $ makeAbsolute (root </> path)
                       else pure path
     exists <- embed $ doesDirectoryExist resolvedPath
     if exists
-      then return $ Just resolvedPath
+      then pure $ Just resolvedPath
       else do
           log @String $ "Path " ++ resolvedPath ++ " doesn't exist for: " ++ errorStr
-          return Nothing
+          pure Nothing

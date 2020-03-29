@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 69356648ecc490a2af0a0051bfa900651781fb5667d022b66e2aa279a6f3430c
+-- hash: 21148e128fd7e96c236c0c730aaa2c4c81adc681461bacc200225c671109f05c
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -32,8 +32,10 @@ library
       Lib
       LibVps
       Qq
+      RouteContext
       SiteGen
       SiteGenConfig
+      SourceContext
   other-modules:
       Paths_vimwiki_publishing_system
   hs-source-dirs:
@@ -49,6 +51,7 @@ library
     , directory
     , filepath
     , generic-deriving
+    , ginger
     , optparse-applicative
     , pandoc
     , pandoc-types
@@ -82,11 +85,19 @@ test-suite vimwiki-publishing-system-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      HeaderSpecs
       Paths_vimwiki_publishing_system
   hs-source-dirs:
       test
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -fplugin=Polysemy.Plugin
   build-depends:
       base >=4.7 && <5
+    , co-log-core
+    , co-log-polysemy
+    , hspec
+    , polysemy
+    , polysemy-plugin
+    , raw-strings-qq
+    , text
     , vimwiki-publishing-system
   default-language: Haskell2010

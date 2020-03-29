@@ -56,7 +56,7 @@ isMarkDownFile = isMarkDownExt . takeExtension
 doThing :: Show a => a -> IO a
 doThing x = do
     putStrLn $ "Side effect with " ++ show x
-    return x
+    pure x
 
 doOtherThing :: Show a => a -> IO ()
 doOtherThing x = putStrLn $ "Sidy with: " ++ show x
@@ -72,7 +72,7 @@ someOtherFunc = do
         .| mapMC doThing
         .| mapMC (\x -> do {
             putStrLn $ "Another side effect with " ++ show x;
-            return $ x * 2; } :: IO Integer)
+            pure $ x * 2; } :: IO Integer)
         .| iterMC doOtherThing
         .| iterMC print
         .| mapM_C print
@@ -94,7 +94,7 @@ isDebug :: IO Bool
 isDebug = do
     envVars <- getEnvironment
     let debug = filter ((=="DEBUG").fst) envVars
-    return $ not (null debug) && case head debug of
+    pure $ not (null debug) && case head debug of
         (_,"") -> False
         _      -> True
 
@@ -114,7 +114,7 @@ validateWithTests :: a -> [a -> IO Bool] -> IO Bool
 validateWithTests a = foldM ander True
   where
       mAnd = liftM2 (&&)
-      ander acc test = return acc `mAnd` test a
+      ander acc test = pure acc `mAnd` test a
 
 
 validateFileExists :: (a -> String)
@@ -140,9 +140,9 @@ validateThingExists test f errorStr args = do
     let path = f args
     exists <- test path
     printIfDoesntExist exists path errorStr
-    return exists
+    pure exists
 
 
 printIfDoesntExist :: Bool -> String -> String -> IO ()
-printIfDoesntExist True _ _   = return ()
+printIfDoesntExist True _ _   = pure ()
 printIfDoesntExist False path prefix = putStrLn $ prefix ++ path ++ " doesn't exist!"

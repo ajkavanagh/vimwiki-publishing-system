@@ -1,9 +1,9 @@
 module Dates where
 
 
-import Data.Time.Clock
-import Data.Time.Format
-import Control.Applicative.Combinators
+import           Control.Applicative.Combinators (choice)
+import           Data.Time.Clock                 (UTCTime)
+import           Data.Time.Format                (defaultTimeLocale, parseTimeM)
 
 
 {--|

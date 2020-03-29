@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>{{ title }}</title>
+    </head>
+    {# This is a comment. Comments are removed from the output. #}
+    <body>
+        <menu id="nav-main">
+        {% for item in navigation %}
+            <li><a href="{{ item.url }}">{{ item.label }}</a></li>
+        {% endfor %}
+        </menu>
+        <div class="layout-content-main">
+            <h1>{{ title }}</h1>
+            {{ body }}
+        </div>
+    </body>
+</html>
