@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 21148e128fd7e96c236c0c730aaa2c4c81adc681461bacc200225c671109f05c
+-- hash: 815647fa20a095d0c2aaf5c80dffd22fe1aed9086e47ca88f089cd6d0052c8ae
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -28,6 +28,7 @@ source-repository head
 library
   exposed-modules:
       Dates
+      ExploreSemConduit
       Header
       Lib
       LibVps
