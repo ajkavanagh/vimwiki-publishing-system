@@ -31,8 +31,8 @@ import           Options.Applicative.Types (ReadM, readerAsk)
 import           Control.Monad             (foldM, liftM2, unless, when)
 
 -- Polysemy
-import           Colog.Core                (logStringStdout)
-import           Colog.Polysemy            (runLogAction)
+import           Colog.Core                (logStringStderr)
+import           Colog.Polysemy            (runLogAction, Log)
 import           Polysemy
 import           Polysemy.Error
 
@@ -99,32 +99,36 @@ validateSitegenArgs args = validateWithTests args tests
 
 {- This is where the sitegen program proper starts. -}
 
--- we've now got some validated args; now we need to use those args to create
--- the full read-only config for the site from the site.yaml.  Then we use that
--- to create the sitegen
+-- | Run the Sem r @runSiteGenSem@ function that runs the entire program in the
+-- Sem r monad.  This interprets the logs to stderr and converts exceptions into
+-- a Either, prints it and exits with a 1.
+-- Note: the only error so far are @ConfigException@; we'll have to extend that
+-- as time goes on.
 runSiteGen :: SitegenArgs -> IO ()
 runSiteGen args = do
-    res <- runGetSiteGenConfig args
+    res <- runSiteGenSem args               -- [Log String, Embed IO, Error ConfigException]
+        & runLogAction @IO logStringStderr  -- [Embed IO, Error ConfigException]
+        & errorToIOFinal @ConfigException   -- [Embed IO]
+        & embedToFinal @IO
+        & runFinal
     case res of
-        Right sgc -> do
-            print sgc
+        Right _ -> do
             return ()
         Left ex -> do
             print ex
             exitWith (ExitFailure 1)
 
 
--- | run the Sem m to final to load the config
--- This is resolved too low down, eventually, we want to hoist the Sem r monad
--- up to runSiteGen to deal with all the effects in one place and let the
--- program be a collection of monads
-runGetSiteGenConfig :: SitegenArgs -> IO (Either ConfigException SiteGenConfig)
-runGetSiteGenConfig args = do
-    --  Resolve the Sem monads with each interpret function to get the sitegen
+-- we've now got some validated args; now we need to use those args to create
+-- the full read-only config for the site from the site.yaml.  Then we use that
+-- to create the sitegen
+runSiteGenSem :: Members '[ Log String
+                          , Embed IO
+                          , Error ConfigException ] r
+              => SitegenArgs -> Sem r ()
+runSiteGenSem args = do
     let fp = siteConfigArg args
         draft = draftsArg args
-    getSiteGenConfig fp draft               -- [Log String, Embed IO, Error ConfigException]
-        & runLogAction @IO logStringStdout  -- [Embed IO, Error ConfigException]
-        & errorToIOFinal @ConfigException   -- [Embed IO]
-        & embedToFinal @IO
-        & runFinal
+    sgc <- getSiteGenConfig fp draft               -- [Log String, Embed IO, Error ConfigException]
+    embed $ print sgc
+    pure ()

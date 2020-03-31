@@ -29,7 +29,7 @@ import           Polysemy         (Embed, Members, Sem, embed)
 import           Polysemy.Error   (Error, throw)
 
 
-data ConfigException = ConfigException {unString :: String}
+data ConfigException = ConfigException String
                      | ConfigExceptions [ConfigException]
 
 instance Show ConfigException where
@@ -37,7 +37,7 @@ instance Show ConfigException where
       where
           ss = case ex of
               (ConfigException s)   -> s
-              (ConfigExceptions xs) -> intercalate ", " $ map unString xs
+              (ConfigExceptions xs) -> intercalate ", " $ map show xs
 
 {-
 site: <site-identifier>
