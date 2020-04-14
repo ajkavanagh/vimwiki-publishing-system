@@ -18,7 +18,8 @@
 module HeaderSpecs where
 
 import           Data.Function     ((&))
-import           Data.Text         as T
+import           Data.ByteString   as BS
+import qualified Data.ByteString   (ByteString)
 import           Data.Maybe        (fromMaybe)
 import           Test.Hspec        (Spec, describe, it, pending, shouldBe, xit)
 import           Text.RawString.QQ
@@ -113,7 +114,7 @@ findEndSiteGenHeaderSpecs = --do
                 `shouldBe` Just ("h\ne\nllo", 17)
 
 
-simpleHeader :: T.Text
+simpleHeader :: ByteString
 simpleHeader = [r|--- sitegen
 This is Line 1
 This is Line 2
@@ -122,13 +123,13 @@ Done.
 |]
 
 -- This should not extract as it's empty ... i.e. not a header
-emptyHeader :: T.Text
+emptyHeader :: ByteString
 emptyHeader = [r|--- sitegen
 ---
 Done.
 |]
 
-extractedHeader :: T.Text
+extractedHeader :: ByteString
 extractedHeader = [r|This is Line 1
 This is Line 2|]
 
@@ -143,7 +144,7 @@ maybeExtractHeaderBlockSpecs = --do
 
         it "Should return the extracted header" $
             maybeExtractHeaderBlock simpleHeader
-                `shouldBe` (Just extractedHeader, T.length simpleHeader -6)
+                `shouldBe` (Just extractedHeader, BS.length simpleHeader -6)
 
         it "Should return empty string and dropped length for emptyHeader" $
             maybeExtractHeaderBlock emptyHeader `shouldBe` (Nothing, 0)
@@ -158,7 +159,7 @@ maybeExtractHeaderBlockSpecs = --do
 -}
 
 
-runMaybeDecodeHeader :: SiteGenConfig -> RouteContext -> Text
+runMaybeDecodeHeader :: SiteGenConfig -> RouteContext -> ByteString
                      -> ([String], Maybe SourcePageHeader)
 runMaybeDecodeHeader sgc rc txt =
     maybeDecodeHeader txt          -- [Log String , Reader SiteGenConfig , Reader RouteContext]
@@ -213,7 +214,7 @@ defaultSPH = SourcePageHeader
     }
 
 
-minimalHeader :: T.Text
+minimalHeader :: ByteString
 minimalHeader = [r|--- sitegen
 title: This is the day
 ---
@@ -221,7 +222,7 @@ Done.
 |]
 
 
-fullHeader :: T.Text
+fullHeader :: ByteString
 fullHeader = [r|--- sitegen # this is the sitegen :)
 route: the/route
 title: The title
@@ -277,7 +278,7 @@ maybeDecodeHeaderSpecs = -- do
                                                  , phHeaderLen=39}))
 
         it "Should be 'Done.\\n' when dropping 39 chars from minimalHeader" $
-            (T.drop 39 minimalHeader) `shouldBe` "Done.\n"
+            (BS.drop 39 minimalHeader) `shouldBe` "Done.\n"
 
         it "Should return the full SourcePageHeader from a full config" $
             runMaybeDecodeHeader defaultSCG defaultRC fullHeader

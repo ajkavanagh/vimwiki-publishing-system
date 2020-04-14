@@ -50,9 +50,8 @@ import           Prelude            hiding (log)
 
 -- to decode the Yaml header
 import           Data.ByteString    (ByteString)
+import qualified Data.ByteString as BS
 import qualified Data.List          as L
-import qualified Data.Text          as T
-import qualified Data.Text.Encoding as TSE
 import           Data.Yaml          ((.!=), (.:?))
 import qualified Data.Yaml          as Y
 import           Data.Maybe         (fromMaybe)
@@ -69,6 +68,10 @@ import           Polysemy.Reader    (Reader, ask)
 import qualified SiteGenConfig as   S
 import qualified RouteContext   as   R
 import           Dates              (parseDate)
+
+
+maxHeaderSize :: Int
+maxHeaderSize = 100 * 20
 
 
 data RawPageHeader = RawPageHeader
@@ -126,11 +129,11 @@ maybeDecodeHeader :: Members '[ Log String
                               , Reader S.SiteGenConfig
                               , Reader R.RouteContext
                               ] r
-                  => T.Text
+                  => ByteString
                   -> Sem r (Maybe SourcePageHeader)
 maybeDecodeHeader bs = do
     let (maybeHeader, count) = maybeExtractHeaderBlock bs
-    let maybeRawPH = Y.decodeEither' . TSE.encodeUtf8 <$> maybeHeader
+    let maybeRawPH = Y.decodeEither' <$> maybeHeader
     case maybeRawPH of
         Just (Right rph) -> do
             ph <- makeSourcePageHeaderFromRawPageHeader rph count
@@ -199,7 +202,7 @@ convertDate (Just s) =
 -- header using @isHeader@ and searches for the end using @findEnd@.  It returns
 -- a tuple of the block of text that it found and the number of text chars that
 -- make up the block (including the newline).
-maybeExtractHeaderBlock :: T.Text -> (Maybe T.Text, Int)
+maybeExtractHeaderBlock :: ByteString -> (Maybe ByteString, Int)
 maybeExtractHeaderBlock t =
     if isHeader t
       then let (remain, count) = dropWithNewLine t
@@ -209,34 +212,36 @@ maybeExtractHeaderBlock t =
       else (Nothing, 0)
 
 
-siteGenHeader :: T.Text
+siteGenHeader :: ByteString
 siteGenHeader = "--- sitegen"
 
 
 -- the end of the block; note that it includes the newline BEFORE the last (at
 -- least 3) hyphens
-siteGenBreak :: T.Text
+siteGenBreak :: ByteString
 siteGenBreak = "\n---"
 
-isHeader :: T.Text -> Bool
-isHeader ts = T.toLower (T.take (T.length siteGenHeader) ts) == siteGenHeader
+
+isHeader :: ByteString -> Bool
+isHeader bs = BS.take (BS.length siteGenHeader) bs == siteGenHeader
+
 
 -- Drop the siteGenHeader by search for an \n and droping until it is found
 -- returning the text after the header and how much was dropped
-dropWithNewLine :: T.Text -> (T.Text, Int)
-dropWithNewLine ts =
-    let (before, after) = T.breakOn "\n" ts
+dropWithNewLine :: ByteString -> (ByteString, Int)
+dropWithNewLine bs =
+    let (before, after) = BS.breakSubstring "\n" bs
      in case after of
-         "" -> ("", T.length before)    -- ignore the newline as no after
-         _ -> (T.tail after, T.length before +1)  -- add in the newline if there's more
+         "" -> ("", BS.length before)    -- ignore the newline as no after
+         _ -> (BS.tail after, BS.length before +1)  -- add in the newline if there's more
 
 
 -- Find the end site header and drop to the newline and return the block
 -- text and the count of the block to that end bit.
-findEndSiteGenHeader :: T.Text -> Maybe (T.Text, Int)
-findEndSiteGenHeader ts =
-    let (block, remain) = T.breakOn siteGenBreak ts
+findEndSiteGenHeader :: ByteString -> Maybe (ByteString, Int)
+findEndSiteGenHeader bs =
+    let (block, remain) = BS.breakSubstring siteGenBreak bs
      in case remain of
          "" -> Nothing
-         _ -> let (_, count) = dropWithNewLine (T.tail remain)
-               in Just (block, T.length block + count +1)
+         _ -> let (_, count) = dropWithNewLine (BS.tail remain)
+               in Just (block, BS.length block + count +1)

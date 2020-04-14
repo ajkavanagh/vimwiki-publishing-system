@@ -46,6 +46,7 @@ library:
     - polysemy-plugin
     - co-log-core
     - co-log-polysemy
+    - unix
   default-extensions:
     - DataKinds
     - FlexibleContexts
@@ -97,11 +98,12 @@ tests:
     - -with-rtsopts=-N
     - -fplugin=Polysemy.Plugin
     dependencies:
-    - vimwiki-publishing-system
-    - hspec
-    - text
-    - raw-strings-qq
-    - polysemy
-    - polysemy-plugin
+    - bytestring
     - co-log-core
     - co-log-polysemy
+    - hspec
+    - polysemy
+    - polysemy-plugin
+    - raw-strings-qq
+    - text
+    - vimwiki-publishing-system

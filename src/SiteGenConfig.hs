@@ -29,6 +29,11 @@ import           Polysemy         (Embed, Members, Sem, embed)
 import           Polysemy.Error   (Error, throw)
 
 
+-- | define the biggest file we are willing to process
+maxFileToProcessSize :: Int
+maxFileToProcessSize = 20 * 1024
+
+
 data ConfigException = ConfigException String
                      | ConfigExceptions [ConfigException]
 
@@ -97,7 +102,7 @@ readConfig fp = do
     res <- embed $ decodeFileEither fp
     case res of
         Left parseException -> throw $ ConfigException $ show parseException
-        Right conf          -> return conf
+        Right conf          -> pure conf
 
 
 data SiteGenConfig = SiteGenConfig
