@@ -19,6 +19,7 @@ module SiteGen
       where
 
 import           Data.Function             ((&))
+import           Data.List                 (intercalate)
 
 import           System.Exit               (ExitCode (..), exitWith)
 
@@ -36,6 +37,7 @@ import           Colog.Polysemy            (runLogAction, Log)
 import qualified Colog.Polysemy            as CP
 import           Polysemy
 import           Polysemy.Error
+import           Polysemy.Reader           (runReader)
 
 -- Application Effects
 import           Effect.File               (File, FileException, fileToIO)
@@ -45,8 +47,10 @@ import           Lib                       (isDebug, isMarkDownFile,
                                             isMarkDownStr, printIfDoesntExist,
                                             strToLower, validateFileExists,
                                             validateWithTests)
-import           SiteGenConfig             (ConfigException, SiteGenConfig,
-                                            getSiteGenConfig)
+import           SiteGenConfig             (ConfigException, SiteGenConfig)
+import qualified SiteGenConfig             as SGC
+import qualified Files                     as F
+import qualified Header                    as H
 
 sitegenProgram :: IO ()
 sitegenProgram = sitegenCli =<< execParser opts
@@ -137,6 +141,14 @@ runSiteGenSem
 runSiteGenSem args = do
     let fp = siteConfigArg args
         draft = draftsArg args
-    sgc <- getSiteGenConfig fp draft
-    CP.log @String $ show sgc
+    sgc <- SGC.getSiteGenConfig fp draft
+    {-CP.log @String "The site gen config is"-}
+    {-CP.log @String $ show sgc-}
+    let sourceDir = SGC.sgcSource sgc
+    let ext = SGC.sgcExtension sgc
+    CP.log @String $ "Looking in " ++ (show sourceDir)
+    CP.log @String $ "Extension is " ++ (show ext)
+    phs <- runReader sgc $ F.filePathToSourcePageHeaders sourceDir ext
+    let files = map H.phFileName phs
+    CP.log @String $ "Files are " ++ (intercalate "\n" files)
     pure ()

@@ -172,19 +172,19 @@ runMaybeDecodeHeader sgc rc txt =
 
 defaultSCG :: SiteGenConfig
 defaultSCG = SiteGenConfig
-    { siteYaml="a/file/path"
-    , siteID="site1"
-    , source="src/"
-    , outputDir="html/"
-    , extension=".md"
-    , indexPageName="index"
-    , templatesDir="templates/"
-    , templateExt=".html.j2"
-    , cssDir="css/"
-    , defaultStyle="default.css"
-    , generateTags=True
-    , generateCategories=True
-    , publishDrafts=True
+    { sgcSiteYaml="a/file/path"
+    , sgcSiteID="site1"
+    , sgcSource="src/"
+    , sgcOutputDir="html/"
+    , sgcExtension=".md"
+    , sgcIndexPageName="index"
+    , sgcTemplatesDir="templates/"
+    , sgcTemplateExt=".html.j2"
+    , sgcCssDir="css/"
+    , sgcDefaultStyle="default.css"
+    , sgcGenerateTags=True
+    , sgcGenerateCategories=True
+    , sgcPublishDrafts=True
     }
 
 

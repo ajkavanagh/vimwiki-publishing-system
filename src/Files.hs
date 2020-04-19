@@ -144,7 +144,6 @@ filePathToSourcePageHeaders
                 , Error FileException
                 , Reader S.SiteGenConfig
                 , Log String
-                , Embed IO
                 ] r
     => FilePath       -- the directory
     -> String         -- the extension to filter by

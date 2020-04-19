@@ -108,19 +108,19 @@ readConfig fp = do
 
 
 data SiteGenConfig = SiteGenConfig
-    { siteYaml           :: !FilePath
-    , siteID             :: !String
-    , source             :: !FilePath
-    , outputDir          :: !FilePath
-    , extension          :: !String
-    , indexPageName      :: !String
-    , templatesDir       :: !FilePath
-    , templateExt        :: !String
-    , cssDir             :: !FilePath
-    , defaultStyle       :: !String
-    , generateTags       :: !Bool
-    , generateCategories :: !Bool
-    , publishDrafts      :: !Bool
+    { sgcSiteYaml           :: !FilePath
+    , sgcSiteID             :: !String
+    , sgcSource             :: !FilePath
+    , sgcOutputDir          :: !FilePath
+    , sgcExtension          :: !String
+    , sgcIndexPageName      :: !String
+    , sgcTemplatesDir       :: !FilePath
+    , sgcTemplateExt        :: !String
+    , sgcCssDir             :: !FilePath
+    , sgcDefaultStyle       :: !String
+    , sgcGenerateTags       :: !Bool
+    , sgcGenerateCategories :: !Bool
+    , sgcPublishDrafts      :: !Bool
     } deriving (Show)
 
 
@@ -158,19 +158,19 @@ makeSiteGenConfigFromRaw configPath rawConfig forceDrafts = do
     if any isNothing [source_, outputDir_, templatesDir_, cssDir_]
       then throw $ ConfigException "One or more directories didn't exist"
       else pure $ SiteGenConfig
-          { siteYaml=configPath
-          , siteID=_siteID rawConfig
-          , source= fromJust source_
-          , outputDir=fromJust outputDir_
-          , extension=_extension rawConfig
-          , indexPageName=_indexPageName rawConfig
-          , templatesDir=fromJust templatesDir_
-          , templateExt=_templateExt rawConfig
-          , cssDir=fromJust cssDir_
-          , defaultStyle=_defaultStyle rawConfig
-          , generateTags=_generateTags rawConfig
-          , generateCategories=_generateCategories rawConfig
-          , publishDrafts=_publishDrafts rawConfig || forceDrafts
+          { sgcSiteYaml=configPath
+          , sgcSiteID=_siteID rawConfig
+          , sgcSource=fromJust source_
+          , sgcOutputDir=fromJust outputDir_
+          , sgcExtension=_extension rawConfig
+          , sgcIndexPageName=_indexPageName rawConfig
+          , sgcTemplatesDir=fromJust templatesDir_
+          , sgcTemplateExt=_templateExt rawConfig
+          , sgcCssDir=fromJust cssDir_
+          , sgcDefaultStyle=_defaultStyle rawConfig
+          , sgcGenerateTags=_generateTags rawConfig
+          , sgcGenerateCategories=_generateCategories rawConfig
+          , sgcPublishDrafts=_publishDrafts rawConfig || forceDrafts
           }
 
 

@@ -167,7 +167,7 @@ makeSourcePageHeaderFromRawPageHeader rph len = do
         , phFileName  = R.rcFileName rc
         , phTitle     = pick (_title rph) (R.rcAutoTitle rc)
         , phTemplate  = _template rph
-        , phStyle     = pick (_style rph) (S.defaultStyle sgc)
+        , phStyle     = pick (_style rph) (S.sgcDefaultStyle sgc)
         , phTags      = _tags rph
         , phCategory  = _category rph
         , phDate      = pageDate
@@ -175,7 +175,7 @@ makeSourcePageHeaderFromRawPageHeader rph len = do
         , phSitePage  = _sitePage rph
         , phAuthors   = _authors rph
         , phPublish   = _publish rph
-        , phSiteID    = pick (_siteID rph) (S.siteID sgc)
+        , phSiteID    = pick (_siteID rph) (S.sgcSiteID sgc)
         , phHeaderLen = len
         }
 
