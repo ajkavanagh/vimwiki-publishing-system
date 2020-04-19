@@ -190,15 +190,17 @@ defaultSCG = SiteGenConfig
 
 defaultRC :: RouteContext
 defaultRC = RouteContext
-    { autoSlug="auto/slug"
-    , fileTime=fromMaybe undefined (parseDate "2020-03-28T09:00")
-    , autoTitle="auto-title"
+    { rcAutoSlug="auto/slug"
+    , rcFileTime=fromMaybe undefined (parseDate "2020-03-28T09:00")
+    , rcFileName="some-name.md"
+    , rcAutoTitle="auto-title"
     }
 
 
 defaultSPH :: SourcePageHeader
 defaultSPH = SourcePageHeader
     { phRoute="auto/slug"
+    , phFileName="some-name.md"
     , phTitle="auto-title"
     , phTemplate="default"
     , phStyle="default.css"
@@ -247,6 +249,7 @@ site: default
 fullHeaderSPH :: SourcePageHeader
 fullHeaderSPH = SourcePageHeader
     { phRoute="the/route"
+    , phFileName="some-name.md"
     , phTitle="The title"
     , phTemplate="not-default"
     , phStyle="some-style.css"

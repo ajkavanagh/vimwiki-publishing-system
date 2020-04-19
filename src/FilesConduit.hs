@@ -17,20 +17,14 @@ module FilesConduit
 
 
 import           System.FilePath    (takeExtension)
-import           System.IO.Error    (tryIOError)
 import           System.Posix.Files (fileSize)
 
-import           Control.Monad      (filterM, when)
+import           Control.Monad      (filterM, when, liftM, (>=>))
 
 import           Data.ByteString    (ByteString)
 import qualified Data.ByteString    as BS
 import           Data.Function      ((&))
 import           Data.Maybe         (catMaybes)
-
-import           Conduit            (MonadResource, filterC, runConduit,
-                                     runResourceT, sinkList,
-                                     sourceDirectoryDeep)
-import           Data.Conduit       (ConduitT, (.|))
 
 import           Colog.Core         (logStringStderr)
 import           Colog.Polysemy     (Log, runLogAction)
@@ -41,7 +35,7 @@ import           Polysemy.Error     (Error, throw)
 import qualified Polysemy.Error     as PE
 import           Polysemy.Reader    (Reader, runReader)
 
-import           Effect.File        (File, FileException (..), fileToIO)
+import           Effect.File        (File, FileException (..))
 import qualified Effect.File        as EF
 import           Header             (SourcePageHeader, maxHeaderSize,
                                      maybeDecodeHeader)
@@ -53,54 +47,39 @@ import qualified SiteGenConfig      as S
 
 
 -- | Get a list of files for a directory (the FilePath) and an extension
--- (including the '.').  This uses conduit, but returns a list.  This was
--- because it was proving very tricky for me to thread the Sem r monad through
--- the ConduitT and in the end I just decided to take the hit on memory, but use
--- Conduit to save on file handles.
-sourceFiles :: Members '[ File
-                        , Error FileException
-                        , Log String
-                        , Embed IO
-                        ] r
-            => FilePath
-            -> String
-            -> Sem r [FilePath]
-sourceFiles fp ext = do
-    res <- embed $ tryIOError $ runResourceT $ runConduit $ sourceFilesC fp ext .| sinkList
-    -- still need to process each of the possible md files to check they are not
-    -- too big
-    case res of
-        Left ioerror -> throw $ FileException (show ioerror)
-        Right paths -> do
-            rs <- filterM (isSmallerThan maxFileToProcessSize) paths
-            pure rs
-
--- filterM :: Applicative m => (a -> m Bool) -> [a] -> m [a]
-
-
-sourceFilesC :: MonadResource m => FilePath -> String -> ConduitT () FilePath m ()
-sourceFilesC dir ext = sourceDirectoryDeep False dir
-                    .| filterC (isExtensionFile lExt)
+-- (including the '.').
+sourceDirectory
+    :: Members '[ File
+                , Error FileException
+                , Log String
+                ] r
+    => FilePath
+    -> String
+    -> Sem r [FilePath]
+sourceDirectory dir ext = do
+    paths <- EF.sourceDirectoryDeepFilter False dir (isExtensionFileLC lExt)
+    filterM (isSmallerThanM maxFileToProcessSize) paths
   where
-      lExt = strToLower ext
+    lExt = strToLower ext
 
 
-
-isExtensionFile :: String -> FilePath -> Bool
-isExtensionFile ext = (==ext) . strToLower . takeExtension
+-- | return True fi the extension on the file matches (lowercased) to the
+-- filepath provided.
+isExtensionFileLC :: String -> FilePath -> Bool
+isExtensionFileLC ext = (==ext) . strToLower . takeExtension
 
 
 -- return True if the filepath file is <= the size provided
 -- runs inside a monad that has IO.
-isSmallerThan :: Members '[ File
-                          , Error FileException
-                          , Log String
-                          , Embed IO
-                          ] r
-              => Int
-              -> FilePath
-              -> Sem r Bool
-isSmallerThan size fp = do
+isSmallerThanM
+    :: Members '[ File
+                , Error FileException
+                , Log String
+                ] r
+    => Int
+    -> FilePath
+    -> Sem r Bool
+isSmallerThanM size fp = do
     fs <- EF.fileStatus fp
     let size' = (fromIntegral . fileSize) fs
     let ok = size' <= size
@@ -139,7 +118,7 @@ filePathToMaybeSourcePageHeader
     -> Sem r (Maybe SourcePageHeader)
 filePathToMaybeSourcePageHeader fp = do
     rc <- R.makeRouteContextFromFileName fp
-    bs <- EF.readFile fp Nothing (Just maxHeaderSize)
+    bs <- EF.readFile fp Nothing (Just maxHeaderSize)  -- read up to maxHeaderSize bytes
     runReader rc $ maybeDecodeHeader bs   -- add in The Reader RouteContext to the Sem monad
 
 
@@ -153,9 +132,8 @@ filePathsToSourcePageHeaders
                 ] r
     => [FilePath]
     -> Sem r [SourcePageHeader]
-filePathsToSourcePageHeaders fs = do
-    mSPHs <- mapM filePathToMaybeSourcePageHeader fs
-    pure $ catMaybes mSPHs
+filePathsToSourcePageHeaders fs =
+    catMaybes <$> mapM filePathToMaybeSourcePageHeader fs
 
 
 -- finally, we convert a single FilePath (a directory) to a list of
@@ -171,19 +149,19 @@ filePathToSourcePageHeaders
     => FilePath       -- the directory
     -> String         -- the extension to filter by
     -> Sem r [SourcePageHeader]
-filePathToSourcePageHeaders fp ext = do
-    fs <- sourceFiles fp ext
-    filePathsToSourcePageHeaders fs
+filePathToSourcePageHeaders dir ext =
+    filePathsToSourcePageHeaders =<< sourceDirectory dir ext
 
 
 
+-- Some tests; we'll delete these when we move to unit testing this module.
 -- test if we can get a file list
 
 
-runTest x = x & fileToIO
+runTest x = x & EF.fileToIO
               & PE.errorToIOFinal @FileException
               & runLogAction @IO logStringStderr  -- [Embed IO, Error ConfigException]
               & embedToFinal @IO
               & runFinal
 
-sourceFilesP fp ext = sourceFiles fp ext & runTest
+sourceDirectoryP dir ext = sourceDirectory dir ext & runTest
