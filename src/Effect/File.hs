@@ -12,7 +12,7 @@
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeOperators        #-}
 
-
+{-# OPTIONS_GHC -fplugin=Polysemy.Plugin #-}
 
 module Effect.File
       where
@@ -96,15 +96,12 @@ fileToIO = interpret $ \case
     -- Get the FileStatus for a file
     -- fileStatus :: FilePath -> FileStatus
     FileStatus fp -> do
-        fs' <- embed $ tryIOError $ SPF.getFileStatus fp
-        case fs' of
-            Right fs     -> pure fs
-            Left ioerror -> PE.throw $ FileException $ show ioerror
+        throwIfException =<< (embed $ tryIOError $ SPF.getFileStatus fp)
 
     -- read a file with optional offset and optional size
     -- readFile :: FilePath -> Maybe Int -> Maybe Int -> ByteString
     ReadFile fp seek size -> do
-        res' <- embed $ tryIOError $ bracket
+        res <- embed $ tryIOError $ bracket
             (openBinaryFile fp ReadMode)
             (hClose)
             (\handle -> do
@@ -112,17 +109,12 @@ fileToIO = interpret $ \case
                 case size of
                     Just size' -> BS.hGet handle size'
                     Nothing    -> BS.hGetContents handle)
-        case res' of
-            Right res    -> pure res
-            Left ioerror -> PE.throw $ FileException $ show ioerror
+        throwIfException res
 
     -- write a ByteString to the filepath
     -- writeFile :: FilePath -> ByteString
     WriteFile fp bs -> do
-        res' <- embed $ tryIOError $ BS.writeFile fp bs
-        case res' of
-            Right _      -> pure ()
-            Left ioerror -> PE.throw $ FileException $ show ioerror
+        throwIfException =<< (embed $ tryIOError $ BS.writeFile fp bs)
 
     -- The next two functions use conduit and return a list of files.
     -- Conduit is used as it's convenient to list the files without using up
@@ -136,16 +128,13 @@ fileToIO = interpret $ \case
     -- -> (FilePath -> Bool)  - a filter to apply to each filepath
     -- -> File m [FilePath]   - and return a list of FilePath types
     SourceDirectoryFilter dir filterFunc -> do
-        res <- embed
+        throwIfException =<< (embed
              $ tryIOError
              $ runResourceT
              $ runConduit
              $ sourceDirectory dir
                 .| filterC filterFunc
-                .| sinkList
-        case res of
-            Left ioerror -> PE.throw $ FileException (show ioerror)
-            Right paths  -> pure paths
+                .| sinkList)
 
     -- Do a deep traverse into the file system at FilePath point.
     -- Could throw a FileException if things go wrong
@@ -156,44 +145,43 @@ fileToIO = interpret $ \case
     -- -> File m [FilePath]   - and return a list of FilePath types
 
     SourceDirectoryDeepFilter flag dir filterFunc -> do
-        res <- embed
+        throwIfException =<< (embed
              $ tryIOError
              $ runResourceT
              $ runConduit
              $ sourceDirectoryDeep flag dir
                 .| filterC filterFunc
-                .| sinkList
-        case res of
-            Left ioerror -> PE.throw $ FileException (show ioerror)
-            Right paths  -> pure paths
+                .| sinkList)
 
     -- MakeAbsolute :: FilePath -> File m FilePath
     MakeAbsolute fp -> do
-        res <- embed
+        throwIfException =<< (embed
              $ tryIOError
-             $ SD.makeAbsolute fp
-        case res of
-            Left ioerror -> PE.throw $ FileException (show ioerror)
-            Right path  -> pure path
-
+             $ SD.makeAbsolute fp)
 
     --DoesDirectoryExist :: FilePath -> File m Bool
     DoesDirectoryExist fp -> do
-        res <- embed
+        throwIfException =<< (embed
              $ tryIOError
-             $ SD.doesDirectoryExist fp
-        case res of
-            Left ioerror -> PE.throw $ FileException (show ioerror)
-            Right flag  -> pure flag
+             $ SD.doesDirectoryExist fp)
 
     --DoesFileExist :: FilePath -> File m Bool
     DoesFileExist fp -> do
-        res <- embed
+        throwIfException =<< (embed
              $ tryIOError
-             $ SD.doesFileExist fp
-        case res of
-            Left ioerror -> PE.throw $ FileException (show ioerror)
-            Right flag  -> pure flag
+             $ SD.doesFileExist fp)
+
+
+-- helper function to throw an Either a b to a FileException if its a Left or
+-- just return the right as a pure.
+throwIfException
+    :: Member (Error FileException) r
+    => Show a
+    => Either a b
+    -> Sem r b
+throwIfException e = case e of
+    Left a -> PE.throw $ FileException $ show a
+    Right b -> pure b
 
 -- let's do q quick tests -- we'll delete these once we have stuff going!
 
