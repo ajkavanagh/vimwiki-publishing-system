@@ -12,7 +12,7 @@
 
 
 
-module FilesConduit
+module Files
       where
 
 

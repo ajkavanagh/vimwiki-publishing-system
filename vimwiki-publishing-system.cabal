@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 86b57308fdd20ca9bdfbf5c7aec58780141bb4b430b336357afd2115c946304f
+-- hash: 3ad0bcf027096c8493da170a19be5becc0f14d90936119c520256cc7dc7712e3
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -30,7 +30,7 @@ library
       Dates
       Effect.File
       ExploreSemConduit
-      FilesConduit
+      Files
       Header
       Lib
       LibVps
