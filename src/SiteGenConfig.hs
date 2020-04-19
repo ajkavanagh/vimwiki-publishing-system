@@ -11,9 +11,6 @@
 
 module SiteGenConfig where
 
--- hide log, as we're pulling it in from co-log
-import           Prelude          hiding (log)
-
 import           System.Directory (doesDirectoryExist, doesFileExist,
                                    makeAbsolute)
 import           System.FilePath  (FilePath, pathSeparator, takeDirectory,
@@ -24,7 +21,8 @@ import           Data.Maybe       (fromJust, isNothing)
 import           Data.Yaml
 
 -- For Polysemy logging of things going on.
-import           Colog.Polysemy   (Log, log)
+import           Colog.Polysemy   (Log)
+import qualified Colog.Polysemy   as CP
 import           Polysemy         (Embed, Members, Sem, embed)
 import           Polysemy.Error   (Error, throw)
 
@@ -174,7 +172,7 @@ resolvePath :: Members '[Log String, Embed IO] r
             -> String          -- A handy error string to log with (maybe)
             -> Sem r (Maybe FilePath)  -- what to return
 reolvePath "" _ errorStr = do
-    log @String $ "Path  is empty for: " ++ errorStr
+    CP.log @String $ "Path  is empty for: " ++ errorStr
     pure Nothing
 resolvePath path root errorStr = do
     resolvedPath <- if head path /= pathSeparator
@@ -184,5 +182,5 @@ resolvePath path root errorStr = do
     if exists
       then pure $ Just resolvedPath
       else do
-          log @String $ "Path " ++ resolvedPath ++ " doesn't exist for: " ++ errorStr
+          CP.log @String $ "Path " ++ resolvedPath ++ " doesn't exist for: " ++ errorStr
           pure Nothing
