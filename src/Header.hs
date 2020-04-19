@@ -110,6 +110,7 @@ instance Y.FromJSON RawPageHeader where
 -- The SourcePageHeader is the resolved and fully parsed page header
 data SourcePageHeader = SourcePageHeader
     { phRoute     :: !String
+    , phFileName  :: !FilePath
     , phTitle     :: !String
     , phTemplate  :: !String
     , phStyle     :: !String
@@ -158,12 +159,13 @@ makeSourcePageHeaderFromRawPageHeader :: Members '[ Log String
                                 -> Sem r SourcePageHeader
 makeSourcePageHeaderFromRawPageHeader rph len = do
     sgc <- ask @S.SiteGenConfig
-    pc  <- ask @R.RouteContext
+    rc  <- ask @R.RouteContext
     pageDate <- convertDate $ _date rph
     updatedDate <- convertDate $ _updated rph
     pure SourcePageHeader
-        { phRoute     = pick (_route rph) (R.autoSlug pc)
-        , phTitle     = pick (_title rph) (R.autoTitle pc)
+        { phRoute     = pick (_route rph) (R.rcAutoSlug rc)
+        , phFileName  = R.rcFileName rc
+        , phTitle     = pick (_title rph) (R.rcAutoTitle rc)
         , phTemplate  = _template rph
         , phStyle     = pick (_style rph) (S.defaultStyle sgc)
         , phTags      = _tags rph

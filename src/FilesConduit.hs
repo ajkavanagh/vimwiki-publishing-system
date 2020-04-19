@@ -25,6 +25,7 @@ import           Control.Monad      (filterM, when)
 import           Data.ByteString    (ByteString)
 import qualified Data.ByteString    as BS
 import           Data.Function      ((&))
+import           Data.Maybe         (catMaybes)
 
 import           Conduit            (MonadResource, filterC, runConduit,
                                      runResourceT, sinkList,
@@ -38,9 +39,10 @@ import           Polysemy           (Embed, Members, Sem, embed, embedToFinal,
                                      run, runFinal)
 import           Polysemy.Error     (Error, throw)
 import qualified Polysemy.Error     as PE
+import           Polysemy.Reader    (Reader, runReader)
 
-import           Effect.File        (File, FileException (..), fileStatus,
-                                     fileToIO)
+import           Effect.File        (File, FileException (..), fileToIO)
+import qualified Effect.File        as EF
 import           Header             (SourcePageHeader, maxHeaderSize,
                                      maybeDecodeHeader)
 import           Lib                (strToLower)
@@ -99,7 +101,7 @@ isSmallerThan :: Members '[ File
               -> FilePath
               -> Sem r Bool
 isSmallerThan size fp = do
-    fs <- fileStatus fp
+    fs <- EF.fileStatus fp
     let size' = (fromIntegral . fileSize) fs
     let ok = size' <= size
     when (not ok) $ CP.log @String $ "File " ++ (show fp) ++ " is too big to process"
@@ -108,7 +110,7 @@ isSmallerThan size fp = do
 
 
 
--- | convert the FilePath -> (FilePath, conduit of file data)
+-- | convert the FilePath -> Maybe SourcePageHeader
 
 {- what we want to do is to read enough of the file to determine:
 
@@ -124,6 +126,55 @@ isSmallerThan size fp = do
    HERE
 
 -}
+
+-- read up to maxHeaderSize of the file (into a ByteString) and see if we can
+-- extract a header.
+filePathToMaybeSourcePageHeader
+    :: Members '[ File
+                , Error FileException
+                , Reader S.SiteGenConfig
+                , Log String
+                ] r
+    => FilePath
+    -> Sem r (Maybe SourcePageHeader)
+filePathToMaybeSourcePageHeader fp = do
+    rc <- R.makeRouteContextFromFileName fp
+    bs <- EF.readFile fp Nothing (Just maxHeaderSize)
+    runReader rc $ maybeDecodeHeader bs   -- add in The Reader RouteContext to the Sem monad
+
+
+-- now convert a bunch of files to a list of SourcePageHeaders -- note the list
+-- may be empty if there are not headers available, or the files do not resolve.
+filePathsToSourcePageHeaders
+    :: Members '[ File
+                , Error FileException
+                , Reader S.SiteGenConfig
+                , Log String
+                ] r
+    => [FilePath]
+    -> Sem r [SourcePageHeader]
+filePathsToSourcePageHeaders fs = do
+    mSPHs <- mapM filePathToMaybeSourcePageHeader fs
+    pure $ catMaybes mSPHs
+
+
+-- finally, we convert a single FilePath (a directory) to a list of
+-- SourcePageHeaders.  This is the magic function to find out what we need to
+-- process.
+filePathToSourcePageHeaders
+    :: Members '[ File
+                , Error FileException
+                , Reader S.SiteGenConfig
+                , Log String
+                , Embed IO
+                ] r
+    => FilePath       -- the directory
+    -> String         -- the extension to filter by
+    -> Sem r [SourcePageHeader]
+filePathToSourcePageHeaders fp ext = do
+    fs <- sourceFiles fp ext
+    filePathsToSourcePageHeaders fs
+
 
 
 -- test if we can get a file list
