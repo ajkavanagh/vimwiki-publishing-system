@@ -19,6 +19,9 @@ module Effect.File
 
 import           Prelude            hiding (readFile)
 
+import qualified System.Directory   as SD
+{-import           System.Directory (doesDirectoryExist, doesFileExist,-}
+                                   {-makeAbsolute)-}
 import           System.FilePath    (takeExtension)
 import           System.IO          (IOMode (ReadMode), SeekMode (AbsoluteSeek),
                                      hClose, hSeek, openBinaryFile)
@@ -66,11 +69,19 @@ instance Show FileException where
 
 
 data File m a where
+    -- Stat, read and write files as atomic operations
     FileStatus :: FilePath -> File m SPF.FileStatus
     ReadFile :: FilePath -> Maybe Int -> Maybe Int -> File m ByteString
     WriteFile :: FilePath -> ByteString -> File m ()
+
+    -- List files in Directories
     SourceDirectoryFilter :: FilePath -> (FilePath -> Bool) -> File m [FilePath]
     SourceDirectoryDeepFilter :: Bool -> FilePath -> (FilePath -> Bool) -> File m [FilePath]
+
+    -- Directory support
+    MakeAbsolute :: FilePath -> File m FilePath
+    DoesDirectoryExist :: FilePath -> File m Bool
+    DoesFileExist :: FilePath -> File m Bool
 
 makeSem ''File
 
@@ -156,6 +167,33 @@ fileToIO = interpret $ \case
             Left ioerror -> PE.throw $ FileException (show ioerror)
             Right paths  -> pure paths
 
+    -- MakeAbsolute :: FilePath -> File m FilePath
+    MakeAbsolute fp -> do
+        res <- embed
+             $ tryIOError
+             $ SD.makeAbsolute fp
+        case res of
+            Left ioerror -> PE.throw $ FileException (show ioerror)
+            Right path  -> pure path
+
+
+    --DoesDirectoryExist :: FilePath -> File m Bool
+    DoesDirectoryExist fp -> do
+        res <- embed
+             $ tryIOError
+             $ SD.doesDirectoryExist fp
+        case res of
+            Left ioerror -> PE.throw $ FileException (show ioerror)
+            Right flag  -> pure flag
+
+    --DoesFileExist :: FilePath -> File m Bool
+    DoesFileExist fp -> do
+        res <- embed
+             $ tryIOError
+             $ SD.doesFileExist fp
+        case res of
+            Left ioerror -> PE.throw $ FileException (show ioerror)
+            Right flag  -> pure flag
 
 -- let's do q quick tests -- we'll delete these once we have stuff going!
 

@@ -33,8 +33,12 @@ import           Control.Monad             (foldM, liftM2, unless, when)
 -- Polysemy
 import           Colog.Core                (logStringStderr)
 import           Colog.Polysemy            (runLogAction, Log)
+import qualified Colog.Polysemy            as CP
 import           Polysemy
 import           Polysemy.Error
+
+-- Application Effects
+import           Effect.File               (File, FileException, fileToIO)
 
 -- Local Libraries
 import           Lib                       (isDebug, isMarkDownFile,
@@ -106,9 +110,11 @@ validateSitegenArgs args = validateWithTests args tests
 -- as time goes on.
 runSiteGen :: SitegenArgs -> IO ()
 runSiteGen args = do
-    res <- runSiteGenSem args               -- [Log String, Embed IO, Error ConfigException]
-        & runLogAction @IO logStringStderr  -- [Embed IO, Error ConfigException]
-        & errorToIOFinal @ConfigException   -- [Embed IO]
+    res <- runSiteGenSem args
+        & runLogAction @IO logStringStderr
+        & fileToIO
+        & errorToIOFinal @ConfigException
+        & errorToIOFinal @FileException
         & embedToFinal @IO
         & runFinal
     case res of
@@ -122,13 +128,15 @@ runSiteGen args = do
 -- we've now got some validated args; now we need to use those args to create
 -- the full read-only config for the site from the site.yaml.  Then we use that
 -- to create the sitegen
-runSiteGenSem :: Members '[ Log String
-                          , Embed IO
-                          , Error ConfigException ] r
-              => SitegenArgs -> Sem r ()
+runSiteGenSem
+    :: Members '[ Log String
+                , File
+                , Error FileException
+                , Error ConfigException ] r
+    => SitegenArgs -> Sem r ()
 runSiteGenSem args = do
     let fp = siteConfigArg args
         draft = draftsArg args
-    sgc <- getSiteGenConfig fp draft               -- [Log String, Embed IO, Error ConfigException]
-    embed $ print sgc
+    sgc <- getSiteGenConfig fp draft
+    CP.log @String $ show sgc
     pure ()

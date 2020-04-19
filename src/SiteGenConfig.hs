@@ -11,20 +11,22 @@
 
 module SiteGenConfig where
 
-import           System.Directory (doesDirectoryExist, doesFileExist,
-                                   makeAbsolute)
 import           System.FilePath  (FilePath, pathSeparator, takeDirectory,
                                    (</>))
 
 import           Data.List        (intercalate)
 import           Data.Maybe       (fromJust, isNothing)
-import           Data.Yaml
+import qualified Data.Yaml        as Y
+import           Data.Yaml        ((.:), (.:?), (.!=))
 
 -- For Polysemy logging of things going on.
 import           Colog.Polysemy   (Log)
 import qualified Colog.Polysemy   as CP
 import           Polysemy         (Embed, Members, Sem, embed)
 import           Polysemy.Error   (Error, throw)
+
+import           Effect.File      (File, FileException)
+import qualified Effect.File      as EF
 
 
 -- | define the biggest file we are willing to process
@@ -73,8 +75,8 @@ data RawSiteGenConfig = RawSiteGenConfig
     } deriving (Show)
 
 
-instance FromJSON RawSiteGenConfig where
-    parseJSON (Object v) = RawSiteGenConfig
+instance Y.FromJSON RawSiteGenConfig where
+    parseJSON (Y.Object v) = RawSiteGenConfig
         <$> v .:  "site"                                       -- site: <site-identifier>
         <*> v .:? "source"              .!= "./src"            -- the directory (relative to the site.yaml) to start
         <*> v .:? "output-dir"          .!= "./html"           -- where to place output files
@@ -90,15 +92,17 @@ instance FromJSON RawSiteGenConfig where
     parseJSON _ = error "Can't parse SitegenConfig from YAML/JSON"
 
 
-readConfig :: Members '[ Log String
-                       , Embed IO
-                       , Error ConfigException
-                       ] r
-              => FilePath
-              -> Sem r RawSiteGenConfig
+readConfig
+    :: Members '[ Log String
+                , File
+                , Error FileException
+                , Error ConfigException
+                ] r
+       => FilePath
+       -> Sem r RawSiteGenConfig
 readConfig fp = do
-    res <- embed $ decodeFileEither fp
-    case res of
+    bs <- EF.readFile fp Nothing Nothing
+    case Y.decodeEither' bs of
         Left parseException -> throw $ ConfigException $ show parseException
         Right conf          -> pure conf
 
@@ -120,27 +124,31 @@ data SiteGenConfig = SiteGenConfig
     } deriving (Show)
 
 
-getSiteGenConfig :: Members '[ Log String
-                             , Embed IO
-                             , Error ConfigException
-                             ] r
-                    => FilePath
-                    -> Bool
-                    -> Sem r SiteGenConfig
+getSiteGenConfig
+    :: Members '[ Log String
+                , File
+                , Error FileException
+                , Error ConfigException
+                ] r
+       => FilePath
+       -> Bool
+       -> Sem r SiteGenConfig
 getSiteGenConfig configFileName forceDrafts = do
-    configPath <- embed $ makeAbsolute configFileName
+    configPath <- EF.makeAbsolute configFileName
     rawConfig <- readConfig configPath
     makeSiteGenConfigFromRaw configPath rawConfig forceDrafts
 
 
-makeSiteGenConfigFromRaw :: Members '[ Log String
-                                     , Embed IO
-                                     , Error ConfigException
-                                     ] r
-                            => FilePath
-                            -> RawSiteGenConfig
-                            -> Bool
-                            -> Sem r SiteGenConfig
+makeSiteGenConfigFromRaw
+    :: Members '[ Log String
+                , File
+                , Error FileException
+                , Error ConfigException
+                ] r
+       => FilePath
+       -> RawSiteGenConfig
+       -> Bool
+       -> Sem r SiteGenConfig
 makeSiteGenConfigFromRaw configPath rawConfig forceDrafts = do
     let root = takeDirectory configPath
     source_ <- resolvePath (_source rawConfig) root "source dir"
@@ -166,19 +174,23 @@ makeSiteGenConfigFromRaw configPath rawConfig forceDrafts = do
           }
 
 
-resolvePath :: Members '[Log String, Embed IO] r
-            => FilePath        -- The path to resolve
-            -> FilePath        -- the root to perhaps append to it.
-            -> String          -- A handy error string to log with (maybe)
-            -> Sem r (Maybe FilePath)  -- what to return
-reolvePath "" _ errorStr = do
+resolvePath
+    :: Members '[ Log String
+                , File
+                , Error FileException
+                ] r
+    => FilePath        -- The path to resolve
+    -> FilePath        -- the root to perhaps append to it.
+    -> String          -- A handy error string to log with (maybe)
+    -> Sem r (Maybe FilePath)  -- what to return
+resolvePath "" _ errorStr = do
     CP.log @String $ "Path  is empty for: " ++ errorStr
     pure Nothing
 resolvePath path root errorStr = do
     resolvedPath <- if head path /= pathSeparator
-                      then embed $ makeAbsolute (root </> path)
+                      then EF.makeAbsolute (root </> path)
                       else pure path
-    exists <- embed $ doesDirectoryExist resolvedPath
+    exists <- EF.doesDirectoryExist resolvedPath
     if exists
       then pure $ Just resolvedPath
       else do
