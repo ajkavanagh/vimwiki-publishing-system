@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3ad0bcf027096c8493da170a19be5becc0f14d90936119c520256cc7dc7712e3
+-- hash: 0ec411c8bbff530fa1e21db93baaa37d76b5eaaa9d08ae89adfa3bb90458444a
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -29,6 +29,8 @@ library
   exposed-modules:
       Dates
       Effect.File
+      Effect.Ginger
+      ExploreGinger
       ExploreSemConduit
       Files
       Header
@@ -55,6 +57,7 @@ library
     , filepath
     , generic-deriving
     , ginger
+    , hashable
     , optparse-applicative
     , pandoc
     , pandoc-types
@@ -67,6 +70,8 @@ library
     , time
     , titlecase
     , unix
+    , unordered-containers
+    , utf8-string
     , yaml
   default-language: Haskell2010
 
