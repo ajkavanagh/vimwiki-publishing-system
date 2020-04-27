@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 0ec411c8bbff530fa1e21db93baaa37d76b5eaaa9d08ae89adfa3bb90458444a
+-- hash: 020e122817d472d864ac40d48b29ea7afddab0a0856a6128328d4a4e23fcf082
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -30,6 +30,7 @@ library
       Dates
       Effect.File
       Effect.Ginger
+      ExploreContext
       ExploreGinger
       ExploreSemConduit
       Files
@@ -53,6 +54,7 @@ library
     , co-log-core
     , co-log-polysemy
     , conduit
+    , data-default
     , directory
     , filepath
     , generic-deriving

@@ -28,6 +28,7 @@ library:
     - aeson
     - bytestring
     - conduit
+    - data-default
     - directory
     - filepath
     - ginger
