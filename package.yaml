@@ -35,6 +35,7 @@ library:
     - generic-deriving
     - hashable
     - optparse-applicative
+    - parsec
     - parser-combinators
     - pandoc
     - pandoc-types

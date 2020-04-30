@@ -68,8 +68,7 @@ runPanDoc args = do
     text <- TIO.readFile $ inputFileArg args
     -- process it for wikilinks -- turn them into markdown links
     let pText = processForLinks text
-    -- read the template file
-    template <- TIO.readFile $ templateFilePath args
+    -- create the writer options, including the template
     writerOptions <- pandocHtmlArgs args
     -- parse the markdown and then convert to HTML5 document
     result <- TP.runIO $ do
@@ -87,6 +86,8 @@ collectElems = TPW.query elems
       elems x = [show x]
 
 
+-- this is done line-by-line as we can't have a broken across lines.  However,
+-- they'll still get converted if in a code black.
 processForLinks :: T.Text -> T.Text
 processForLinks = T.unlines . replaceLinks . T.lines
 

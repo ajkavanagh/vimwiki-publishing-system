@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 020e122817d472d864ac40d48b29ea7afddab0a0856a6128328d4a4e23fcf082
+-- hash: 8a8f51e6a240cdd6c737412e737d082728e5c3de2df0df22a1afd88e7b172c98
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -32,6 +32,7 @@ library
       Effect.Ginger
       ExploreContext
       ExploreGinger
+      ExplorePandoc
       ExploreSemConduit
       Files
       Header
@@ -63,6 +64,7 @@ library
     , optparse-applicative
     , pandoc
     , pandoc-types
+    , parsec
     , parser-combinators
     , pcre-heavy
     , pcre-light
