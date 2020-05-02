@@ -185,6 +185,7 @@ defaultSCG = SiteGenConfig
     , sgcGenerateTags=True
     , sgcGenerateCategories=True
     , sgcPublishDrafts=True
+    , sgcIndexFiles=True
     }
 
 
