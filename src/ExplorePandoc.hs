@@ -1,8 +1,8 @@
 {-# LANGUAGE ExtendedDefaultRules #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE LambdaCase           #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE QuasiQuotes          #-}
 
 
 module ExplorePandoc where
@@ -10,35 +10,39 @@ module ExplorePandoc where
 
 
 -- for Pandoc processing
-import qualified Data.List as L
-import qualified Data.Text as T
-import qualified Data.Text.IO as TIO
-import           Data.Text.Titlecase (titlecase)
-import qualified Text.Pandoc as TP
+import qualified Data.List              as L
+import qualified Data.Text              as T
+import qualified Data.Text.IO           as TIO
+import           Data.Text.Titlecase    (titlecase)
+import qualified Qq                     as Q
+import qualified Text.Pandoc            as TP
+import qualified Text.Pandoc.Builder    as B
 import qualified Text.Pandoc.Definition as TPD
-import qualified Text.Pandoc.Error as TPE
-import qualified Text.Pandoc.Walk as TPW
-import qualified Text.Pandoc.Builder as B
-import qualified Text.Regex.PCRE.Heavy as PCRE
-import qualified Qq as Q
+import qualified Text.Pandoc.Error      as TPE
+import qualified Text.Pandoc.Walk       as TPW
+import qualified Text.Regex.PCRE.Heavy  as PCRE
 
 
 
 -- to handle parsing out vimwiki [[text|link]] style links into Links
-import           Text.Parsec            (oneOf, parse, parseTest, parserFail,
-                                         try, anyToken)
-import           Text.Parsec.Char       (char, digit, spaces, string, upper, anyChar)
+import           Text.Parsec            (anyToken, oneOf, parse, parseTest,
+                                         parserFail, try)
+import           Text.Parsec.Char       (anyChar, char, digit, spaces, string,
+                                         upper)
 import           Text.Parsec.Combinator (endBy, endBy1, eof, many1, manyTill,
-                                         sepBy, sepBy1, notFollowedBy)
+                                         notFollowedBy, sepBy, sepBy1)
 import           Text.Parsec.Error      (ParseError)
 import           Text.Parsec.Text       (Parser)
 
-import           Control.Applicative    ((<|>), many)
+import           Control.Applicative    (many, (<|>))
 
 {-
     So we want to convert regexed links into Pandoc links.  These will also
     later be searched and possibly re-written according to page names, etc.
 -}
+
+
+
 
 -- | Process Block level items in the Pandoc AST to look for Str/Space segments
 -- that might contain vimwiki links.  We have to process the Block level items,
@@ -82,17 +86,17 @@ processBlock x = x
 processInlines :: [TP.Inline] -> [TP.Inline]
 processInlines [] = []
 processInlines ys@(x:xs) = case x of
-    (TPD.Str text) -> buildStrSequence [] ys
-    (TPD.Emph ls) -> processEmbedded1 TPD.Emph ls xs
-    (TPD.Strong ls) -> processEmbedded1 TPD.Strong ls xs
-    (TPD.Strikeout ls) -> processEmbedded1 TPD.Strikeout ls xs
+    (TPD.Str text)       -> buildStrSequence [] ys
+    (TPD.Emph ls)        -> processEmbedded1 TPD.Emph ls xs
+    (TPD.Strong ls)      -> processEmbedded1 TPD.Strong ls xs
+    (TPD.Strikeout ls)   -> processEmbedded1 TPD.Strikeout ls xs
     (TPD.Superscript ls) -> processEmbedded1 TPD.Superscript ls xs
-    (TPD.Subscript ls) -> processEmbedded1 TPD.Subscript ls xs
-    (TPD.SmallCaps ls) -> processEmbedded1 TPD.SmallCaps ls xs
-    (TPD.Quoted qt ls) -> processEmbedded1 (TPD.Quoted qt) ls xs
-    (TPD.Cite cite ls) -> processEmbedded1 (TPD.Cite cite) ls xs
+    (TPD.Subscript ls)   -> processEmbedded1 TPD.Subscript ls xs
+    (TPD.SmallCaps ls)   -> processEmbedded1 TPD.SmallCaps ls xs
+    (TPD.Quoted qt ls)   -> processEmbedded1 (TPD.Quoted qt) ls xs
+    (TPD.Cite cite ls)   -> processEmbedded1 (TPD.Cite cite) ls xs
     -- everything else is just passed through and ignored.
-    _ -> x : processInlines xs
+    _                    -> x : processInlines xs
 
 
 -- | process the inlines inside the Inline constructor, and then continue with the
@@ -116,7 +120,7 @@ processStrSequence xs = concatMap toInline $ parseToLinkPart $ T.concat $ map to
   where
       toStr :: TP.Inline -> T.Text
       toStr (TPD.Str txt) = T.pack txt
-      toStr TPD.Space = " "
+      toStr TPD.Space     = " "
 
 
 -- | convert LinkPart pieces back into a sequence of Inline elements.  Uses the
@@ -138,7 +142,7 @@ parseToLinkPart :: T.Text -> [LinkPart]
 parseToLinkPart txt =
     case parse matchManyWikiLinks "" txt of
         Right lps -> concat lps
-        Left _ -> [RegularText txt]
+        Left _    -> [RegularText txt]
 
 
 matchStartLink :: Parser ()
@@ -156,7 +160,7 @@ matchSepInLink = char '|' >> pure ()
 matchAllChars :: Parser [LinkPart]
 matchAllChars = do
     s <- many1 anyChar
-    pure $ [RegularText $ T.pack s]
+    pure [RegularText $ T.pack s]
 
 
 matchPureLinkText :: Parser Char
