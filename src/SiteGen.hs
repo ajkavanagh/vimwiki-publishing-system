@@ -69,6 +69,7 @@ sitegenCli args = do
 data SitegenArgs = SitegenArgs
     { siteConfigArg :: !String
     , draftsArg     :: !Bool
+    , cleanArg      :: !Bool
     , extraArgs     :: ![String]
     }
     deriving Show
@@ -85,6 +86,10 @@ sitegenArgsOptions = SitegenArgs
         ( long "drafts"
        <> short 'd'
        <> help "Use to include draft posts in site" )
+    <*> switch
+        ( long "clean"
+       <> short 'x'
+       <> help "Clean out target files (.html) that don't aren't linked to a source file" )
     <*> many (argument str
         ( metavar "EXTRA"
        <> help "Extra argments"))
