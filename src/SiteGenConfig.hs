@@ -72,6 +72,7 @@ data RawSiteGenConfig = RawSiteGenConfig
     , _generateTags       :: !Bool
     , _generateCategories :: !Bool
     , _publishDrafts      :: !Bool
+    , _indexFiles         :: !Bool
     } deriving (Show)
 
 
@@ -89,6 +90,7 @@ instance Y.FromJSON RawSiteGenConfig where
         <*> v .:? "generate-tags"       .!= False              -- should sitegen generate a tags page
         <*> v .:? "generate-categories" .!= False              -- should sitegen generate categories
         <*> v .:? "publish-drafts"      .!= False              -- should we publish drafs?
+        <*> v .:? "index-files"         .!= True               -- should index files be generated?
     parseJSON _ = error "Can't parse SitegenConfig from YAML/JSON"
 
 
@@ -121,6 +123,7 @@ data SiteGenConfig = SiteGenConfig
     , sgcGenerateTags       :: !Bool
     , sgcGenerateCategories :: !Bool
     , sgcPublishDrafts      :: !Bool
+    , sgcIndexFiles         :: !Bool
     } deriving (Show)
 
 
@@ -171,6 +174,7 @@ makeSiteGenConfigFromRaw configPath rawConfig forceDrafts = do
           , sgcGenerateTags=_generateTags rawConfig
           , sgcGenerateCategories=_generateCategories rawConfig
           , sgcPublishDrafts=_publishDrafts rawConfig || forceDrafts
+          , sgcIndexFiles=_indexFiles rawConfig
           }
 
 
