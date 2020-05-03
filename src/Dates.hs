@@ -1,4 +1,4 @@
-module Dates where
+module Dates (parseDate) where
 
 
 import           Control.Applicative.Combinators (choice)

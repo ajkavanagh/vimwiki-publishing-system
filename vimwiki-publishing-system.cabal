@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 8a8f51e6a240cdd6c737412e737d082728e5c3de2df0df22a1afd88e7b172c98
+-- hash: 2cfa4fdc6dcb82df0f15a4d1bbaf2245f0ff83151043b2ad4def81024e6d1f30
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -37,8 +37,6 @@ library
       Files
       Header
       Lib
-      LibVps
-      Qq
       RouteContext
       SiteGen
       SiteGenConfig
@@ -66,8 +64,6 @@ library
     , pandoc-types
     , parsec
     , parser-combinators
-    , pcre-heavy
-    , pcre-light
     , polysemy
     , polysemy-plugin
     , text
@@ -79,7 +75,7 @@ library
     , yaml
   default-language: Haskell2010
 
-executable vw2html
+executable sitegen
   main-is: VPS.hs
   other-modules:
       Paths_vimwiki_publishing_system

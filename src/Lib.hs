@@ -1,44 +1,30 @@
 {-# LANGUAGE ExtendedDefaultRules #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE OverloadedStrings    #-}
 
 module Lib
-    {-( someFunc-}
-    {-, someOtherFunc-}
-    {-, runPanDoc-}
-    {-)-}
-      where
+    ( isMarkDownStr
+    , isMarkDownFile
+    , debugArgs
+    , isDebug
+    , strToLower
+    , validateWithTests
+    , validateFileExists
+    , validateDirExists
+    , printIfDoesntExist
+    ) where
 
-import Conduit
-import System.FilePath
-import qualified Data.Char as C
-import qualified Data.Text as T
-import qualified Data.List as L
-import qualified Text.Pandoc as TP
-import qualified Text.Pandoc.Error as TPE
-import qualified Data.Text.IO as TIO
-import Control.Applicative (liftA2)
+import           Conduit
+import           Control.Applicative (liftA2)
+import qualified Data.Char           as C
+import           System.FilePath
 
 -- for system environment, etc.
-import System.Directory (doesFileExist, doesDirectoryExist)
-import System.Environment (getProgName, getArgs, getEnvironment)
-
--- for optparse
-import Data.Semigroup ((<>))
-import Options.Applicative
-import Options.Applicative.Types (ReadM, readerAsk)
+import           System.Directory    (doesDirectoryExist, doesFileExist)
+import           System.Environment  (getArgs, getEnvironment)
 
 -- Monad helpers
-import Control.Monad (foldM, liftM2)
+import           Control.Monad       (foldM, liftM2)
 
--- for RIO
-import Control.Monad.IO.Class (MonadIO, liftIO)
-
-someFunc :: IO ()
-someFunc = runResourceT $ runConduit
-     $ sourceDirectoryDeep False "."
-    .| filterC isMarkDownFile
-    .| mapM_C (liftIO . putStrLn)
 
 isMarkDownStr :: String -> Bool
 isMarkDownStr = liftA2 (||) (== "md") (== "markdown") . strToLower
@@ -52,34 +38,6 @@ safeTail xs = tail xs
 
 isMarkDownFile :: FilePath -> Bool
 isMarkDownFile = isMarkDownExt . takeExtension
-
-doThing :: Show a => a -> IO a
-doThing x = do
-    putStrLn $ "Side effect with " ++ show x
-    pure x
-
-doOtherThing :: Show a => a -> IO ()
-doOtherThing x = putStrLn $ "Sidy with: " ++ show x
-
-someOtherFunc :: IO ()
-someOtherFunc = do
-    putStrLn "someOtherFunc"
-    runConduit
-         $ yieldMany [1..]
-        .| takeC 10
-        .| mapC (*2)
-        .| takeWhileC (<18)
-        .| mapMC doThing
-        .| mapMC (\x -> do {
-            putStrLn $ "Another side effect with " ++ show x;
-            pure $ x * 2; } :: IO Integer)
-        .| iterMC doOtherThing
-        .| iterMC print
-        .| mapM_C print
-
-
-testMain :: IO ()
-testMain = undefined
 
 
 debugArgs :: IO ()
@@ -97,13 +55,6 @@ isDebug = do
     pure $ not (null debug) && case head debug of
         (_,"") -> False
         _      -> True
-
-
--- from https://www.fpcomplete.com/blog/2017/07/the-rio-monad
--- A way to do a reader wrapped around an IO
-newtype RIO env a = RIO (env -> IO a)
-runRIO :: MonadIO m => env -> RIO env a -> m a
-runRIO env (RIO f) = liftIO (f env)
 
 
 strToLower :: String -> String

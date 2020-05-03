@@ -12,7 +12,6 @@
 
 
 module SiteGen
-    {-( someFunc-}
     {-, someOtherFunc-}
     {-, runPanDoc-}
     {-)-}
@@ -100,7 +99,7 @@ opts = info
     ( sitegenArgsOptions <**> helper )
     ( fullDesc
     <> progDesc "Transform a Pandoc markdown file into an HTML file"
-    <> header "sitegen - convert vimwiki/markdown to html as a static site"
+    <> header "sitegen - convert a sitegen enabled vimwiki/markdown to html as a static site"
     <> noIntersperse )
 
 

@@ -20,8 +20,6 @@ module Effect.File
 import           Prelude            hiding (readFile)
 
 import qualified System.Directory   as SD
-{-import           System.Directory (doesDirectoryExist, doesFileExist,-}
-                                   {-makeAbsolute)-}
 import           System.FilePath    (takeExtension)
 import           System.IO          (IOMode (ReadMode), SeekMode (AbsoluteSeek),
                                      hClose, hSeek, openBinaryFile)

@@ -39,8 +39,6 @@ library:
     - parser-combinators
     - pandoc
     - pandoc-types
-    - pcre-heavy
-    - pcre-light
     - text
     - time
     - titlecase
@@ -65,7 +63,7 @@ library:
     - TypeFamilies
 
 executables:
-  vw2html:
+  sitegen:
     main:                VPS.hs
     source-dirs:         app
     ghc-options:

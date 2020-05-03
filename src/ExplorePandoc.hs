@@ -1,8 +1,6 @@
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# LANGUAGE FlexibleContexts     #-}
-{-# LANGUAGE LambdaCase           #-}
 {-# LANGUAGE OverloadedStrings    #-}
-{-# LANGUAGE QuasiQuotes          #-}
 
 
 module ExplorePandoc where
@@ -10,17 +8,15 @@ module ExplorePandoc where
 
 
 -- for Pandoc processing
-import qualified Data.List              as L
+--import qualified Data.List              as L
 import qualified Data.Text              as T
-import qualified Data.Text.IO           as TIO
-import           Data.Text.Titlecase    (titlecase)
-import qualified Qq                     as Q
+--import qualified Data.Text.IO           as TIO
+--import           Data.Text.Titlecase    (titlecase)
 import qualified Text.Pandoc            as TP
 import qualified Text.Pandoc.Builder    as B
 import qualified Text.Pandoc.Definition as TPD
-import qualified Text.Pandoc.Error      as TPE
+--import qualified Text.Pandoc.Error      as TPE
 import qualified Text.Pandoc.Walk       as TPW
-import qualified Text.Regex.PCRE.Heavy  as PCRE
 
 
 
