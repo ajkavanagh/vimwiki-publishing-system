@@ -9,7 +9,7 @@
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE TypeOperators       #-}
 
-module SiteGenConfig where
+module Lib.SiteGenConfig where
 
 import           System.FilePath  (FilePath, pathSeparator, takeDirectory,
                                    (</>))

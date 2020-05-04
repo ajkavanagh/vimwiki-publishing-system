@@ -19,7 +19,7 @@
 
 {-# OPTIONS_GHC -fplugin=Polysemy.Plugin #-}
 
-module ExploreContext where
+module Experiments.Context where
 
 import qualified Data.ByteString.UTF8 as DBU
 import           Data.Default         (def)
@@ -53,11 +53,11 @@ import           Text.Ginger.Html     (Html, htmlSource)
 import           Effect.File          (File, FileException)
 import qualified Effect.File          as EF
 
-import           Effect.Ginger        (GingerException(..))
+import           Effect.Ginger        (GingerException (..))
 
-import qualified SiteGenConfig        as S
+import qualified Lib.SiteGenConfig    as S
 
-import           ExploreGinger        (parseToTemplate)
+import           Experiments.Ginger   (parseToTemplate)
 
 {-
    In English, I want a thing that can store bits of Text and when asked with that
@@ -230,7 +230,7 @@ renderTemplate ctxt tpl = do
     res <- TG.runGingerT context tpl
     case res of
         Left err -> PE.throw $ GingerException (show err)
-        Right _ -> pure ()
+        Right _  -> pure ()
 
 
 -- get the html out (as text) -- we'll later push this to conduitT and write it
@@ -299,7 +299,7 @@ runSGC x = x & EF.fileToIO
 
 fromRight :: Show a => Either a b -> b
 fromRight (Right x) = x
-fromRight (Left y) = error (show y)
+fromRight (Left y)  = error (show y)
 
 -- something I can just call
 renderTestContextP = do

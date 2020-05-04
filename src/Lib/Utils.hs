@@ -1,7 +1,7 @@
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# LANGUAGE OverloadedStrings    #-}
 
-module Lib
+module Lib.Utils
     ( isMarkDownStr
     , isMarkDownFile
     , debugArgs

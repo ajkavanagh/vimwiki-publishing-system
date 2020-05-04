@@ -12,7 +12,11 @@
 
 {-# OPTIONS_GHC -fplugin=Polysemy.Plugin #-}
 
-module Header where
+module Lib.Header
+    ( SourcePageHeader(..)
+    , maxHeaderSize
+    , maybeDecodeHeader
+    ) where
 
 -- header.hs -- extract the header (maybe) from a File
 --
@@ -46,28 +50,28 @@ site: <site-identifier> # the site that this belongs to.
 -- to a structure
 
 -- hide log, as we're pulling it in from co-log
-import           Prelude            hiding (log)
+import           Prelude           hiding (log)
 
 -- to decode the Yaml header
-import           Data.ByteString    (ByteString)
-import qualified Data.ByteString as BS
-import qualified Data.List          as L
-import           Data.Yaml          ((.!=), (.:?))
-import qualified Data.Yaml          as Y
-import           Data.Maybe         (fromMaybe)
+import           Data.ByteString   (ByteString)
+import qualified Data.ByteString   as BS
+import qualified Data.List         as L
+import           Data.Maybe        (fromMaybe)
+import           Data.Yaml         ((.!=), (.:?))
+import qualified Data.Yaml         as Y
 
 -- for dates
-import           Data.Time.Clock    (UTCTime)
+import           Data.Time.Clock   (UTCTime)
 
 -- For Polysemy logging of things going on.
-import           Colog.Polysemy     (Log, log)
-import           Polysemy           (Member, Members, Sem)
-import           Polysemy.Reader    (Reader, ask)
+import           Colog.Polysemy    (Log, log)
+import           Polysemy          (Member, Members, Sem)
+import           Polysemy.Reader   (Reader, ask)
 
 -- Local impots
-import qualified SiteGenConfig as   S
-import qualified RouteContext   as   R
-import           Dates              (parseDate)
+import           Lib.Dates         (parseDate)
+import qualified Lib.SiteGenConfig as S
+import qualified RouteContext      as R
 
 
 maxHeaderSize :: Int
@@ -75,7 +79,7 @@ maxHeaderSize = 100 * 20
 
 
 data RawPageHeader = RawPageHeader
-    { _route     :: !(Maybe String)
+    { _route    :: !(Maybe String)
     , _title    :: !(Maybe String)
     , _template :: !String
     , _style    :: !(Maybe String)
@@ -210,7 +214,7 @@ maybeExtractHeaderBlock t =
       then let (remain, count) = dropWithNewLine t
             in case findEndSiteGenHeader remain of
                 Just (header, l) -> (Just header, l + count)
-                Nothing -> (Nothing, 0)
+                Nothing          -> (Nothing, 0)
       else (Nothing, 0)
 
 
@@ -235,7 +239,7 @@ dropWithNewLine bs =
     let (before, after) = BS.breakSubstring "\n" bs
      in case after of
          "" -> ("", BS.length before)    -- ignore the newline as no after
-         _ -> (BS.tail after, BS.length before +1)  -- add in the newline if there's more
+         _  -> (BS.tail after, BS.length before +1)  -- add in the newline if there's more
 
 
 -- Find the end site header and drop to the newline and return the block

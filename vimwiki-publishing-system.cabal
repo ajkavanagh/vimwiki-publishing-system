@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 2cfa4fdc6dcb82df0f15a4d1bbaf2245f0ff83151043b2ad4def81024e6d1f30
+-- hash: 230cb7cebf237c1b9e968353596a69638da9c870995e1c84921c0871bc94b573
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -27,19 +27,21 @@ source-repository head
 
 library
   exposed-modules:
-      Dates
       Effect.File
       Effect.Ginger
-      ExploreContext
-      ExploreGinger
-      ExplorePandoc
-      ExploreSemConduit
-      Files
-      Header
-      Lib
+      Experiments.Context
+      Experiments.Ginger
+      Experiments.Pandoc
+      Experiments.SemConduit
+      Lib.Dates
+      Lib.Errors
+      Lib.Files
+      Lib.Header
+      Lib.SiteGenConfig
+      Lib.Utils
       RouteContext
       SiteGen
-      SiteGenConfig
+      SiteGenState
       SourceContext
   other-modules:
       Paths_vimwiki_publishing_system

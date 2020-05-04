@@ -12,14 +12,16 @@
 
 
 
-module Files
-      where
+module Lib.Files
+    ( sourceDirectory
+    , filePathToSourcePageHeaders
+    ) where
 
 
 import           System.FilePath    (takeExtension)
 import           System.Posix.Files (fileSize)
 
-import           Control.Monad      (filterM, when, liftM, (>=>))
+import           Control.Monad      (filterM, liftM, when, (>=>))
 
 import           Data.ByteString    (ByteString)
 import qualified Data.ByteString    as BS
@@ -37,12 +39,14 @@ import           Polysemy.Reader    (Reader, runReader)
 
 import           Effect.File        (File, FileException (..))
 import qualified Effect.File        as EF
-import           Header             (SourcePageHeader, maxHeaderSize,
+
+import           Lib.Header         (SourcePageHeader, maxHeaderSize,
                                      maybeDecodeHeader)
-import           Lib                (strToLower)
+import           Lib.Utils          (strToLower)
+import           Lib.SiteGenConfig  (maxFileToProcessSize)
+import qualified Lib.SiteGenConfig  as S
+
 import qualified RouteContext       as R
-import           SiteGenConfig      (maxFileToProcessSize)
-import qualified SiteGenConfig      as S
 
 
 
@@ -156,6 +160,7 @@ filePathToSourcePageHeaders dir ext =
 -- Some tests; we'll delete these when we move to unit testing this module.
 -- test if we can get a file list
 
+-- TODO: remove these test functions
 
 runTest x = x & EF.fileToIO
               & PE.errorToIOFinal @FileException

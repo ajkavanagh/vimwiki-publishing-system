@@ -4,22 +4,21 @@
 {-# LANGUAGE GADTs                #-}
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE PolyKinds            #-}
+{-# LANGUAGE QuasiQuotes          #-}
 {-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE TypeApplications     #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeOperators        #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE QuasiQuotes       #-}
 
 {-# OPTIONS_GHC -fplugin=Polysemy.Plugin #-}
 
 
 module HeaderSpecs where
 
-import           Data.Function     ((&))
 import           Data.ByteString   as BS
 import qualified Data.ByteString   (ByteString)
+import           Data.Function     ((&))
 import           Data.Maybe        (fromMaybe)
 import           Test.Hspec        (Spec, describe, it, pending, shouldBe, xit)
 import           Text.RawString.QQ
@@ -36,13 +35,14 @@ import           Polysemy.Output   (runOutputList)
 import           Polysemy.Reader   (runReader)
 
 -- Bits to get the tests to compile
-import           RouteContext      (RouteContext(..))
-import           SiteGenConfig     (SiteGenConfig(..))
-import           Dates             (parseDate)
+import           Lib.Dates         (parseDate)
+import           Lib.SiteGenConfig (SiteGenConfig (..))
+import           RouteContext      (RouteContext (..))
 
 
-import           Header            (dropWithNewLine, findEndSiteGenHeader,
-                                    isHeader, maybeExtractHeaderBlock, maybeDecodeHeader, SourcePageHeader(..))
+import           Lib.Header        (SourcePageHeader (..), dropWithNewLine,
+                                    findEndSiteGenHeader, isHeader,
+                                    maybeDecodeHeader, maybeExtractHeaderBlock)
 
 
 

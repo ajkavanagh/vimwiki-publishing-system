@@ -12,7 +12,7 @@
 
 
 
-module ExploreSemConduit
+module Experiments.SemConduit
       where
 
 

@@ -32,7 +32,7 @@ import           Control.Monad             (foldM, liftM2, unless, when)
 
 -- Polysemy
 import           Colog.Core                (logStringStderr)
-import           Colog.Polysemy            (runLogAction, Log)
+import           Colog.Polysemy            (Log, runLogAction)
 import qualified Colog.Polysemy            as CP
 import           Polysemy
 import           Polysemy.Error
@@ -42,14 +42,14 @@ import           Polysemy.Reader           (runReader)
 import           Effect.File               (File, FileException, fileToIO)
 
 -- Local Libraries
-import           Lib                       (isDebug, isMarkDownFile,
+import qualified Lib.Files                 as F
+import qualified Lib.Header                as H
+import           Lib.Utils                 (isDebug, isMarkDownFile,
                                             isMarkDownStr, printIfDoesntExist,
                                             strToLower, validateFileExists,
                                             validateWithTests)
-import           SiteGenConfig             (ConfigException, SiteGenConfig)
-import qualified SiteGenConfig             as SGC
-import qualified Files                     as F
-import qualified Header                    as H
+import           Lib.SiteGenConfig         (ConfigException, SiteGenConfig)
+import qualified Lib.SiteGenConfig         as SGC
 
 sitegenProgram :: IO ()
 sitegenProgram = sitegenCli =<< execParser opts

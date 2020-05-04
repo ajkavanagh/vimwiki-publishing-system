@@ -3,7 +3,7 @@
 {-# LANGUAGE OverloadedStrings    #-}
 
 
-module ExplorePandoc where
+module Experiments.Pandoc where
 
 
 

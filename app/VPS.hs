@@ -4,7 +4,7 @@ import           System.Environment (getArgs)
 
 import           Control.Monad      (when)
 
-import           Lib                (debugArgs, isDebug)
+import           Lib.Utils          (debugArgs, isDebug)
 import           SiteGen            (sitegenProgram)
 
 

@@ -17,7 +17,7 @@
 
 {-# OPTIONS_GHC -fplugin=Polysemy.Plugin #-}
 
-module ExploreGinger where
+module Experiments.Ginger where
 
 import qualified Data.ByteString.UTF8 as DBU
 import           Data.Text            (Text)

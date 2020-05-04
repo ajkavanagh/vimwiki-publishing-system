@@ -14,7 +14,7 @@ Anyway, the immutable parts are:
 * `SiteGenConfig` configuration
 * List of files to process in the form of `SourcePageHeader` records.
 * map of `FilePath` -> `SourcePageHeader`
-* map of route -> `SourcePageHeader`
+* map of route (`Text`) -> `SourcePageHeader`
 
 The mutable parts of the application:
 
