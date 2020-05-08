@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.31.2.
+-- This file has been generated from package.yaml by hpack version 0.33.0.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 230cb7cebf237c1b9e968353596a69638da9c870995e1c84921c0871bc94b573
+-- hash: c7abef2624c9a739fcfefa0933a5177c04e0bce1da0f1312508d2a503d8d17e5
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -30,6 +30,7 @@ library
       Effect.File
       Effect.Ginger
       Experiments.Context
+      Experiments.Errors
       Experiments.Ginger
       Experiments.Pandoc
       Experiments.SemConduit
@@ -69,6 +70,7 @@ library
     , polysemy
     , polysemy-plugin
     , text
+    , text-show
     , time
     , titlecase
     , unix

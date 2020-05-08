@@ -17,6 +17,9 @@
 module Effect.Ginger
       where
 
+import TextShow
+
+import           Data.Text          (Text)
 
 import           Polysemy           (Embed, Member, Members, Sem, embed,
                                      embedToFinal, interpret, makeSem, run,
@@ -25,13 +28,13 @@ import           Polysemy.Error     (Error)
 import qualified Polysemy.Error     as PE
 
 
-data GingerException = GingerException String
+data GingerException = GingerException Text
 
 instance Show GingerException where
     show ex = "Ginger Exception issue: " ++ ss
       where
           ss = case ex of
-              (GingerException s)   -> s
+              (GingerException s)   -> show s
 
 
 

@@ -19,13 +19,19 @@
 
 module Experiments.Ginger where
 
+import TextShow
+
 import qualified Data.ByteString.UTF8 as DBU
-import           Data.Text            (Text)
+import           Data.Function        ((&))
+import           Data.Hashable        (Hashable)
 import           Data.HashMap.Strict  (HashMap)
 import qualified Data.HashMap.Strict  as HashMap
-import           Data.Hashable        (Hashable)
-import           Data.Function      ((&))
+import           Data.Text            (Text)
+import qualified Data.Text            as T
 
+import           Colog.Core           (logStringStderr)
+import           Colog.Polysemy       (Log, runLogAction)
+import qualified Colog.Polysemy       as CP
 import           Polysemy             (Embed, Member, Members, Sem, embed,
                                        embedToFinal, interpret, makeSem, run,
                                        runFinal)
@@ -35,18 +41,16 @@ import           Polysemy.Reader      (Reader)
 import qualified Polysemy.Reader      as PR
 import           Polysemy.Writer      (Writer)
 import qualified Polysemy.Writer      as PW
-import           Colog.Core         (logStringStderr)
-import           Colog.Polysemy     (Log, runLogAction)
-import qualified Colog.Polysemy   as CP
 
-import           Text.Ginger          (IncludeResolver, SourceName, Source, Template, SourcePos, GVal, ToGVal)
+import           Text.Ginger          (GVal, IncludeResolver, Source,
+                                       SourceName, SourcePos, Template, ToGVal)
 import qualified Text.Ginger          as TG
 import           Text.Ginger.Html     (Html, htmlSource)
 
 import           Effect.File          (File, FileException)
 import qualified Effect.File          as EF
 
-import           Effect.Ginger        (GingerException(..))
+import           Effect.Ginger        (GingerException (..))
 
 
 -- what we want to do is to try and render something into the
@@ -94,8 +98,8 @@ parseToTemplate
 parseToTemplate source = do
     res <- TG.parseGingerFile includeResolver source
     case res of
-        Left parseError -> PE.throw $ GingerException (show parseError)
-        Right tpl -> pure tpl
+        Left parseError -> PE.throw $ GingerException (T.pack $ show parseError)
+        Right tpl       -> pure tpl
 
 
 -- now let's render something
@@ -172,8 +176,8 @@ renderTemplate tpl = do
     let context = TG.makeContextHtmlM (contextLookup' mm) drainHtml
     res <- TG.runGingerT context tpl
     case res of
-        Left err -> PE.throw $ GingerException (show err)
-        Right _ -> pure ()
+        Left err -> PE.throw $ GingerException (T.pack $ show err)
+        Right _  -> pure ()
 
 
 

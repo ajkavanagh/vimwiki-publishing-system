@@ -11,6 +11,8 @@
 
 module Lib.SiteGenConfig where
 
+import           TextShow
+
 import           System.FilePath  (FilePath, pathSeparator, takeDirectory,
                                    (</>))
 
@@ -18,6 +20,8 @@ import           Data.List        (intercalate)
 import           Data.Maybe       (fromJust, isNothing)
 import qualified Data.Yaml        as Y
 import           Data.Yaml        ((.:), (.:?), (.!=))
+import           Data.Text        (Text)
+import qualified Data.Text        as T
 
 -- For Polysemy logging of things going on.
 import           Colog.Polysemy   (Log)
@@ -34,14 +38,14 @@ maxFileToProcessSize :: Int
 maxFileToProcessSize = 20 * 1024
 
 
-data ConfigException = ConfigException String
+data ConfigException = ConfigException Text
                      | ConfigExceptions [ConfigException]
 
 instance Show ConfigException where
     show ex = "Config Loading failed due to: " ++ ss
       where
           ss = case ex of
-              (ConfigException s)   -> s
+              (ConfigException s)   -> show s
               (ConfigExceptions xs) -> intercalate ", " $ map show xs
 
 {-
@@ -105,7 +109,7 @@ readConfig
 readConfig fp = do
     bs <- EF.readFile fp Nothing Nothing
     case Y.decodeEither' bs of
-        Left parseException -> throw $ ConfigException $ show parseException
+        Left parseException -> throw $ ConfigException $ T.pack $ show parseException
         Right conf          -> pure conf
 
 

@@ -19,6 +19,8 @@ module Effect.File
 
 import           Prelude            hiding (readFile)
 
+import           TextShow
+
 import qualified System.Directory   as SD
 import           System.FilePath    (takeExtension)
 import           System.IO          (IOMode (ReadMode), SeekMode (AbsoluteSeek),
@@ -31,6 +33,8 @@ import           Control.Monad      (when)
 
 import           Data.ByteString    (ByteString)
 import qualified Data.ByteString    as BS
+import           Data.Text          (Text)
+import qualified Data.Text          as T
 import           Data.Function      ((&))
 import           Data.List          (intercalate)
 import           Data.Maybe         (fromJust, isJust)
@@ -55,15 +59,15 @@ import           Polysemy.Reader    (Reader, ask)
 -}
 
 
-data FileException = FileException String
+data FileException = FileException FilePath Text
                      | FileExceptions [FileException]
 
 instance Show FileException where
     show ex = "File Handing issue: " ++ ss
       where
           ss = case ex of
-              (FileException s)   -> s
-              (FileExceptions xs) -> intercalate ", " $ map show xs
+              (FileException fp s) -> "FilePath: " ++ (show fp) ++ ", Error: " ++ (show s)
+              (FileExceptions xs)  -> intercalate ", " $ map show xs
 
 
 data File m a where
@@ -94,7 +98,7 @@ fileToIO = interpret $ \case
     -- Get the FileStatus for a file
     -- fileStatus :: FilePath -> FileStatus
     FileStatus fp -> do
-        throwIfException =<< (embed $ tryIOError $ SPF.getFileStatus fp)
+        throwIfException fp =<< (embed $ tryIOError $ SPF.getFileStatus fp)
 
     -- read a file with optional offset and optional size
     -- readFile :: FilePath -> Maybe Int -> Maybe Int -> ByteString
@@ -107,12 +111,12 @@ fileToIO = interpret $ \case
                 case size of
                     Just size' -> BS.hGet handle size'
                     Nothing    -> BS.hGetContents handle)
-        throwIfException res
+        throwIfException fp res
 
     -- write a ByteString to the filepath
     -- writeFile :: FilePath -> ByteString
     WriteFile fp bs -> do
-        throwIfException =<< (embed $ tryIOError $ BS.writeFile fp bs)
+        throwIfException fp =<< (embed $ tryIOError $ BS.writeFile fp bs)
 
     -- The next two functions use conduit and return a list of files.
     -- Conduit is used as it's convenient to list the files without using up
@@ -126,7 +130,7 @@ fileToIO = interpret $ \case
     -- -> (FilePath -> Bool)  - a filter to apply to each filepath
     -- -> File m [FilePath]   - and return a list of FilePath types
     SourceDirectoryFilter dir filterFunc -> do
-        throwIfException =<< (embed
+        throwIfException dir =<< (embed
              $ tryIOError
              $ runResourceT
              $ runConduit
@@ -143,7 +147,7 @@ fileToIO = interpret $ \case
     -- -> File m [FilePath]   - and return a list of FilePath types
 
     SourceDirectoryDeepFilter flag dir filterFunc -> do
-        throwIfException =<< (embed
+        throwIfException dir =<< (embed
              $ tryIOError
              $ runResourceT
              $ runConduit
@@ -153,19 +157,19 @@ fileToIO = interpret $ \case
 
     -- MakeAbsolute :: FilePath -> File m FilePath
     MakeAbsolute fp -> do
-        throwIfException =<< (embed
+        throwIfException fp =<< (embed
              $ tryIOError
              $ SD.makeAbsolute fp)
 
     --DoesDirectoryExist :: FilePath -> File m Bool
     DoesDirectoryExist fp -> do
-        throwIfException =<< (embed
+        throwIfException fp =<< (embed
              $ tryIOError
              $ SD.doesDirectoryExist fp)
 
     --DoesFileExist :: FilePath -> File m Bool
     DoesFileExist fp -> do
-        throwIfException =<< (embed
+        throwIfException fp =<< (embed
              $ tryIOError
              $ SD.doesFileExist fp)
 
@@ -174,11 +178,12 @@ fileToIO = interpret $ \case
 -- just return the right as a pure.
 throwIfException
     :: Member (Error FileException) r
-    => Show a
-    => Either a b
+    => TextShow a
+    => FilePath
+    -> Either a b
     -> Sem r b
-throwIfException e = case e of
-    Left a -> PE.throw $ FileException $ show a
+throwIfException fp e = case e of
+    Left a -> PE.throw $ FileException fp (showt a)
     Right b -> pure b
 
 -- let's do q quick tests -- we'll delete these once we have stuff going!

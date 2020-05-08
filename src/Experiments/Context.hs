@@ -28,6 +28,7 @@ import           Data.Hashable        (Hashable)
 import           Data.HashMap.Strict  (HashMap)
 import qualified Data.HashMap.Strict  as HashMap
 import           Data.Text            (Text)
+import qualified Data.Text            as T
 
 import           Control.Monad        (join)
 
@@ -229,7 +230,7 @@ renderTemplate ctxt tpl = do
     let context = TG.makeContextHtmlM (contextLookupLiftRun ctxt) drainHtml
     res <- TG.runGingerT context tpl
     case res of
-        Left err -> PE.throw $ GingerException (show err)
+        Left err -> PE.throw $ GingerException (T.pack $ show err)
         Right _  -> pure ()
 
 
