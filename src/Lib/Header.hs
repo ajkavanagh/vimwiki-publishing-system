@@ -16,6 +16,7 @@ module Lib.Header
     ( SourcePageHeader(..)
     , maxHeaderSize
     , maybeDecodeHeader
+    , emptySourcePageHeader
     ) where
 
 -- header.hs -- extract the header (maybe) from a File
@@ -50,28 +51,29 @@ site: <site-identifier> # the site that this belongs to.
 -- to a structure
 
 -- hide log, as we're pulling it in from co-log
-import           Prelude           hiding (log)
+import           Prelude            hiding (log)
 
 -- to decode the Yaml header
-import           Data.ByteString   (ByteString)
-import qualified Data.ByteString   as BS
-import qualified Data.List         as L
-import           Data.Maybe        (fromMaybe)
-import           Data.Yaml         ((.!=), (.:?))
-import qualified Data.Yaml         as Y
+import           Data.ByteString    (ByteString)
+import qualified Data.ByteString    as BS
+import           Data.Default.Class (Default, def)
+import qualified Data.List          as L
+import           Data.Maybe         (fromMaybe)
+import           Data.Yaml          ((.!=), (.:?))
+import qualified Data.Yaml          as Y
 
 -- for dates
-import           Data.Time.Clock   (UTCTime)
+import           Data.Time.Clock    (UTCTime)
 
 -- For Polysemy logging of things going on.
-import           Colog.Polysemy    (Log, log)
-import           Polysemy          (Member, Members, Sem)
-import           Polysemy.Reader   (Reader, ask)
+import           Colog.Polysemy     (Log, log)
+import           Polysemy           (Member, Members, Sem)
+import           Polysemy.Reader    (Reader, ask)
 
 -- Local impots
-import           Lib.Dates         (parseDate)
-import qualified Lib.SiteGenConfig as S
-import qualified RouteContext      as R
+import           Lib.Dates          (parseDate)
+import qualified Lib.SiteGenConfig  as S
+import qualified RouteContext       as R
 
 
 maxHeaderSize :: Int
@@ -128,6 +130,30 @@ data SourcePageHeader = SourcePageHeader
     , phSiteID    :: !String
     , phHeaderLen :: !Int   -- the length of the headerblock; i.e. what to drop to get to the content.
     } deriving (Show, Eq)
+
+
+-- we can't derive generically, as there's no default for Bool
+instance Default SourcePageHeader where
+    def = SourcePageHeader
+        { phRoute=def
+        , phFileName=def
+        , phTitle=def
+        , phTemplate=def
+        , phStyle=def
+        , phTags=def
+        , phCategory=def
+        , phDate=def
+        , phUpdated=def
+        , phSitePage=def
+        , phAuthors=def
+        , phPublish=False
+        , phSiteID=def
+        , phHeaderLen=def
+        }
+
+
+emptySourcePageHeader :: SourcePageHeader
+emptySourcePageHeader = def SourcePageHeader
 
 
 maybeDecodeHeader :: Members '[ Log String

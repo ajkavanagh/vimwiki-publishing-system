@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: c7abef2624c9a739fcfefa0933a5177c04e0bce1da0f1312508d2a503d8d17e5
+-- hash: 6d125d258411c32b028846c6bd0dfb0aa68a2c20c57a1fa297047eb592dc6bb7
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -57,7 +57,9 @@ library
     , co-log-polysemy
     , conduit
     , data-default
+    , data-default-class
     , directory
+    , dlist
     , filepath
     , generic-deriving
     , ginger

@@ -1,14 +1,20 @@
 module SiteGenState
     ( SiteGenReader(..)
+    , SiteGenState(..)
     , makeSiteGenReader
+    , emptySiteGenState
     )
     where
 
 
 import qualified Data.HashMap.Strict as HashMap
+import           Data.DList          (DList)
+import qualified Data.DList          as DList
+import           Data.Default.Class  (Default, def)
 
 import           Lib.Header          (SourcePageHeader (..))
 import           Lib.SiteGenConfig   (SiteGenConfig)
+import           Lib.Errors          (SiteGenError)
 
 
 type Route = String
@@ -24,11 +30,7 @@ data SiteGenReader = SiteGenReader
     , siteSourcePageHeaders :: ![SourcePageHeader]
     , siteFilePathMap       :: !FilePathToSPH
     , siteRouteMap          :: !RouteToSPH
-    }
-
-
-instance Show SiteGenReader where
-    show _ = "SiteGenReader<..>"
+    } deriving (Show)
 
 
 makeSiteGenReader :: SiteGenConfig -> [SourcePageHeader] -> SiteGenReader
@@ -46,3 +48,22 @@ makeSiteGenReader sgc sphs = SiteGenReader
 --  * There is a list of SiteGenErrors have been generated during the generation
 --    so far.
 
+-- So we'll have a DList of errors, and the current page. This probably means a
+-- State var for the app
+
+
+data SiteGenState = SiteGenState
+    { siteGenPage   :: !SourcePageHeader
+    , siteGenErrors :: !(DList SiteGenError)
+    } deriving (Show)
+
+
+instance Default SiteGenState where
+    def = SiteGenState
+        { siteGenPage=def
+        , siteGenErrors=DList.empty
+        }
+
+
+emptySiteGenState :: SiteGenState
+emptySiteGenState = def SiteGenState
