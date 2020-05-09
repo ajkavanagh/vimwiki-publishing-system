@@ -14,7 +14,11 @@
 
 module Lib.Header
     ( SourcePageHeader(..)
+    , dropWithNewLine
+    , findEndSiteGenHeader
+    , isHeader
     , maxHeaderSize
+    , maybeExtractHeaderBlock
     , maybeDecodeHeader
     , emptySourcePageHeader
     ) where
@@ -73,7 +77,7 @@ import           Polysemy.Reader    (Reader, ask)
 -- Local impots
 import           Lib.Dates          (parseDate)
 import qualified Lib.SiteGenConfig  as S
-import qualified RouteContext       as R
+import qualified Lib.RouteContext   as R
 
 
 maxHeaderSize :: Int

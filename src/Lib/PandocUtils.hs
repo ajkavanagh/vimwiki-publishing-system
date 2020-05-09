@@ -5,7 +5,7 @@
 {-# LANGUAGE QuasiQuotes          #-}
 
 
-module Lib.PandocUtilis where
+module Lib.PandocUtils where
 
 
 
@@ -13,14 +13,15 @@ module Lib.PandocUtilis where
 import qualified Data.List              as L
 import qualified Data.Text              as T
 import qualified Data.Text.IO           as TIO
-import           Data.Text.Titlecase    (titlecase)
-import qualified Qq                     as Q
+import           Data.HashMap.Strict    (HashMap)
+import qualified Data.HashMap.Strict    as HashMap
 import qualified Text.Pandoc            as TP
 import qualified Text.Pandoc.Builder    as B
 import qualified Text.Pandoc.Definition as TPD
 import qualified Text.Pandoc.Error      as TPE
 import qualified Text.Pandoc.Walk       as TPW
-import qualified Text.Regex.PCRE.Heavy  as PCRE
+
+import qualified Lib.Header             as H
 
 
 -- | re-write Pandoc Links if they map to a source name.  i.e. map it to a
@@ -44,18 +45,18 @@ walkLinksInInlines
 walkLinksInInlines hmap xs = L.concat $ walkLinksInInlines' hmap [] xs
 
 
-walkLinksInInlines
+walkLinksInInlines'
     :: HashMap.HashMap FilePath H.SourcePageHeader
     -> [[TP.Inline]]
     -> [TP.Inline]
     -> [[TP.Inline]]
-walkLinksInInlines hmap ds xs =
+walkLinksInInlines' hmap ds xs =
     let (as, bs) = L.break findLink xs
      in case bs of
          [] -> L.reverse $ as : ds
-         (b:bs') -> walkLinksInInlines' hmap ((maybeRewriteLink hmap b) : ds) bs'
+         (b:bs') -> walkLinksInInlines' hmap (maybeRewriteLink hmap b : ds) bs'
   where
-      findLink (TPD.Link _ _ _) = True
+      findLink TPD.Link {} = True
       findLink _ = False
 
 
@@ -70,3 +71,8 @@ maybeRewriteLink
     -> TP.Inline
     -> [TP.Inline]
 maybeRewriteLink hmap (TPD.Link attr desc (url, title)) = undefined
+
+
+-- use Network.URI to detect the whether it is relative or a URI.  If it is
+-- relative, parse it, pull out the relative bit, and match it against the
+-- relative link of the the SourcePageHeader items.

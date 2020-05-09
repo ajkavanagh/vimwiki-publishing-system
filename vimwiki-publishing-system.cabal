@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 984ee6fe81f64819b07e970e3bd871c5d4e8f81861b8e9c84b37539f4c2007af
+-- hash: 804fecae3f4b5262eec725fd6550749efe3ff6cf26f769b825504764659d2d75
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -39,9 +39,10 @@ library
       Lib.Errors
       Lib.Files
       Lib.Header
+      Lib.PandocUtils
+      Lib.RouteContext
       Lib.SiteGenConfig
       Lib.Utils
-      RouteContext
       SiteGen
       SiteGenState
       SourceContext
@@ -65,6 +66,7 @@ library
     , generic-deriving
     , ginger
     , hashable
+    , network-uri
     , optparse-applicative
     , pandoc
     , pandoc-types

@@ -37,7 +37,7 @@ import           Polysemy.Reader   (runReader)
 -- Bits to get the tests to compile
 import           Lib.Dates         (parseDate)
 import           Lib.SiteGenConfig (SiteGenConfig (..))
-import           RouteContext      (RouteContext (..))
+import           Lib.RouteContext  (RouteContext (..))
 
 
 import           Lib.Header        (SourcePageHeader (..), dropWithNewLine,

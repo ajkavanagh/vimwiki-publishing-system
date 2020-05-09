@@ -146,8 +146,8 @@ runSiteGenSem args = do
     let fp = siteConfigArg args
         draft = draftsArg args
     sgc <- SGC.getSiteGenConfig fp draft
-    {-CP.log @String "The site gen config is"-}
-    {-CP.log @String $ show sgc-}
+    CP.log @String "The site gen config is"
+    CP.log @String $ show sgc
     let sourceDir = SGC.sgcSource sgc
     let ext = SGC.sgcExtension sgc
     CP.log @String $ "Looking in " ++ show sourceDir

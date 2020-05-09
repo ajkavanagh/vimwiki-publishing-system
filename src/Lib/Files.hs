@@ -47,7 +47,7 @@ import           Lib.Utils          (strToLower)
 import           Lib.SiteGenConfig  (maxFileToProcessSize)
 import qualified Lib.SiteGenConfig  as S
 
-import qualified RouteContext       as R
+import qualified Lib.RouteContext   as R
 
 
 

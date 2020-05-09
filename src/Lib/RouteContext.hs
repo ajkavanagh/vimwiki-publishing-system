@@ -12,7 +12,7 @@
 
 {-# OPTIONS_GHC -fplugin=Polysemy.Plugin #-}
 
-module RouteContext
+module Lib.RouteContext
     ( RouteContext(..)
     , makeRouteContextFromFileName
     ) where

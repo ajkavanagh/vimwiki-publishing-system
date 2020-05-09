@@ -36,6 +36,7 @@ library:
     - ginger
     - generic-deriving
     - hashable
+    - network-uri
     - optparse-applicative
     - parsec
     - parser-combinators
