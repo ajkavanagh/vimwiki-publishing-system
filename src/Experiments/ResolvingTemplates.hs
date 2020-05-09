@@ -66,6 +66,7 @@ resolveTemplatePath
     :: Members '[ Reader SiteGenReader
                 , File
                 , Error SiteGenError
+                , Log String
                 ] r
     => SourcePageHeader
     -> Sem r FilePath
@@ -74,13 +75,14 @@ resolveTemplatePath sph = do
     let tBaseName = phTemplate sph
         ext = sgcTemplateExt sgc
         tFileName = tBaseName <.> sgcTemplateExt sgc
-        sPath = phFileName sph
+        sPath = phRelFilePath sph
         dir = takeDirectory sPath
         dirParts = splitPath dir
         tPath = sgcTemplatesDir sgc
         -- now got tPath for the templates and the parts of the path.
         dirPaths = reverse $ inits dirParts
         tryPaths = map (\ps -> tPath </> joinPath ps </> tFileName) dirPaths
+    CP.log $ intercalate "\n" tryPaths
     exists <- forM tryPaths EF.doesFileExist
     let pairs = dropWhile (not.snd) $ zip tryPaths exists
     if null pairs
@@ -102,8 +104,9 @@ testResolveTemplatePath
 testResolveTemplatePath = do
     sgc <- getSiteGenConfig "./example-site/site.yaml" False
     let file = "./example-site/src/posts/test_post.md"
+    fp <- EF.makeAbsolute file
     PR.runReader @SiteGenConfig sgc $ do
-        mSph <- filePathToMaybeSourcePageHeader file
+        mSph <- filePathToMaybeSourcePageHeader fp
         case mSph of
             Nothing -> throw $ EF.FileException file "Not a sitegen file"
             (Just sph) -> do

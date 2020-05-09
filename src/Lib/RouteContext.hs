@@ -31,8 +31,7 @@ import qualified System.Posix.Files    as SPF
 import           Polysemy              (Members, Sem)
 import           Polysemy.Error        (Error)
 
-import           Effect.File           (File, FileException (..), fileStatus,
-                                        fileToIO)
+import           Effect.File           (File, FileException (..), fileStatus)
 
 {-
    The RouteContext is build from the filename and file details.
@@ -51,42 +50,52 @@ import           Effect.File           (File, FileException (..), fileStatus,
 
 
 data RouteContext = RouteContext
-    { rcAutoSlug  :: !String
-    , rcFileTime  :: !UTCTime
-    , rcFileName  :: !FilePath
-    , rcAutoTitle :: !String
+    { rcAutoSlug        :: !String   -- slug created from the filepath
+    , rcFileTime        :: !UTCTime  -- The time extracted from the file system
+    , rcAbsFilePath     :: !FilePath -- the absolute file path for the filesystem
+    , rcRelFilePath     :: !FilePath -- the relative file path to the site src
+    , rcVimWikiLinkPath :: !String   -- the path that vimwiki would use
+    , rcAutoTitle       :: !String   -- a title created from the rel file path
     } deriving Show
 
 
 data FilePathParts = FilePathParts
-    { _fileName   :: !String
-    , _path       :: ![String]
-    , _normalised :: !FilePath
+    { _fileName    :: !String
+    , _vimWikiLink :: !String
+    , _path        :: ![String]
+    , _normalised  :: !FilePath
     } deriving Show
 
 
-makeRouteContextFromFileName :: Members '[ File
-                                         , Error FileException
-                                         ] r
-                             => FilePath
-                             -> Sem r RouteContext
-makeRouteContextFromFileName fp = do
-    fs <- fileStatus fp
-    let fpp = decodeFilePath fp
+makeRouteContextFromFileName
+    :: Members '[ File
+                , Error FileException
+                ] r
+    => FilePath         -- the source directory of the files (absolute)
+    -> FilePath         -- the filepath  (abs) of the file
+    -> Sem r RouteContext
+makeRouteContextFromFileName sfp afp = do
+    fs <- fileStatus afp
+    let rfp = FP.makeRelative sfp afp
+    let fpp = decodeFilePath rfp
         time = posixSecondsToUTCTime $ SPF.modificationTimeHiRes fs
-    pure $ RouteContext { rcAutoSlug = makeAutoSlug fpp
-                        , rcFileTime = time
-                        , rcFileName = _normalised fpp
+    pure $ RouteContext { rcAutoSlug=makeAutoSlug fpp
+                        , rcFileTime=time
+                        , rcAbsFilePath=afp
+                        , rcRelFilePath=_normalised fpp
+                        , rcVimWikiLinkPath=_vimWikiLink fpp
                         , rcAutoTitle = makeAutoTitle fpp
                         }
 
 
+-- decode the relative filepath into parts
 decodeFilePath :: FilePath -> FilePathParts
 decodeFilePath fp =
     let _normalised = FP.normalise fp
         noExt = FP.dropExtensions fp
         parts = FP.splitDirectories noExt
      in FilePathParts { _fileName = FP.takeFileName _normalised
+                      , _vimWikiLink = noExt
                       , _path = parts
                       , _normalised = _normalised
                       }

@@ -72,6 +72,15 @@ data SitegenArgs = SitegenArgs
     , extraArgs     :: ![String]
     }
     deriving Show
+    
+
+-- debug helper to create a SitegenArgs from some values
+makeSitegenArgs :: String -> Bool -> Bool -> SitegenArgs
+makeSitegenArgs s f1 f2 = SitegenArgs { siteConfigArg=s
+                                      , draftsArg=f1
+                                      , cleanArg=f2
+                                      , extraArgs=[]
+                                      }
 
 
 sitegenArgsOptions :: Parser SitegenArgs
@@ -133,6 +142,11 @@ runSiteGen args = do
             exitWith (ExitFailure 1)
 
 
+runSiteGenHelper s = do
+    let args = makeSitegenArgs s True True
+    runSiteGen args
+
+
 -- we've now got some validated args; now we need to use those args to create
 -- the full read-only config for the site from the site.yaml.  Then we use that
 -- to create the sitegen
@@ -153,6 +167,6 @@ runSiteGenSem args = do
     CP.log @String $ "Looking in " ++ show sourceDir
     CP.log @String $ "Extension is " ++ show ext
     phs <- runReader sgc $ F.filePathToSourcePageHeaders sourceDir ext
-    let files = map H.phFileName phs
+    let files = map H.phRelFilePath phs
     CP.log @String $ "Files are " ++ intercalate "\n" files
     pure ()

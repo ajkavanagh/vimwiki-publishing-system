@@ -36,7 +36,7 @@ import           Polysemy           (Embed, Members, Sem, embed, embedToFinal,
                                      run, runFinal)
 import           Polysemy.Error     (Error, throw)
 import qualified Polysemy.Error     as PE
-import           Polysemy.Reader    (Reader, runReader)
+import           Polysemy.Reader    (Reader, runReader, asks)
 
 import           Effect.File        (File, FileException (..))
 import qualified Effect.File        as EF
@@ -122,7 +122,8 @@ filePathToMaybeSourcePageHeader
     => FilePath
     -> Sem r (Maybe SourcePageHeader)
 filePathToMaybeSourcePageHeader fp = do
-    rc <- R.makeRouteContextFromFileName fp
+    sfp <- asks @S.SiteGenConfig S.sgcSource
+    rc <- R.makeRouteContextFromFileName sfp fp
     bs <- EF.readFile fp Nothing (Just maxHeaderSize)  -- read up to maxHeaderSize bytes
     runReader rc $ maybeDecodeHeader bs   -- add in The Reader RouteContext to the Sem monad
 

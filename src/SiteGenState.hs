@@ -37,7 +37,7 @@ makeSiteGenReader :: SiteGenConfig -> [SourcePageHeader] -> SiteGenReader
 makeSiteGenReader sgc sphs = SiteGenReader
     { siteGenConfig=sgc
     , siteSourcePageHeaders=sphs
-    , siteFilePathMap=HashMap.fromList $ map (\h -> (phFileName h, h)) sphs
+    , siteFilePathMap=HashMap.fromList $ map (\h -> (phAbsFilePath h, h)) sphs
     , siteRouteMap=HashMap.fromList $ map (\h -> (phRoute h, h)) sphs
     }
 

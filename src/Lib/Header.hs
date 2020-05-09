@@ -119,20 +119,22 @@ instance Y.FromJSON RawPageHeader where
 
 -- The SourcePageHeader is the resolved and fully parsed page header
 data SourcePageHeader = SourcePageHeader
-    { phRoute     :: !String
-    , phFileName  :: !FilePath
-    , phTitle     :: !String
-    , phTemplate  :: !String
-    , phStyle     :: !String
-    , phTags      :: ![String]
-    , phCategory  :: !(Maybe String)
-    , phDate      :: !(Maybe UTCTime)
-    , phUpdated   :: !(Maybe UTCTime)
-    , phSitePage  :: !(Maybe String)
-    , phAuthors   :: ![String]
-    , phPublish   :: !Bool
-    , phSiteID    :: !String
-    , phHeaderLen :: !Int   -- the length of the headerblock; i.e. what to drop to get to the content.
+    { phRoute           :: !String
+    , phAbsFilePath     :: !FilePath
+    , phRelFilePath     :: !FilePath
+    , phVimWikiLinkPath :: !String
+    , phTitle           :: !String
+    , phTemplate        :: !String
+    , phStyle           :: !String
+    , phTags            :: ![String]
+    , phCategory        :: !(Maybe String)
+    , phDate            :: !(Maybe UTCTime)
+    , phUpdated         :: !(Maybe UTCTime)
+    , phSitePage        :: !(Maybe String)
+    , phAuthors         :: ![String]
+    , phPublish         :: !Bool
+    , phSiteID          :: !String
+    , phHeaderLen       :: !Int   -- the length of the headerblock; i.e. what to drop to get to the content.
     } deriving (Show, Eq)
 
 
@@ -140,7 +142,9 @@ data SourcePageHeader = SourcePageHeader
 instance Default SourcePageHeader where
     def = SourcePageHeader
         { phRoute=def
-        , phFileName=def
+        , phAbsFilePath=def
+        , phRelFilePath=def
+        , phVimWikiLinkPath=def
         , phTitle=def
         , phTemplate=def
         , phStyle=def
@@ -197,20 +201,22 @@ makeSourcePageHeaderFromRawPageHeader rph len = do
     pageDate <- convertDate $ _date rph
     updatedDate <- convertDate $ _updated rph
     pure SourcePageHeader
-        { phRoute     = pick (_route rph) (R.rcAutoSlug rc)
-        , phFileName  = R.rcFileName rc
-        , phTitle     = pick (_title rph) (R.rcAutoTitle rc)
-        , phTemplate  = _template rph
-        , phStyle     = pick (_style rph) (S.sgcDefaultStyle sgc)
-        , phTags      = _tags rph
-        , phCategory  = _category rph
-        , phDate      = pageDate
-        , phUpdated   = updatedDate
-        , phSitePage  = _sitePage rph
-        , phAuthors   = _authors rph
-        , phPublish   = _publish rph
-        , phSiteID    = pick (_siteID rph) (S.sgcSiteID sgc)
-        , phHeaderLen = len
+        { phRoute           = pick (_route rph) (R.rcAutoSlug rc)
+        , phAbsFilePath     = R.rcAbsFilePath rc
+        , phRelFilePath     = R.rcRelFilePath rc
+        , phVimWikiLinkPath = R.rcVimWikiLinkPath rc
+        , phTitle           = pick (_title rph) (R.rcAutoTitle rc)
+        , phTemplate        = _template rph
+        , phStyle           = pick (_style rph) (S.sgcDefaultStyle sgc)
+        , phTags            = _tags rph
+        , phCategory        = _category rph
+        , phDate            = pageDate
+        , phUpdated         = updatedDate
+        , phSitePage        = _sitePage rph
+        , phAuthors         = _authors rph
+        , phPublish         = _publish rph
+        , phSiteID          = pick (_siteID rph) (S.sgcSiteID sgc)
+        , phHeaderLen       = len
         }
 
 
