@@ -6,19 +6,23 @@
 {-# LANGUAGE PolyKinds            #-}
 {-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
-{-# LANGUAGE TypeApplications     #-}
+--{-# LANGUAGE TypeApplications     #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeOperators        #-}
 
 {-# OPTIONS_GHC -fplugin=Polysemy.Plugin #-}
 
-module RouteContext where
+module RouteContext
+    ( RouteContext(..)
+    , makeRouteContextFromFileName
+    ) where
 
 
 import           Data.List             (intercalate)
 import           Data.Text.Titlecase   (titlecase)
 import           Data.Time.Clock       (UTCTime)
-import           Data.Time.Clock.POSIX (posixSecondsToUTCTime, systemToPOSIXTime)
+import           Data.Time.Clock.POSIX (posixSecondsToUTCTime,
+                                        systemToPOSIXTime)
 import           System.FilePath       (FilePath, pathSeparator, takeDirectory,
                                         (</>))
 import qualified System.FilePath       as FP

@@ -24,7 +24,7 @@ import           TextShow
 import qualified System.Directory   as SD
 import           System.FilePath    (takeExtension)
 import           System.IO          (IOMode (ReadMode), SeekMode (AbsoluteSeek),
-                                     hClose, hSeek, openBinaryFile)
+                                     hClose, hSeek, withBinaryFile)
 import           System.IO.Error    (tryIOError)
 import qualified System.Posix.Files as SPF
 
@@ -66,7 +66,7 @@ instance Show FileException where
     show ex = "File Handing issue: " ++ ss
       where
           ss = case ex of
-              (FileException fp s) -> "FilePath: " ++ (show fp) ++ ", Error: " ++ (show s)
+              (FileException fp s) -> "FilePath: " ++ show fp ++ ", Error: " ++ show s
               (FileExceptions xs)  -> intercalate ", " $ map show xs
 
 
@@ -97,15 +97,13 @@ fileToIO
 fileToIO = interpret $ \case
     -- Get the FileStatus for a file
     -- fileStatus :: FilePath -> FileStatus
-    FileStatus fp -> do
-        throwIfException fp =<< (embed $ tryIOError $ SPF.getFileStatus fp)
+    FileStatus fp ->
+        throwIfException fp =<< embed (tryIOError $ SPF.getFileStatus fp)
 
     -- read a file with optional offset and optional size
     -- readFile :: FilePath -> Maybe Int -> Maybe Int -> ByteString
     ReadFile fp seek size -> do
-        res <- embed $ tryIOError $ bracket
-            (openBinaryFile fp ReadMode)
-            (hClose)
+        res <- embed $ tryIOError $ withBinaryFile fp ReadMode
             (\handle -> do
                 when (isJust seek) $ hSeek handle AbsoluteSeek (toInteger (fromJust seek))
                 case size of
@@ -115,8 +113,8 @@ fileToIO = interpret $ \case
 
     -- write a ByteString to the filepath
     -- writeFile :: FilePath -> ByteString
-    WriteFile fp bs -> do
-        throwIfException fp =<< (embed $ tryIOError $ BS.writeFile fp bs)
+    WriteFile fp bs ->
+        throwIfException fp =<< embed (tryIOError $ BS.writeFile fp bs)
 
     -- The next two functions use conduit and return a list of files.
     -- Conduit is used as it's convenient to list the files without using up
@@ -129,9 +127,9 @@ fileToIO = interpret $ \case
     -- :: FilePath            - the directory to list files from
     -- -> (FilePath -> Bool)  - a filter to apply to each filepath
     -- -> File m [FilePath]   - and return a list of FilePath types
-    SourceDirectoryFilter dir filterFunc -> do
-        throwIfException dir =<< (embed
-             $ tryIOError
+    SourceDirectoryFilter dir filterFunc ->
+        throwIfException dir =<< embed
+             ( tryIOError
              $ runResourceT
              $ runConduit
              $ sourceDirectory dir
@@ -146,9 +144,9 @@ fileToIO = interpret $ \case
     -- -> (FilePath -> Bool)  - a filter to apply to each filepath
     -- -> File m [FilePath]   - and return a list of FilePath types
 
-    SourceDirectoryDeepFilter flag dir filterFunc -> do
-        throwIfException dir =<< (embed
-             $ tryIOError
+    SourceDirectoryDeepFilter flag dir filterFunc ->
+        throwIfException dir =<< embed
+             ( tryIOError
              $ runResourceT
              $ runConduit
              $ sourceDirectoryDeep flag dir
@@ -156,21 +154,21 @@ fileToIO = interpret $ \case
                 .| sinkList)
 
     -- MakeAbsolute :: FilePath -> File m FilePath
-    MakeAbsolute fp -> do
-        throwIfException fp =<< (embed
-             $ tryIOError
+    MakeAbsolute fp ->
+        throwIfException fp =<< embed
+             ( tryIOError
              $ SD.makeAbsolute fp)
 
     --DoesDirectoryExist :: FilePath -> File m Bool
-    DoesDirectoryExist fp -> do
-        throwIfException fp =<< (embed
-             $ tryIOError
+    DoesDirectoryExist fp ->
+        throwIfException fp =<< embed
+             ( tryIOError
              $ SD.doesDirectoryExist fp)
 
     --DoesFileExist :: FilePath -> File m Bool
-    DoesFileExist fp -> do
-        throwIfException fp =<< (embed
-             $ tryIOError
+    DoesFileExist fp ->
+        throwIfException fp =<< embed
+             ( tryIOError
              $ SD.doesFileExist fp)
 
 
@@ -195,7 +193,7 @@ runTest x = x & fileToIO
 
 
 getStatus :: Member File r => FilePath -> Sem r SPF.FileStatus
-getStatus fp = fileStatus fp
+getStatus = fileStatus
 
 
 fetchContents :: Member File r => FilePath -> Sem r ByteString

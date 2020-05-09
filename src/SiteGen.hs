@@ -126,7 +126,7 @@ runSiteGen args = do
         & embedToFinal @IO
         & runFinal
     case res of
-        Right _ -> do
+        Right _ ->
             return ()
         Left ex -> do
             print ex
@@ -150,9 +150,9 @@ runSiteGenSem args = do
     {-CP.log @String $ show sgc-}
     let sourceDir = SGC.sgcSource sgc
     let ext = SGC.sgcExtension sgc
-    CP.log @String $ "Looking in " ++ (show sourceDir)
-    CP.log @String $ "Extension is " ++ (show ext)
+    CP.log @String $ "Looking in " ++ show sourceDir
+    CP.log @String $ "Extension is " ++ show ext
     phs <- runReader sgc $ F.filePathToSourcePageHeaders sourceDir ext
     let files = map H.phFileName phs
-    CP.log @String $ "Files are " ++ (intercalate "\n" files)
+    CP.log @String $ "Files are " ++ intercalate "\n" files
     pure ()

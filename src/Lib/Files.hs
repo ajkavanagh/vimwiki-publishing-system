@@ -15,13 +15,14 @@
 module Lib.Files
     ( sourceDirectory
     , filePathToSourcePageHeaders
+    , filePathToMaybeSourcePageHeader
     ) where
 
 
 import           System.FilePath    (takeExtension)
 import           System.Posix.Files (fileSize)
 
-import           Control.Monad      (filterM, liftM, when, (>=>))
+import           Control.Monad      (filterM, liftM, unless, (>=>))
 
 import           Data.ByteString    (ByteString)
 import qualified Data.ByteString    as BS
@@ -87,7 +88,7 @@ isSmallerThanM size fp = do
     fs <- EF.fileStatus fp
     let size' = (fromIntegral . fileSize) fs
     let ok = size' <= size
-    when (not ok) $ CP.log @String $ "File " ++ (show fp) ++ " is too big to process"
+    unless ok $ CP.log @String $ "File " ++ show fp ++ " is too big to process"
     pure ok
 
 

@@ -98,7 +98,7 @@ processInlines ys@(x:xs) = case x of
 -- | process the inlines inside the Inline constructor, and then continue with the
 -- rest.
 processEmbedded1 :: ([TP.Inline] -> TP.Inline) -> [TP.Inline] -> [TP.Inline] -> [TP.Inline]
-processEmbedded1 inlineCons ls ys = (inlineCons $ processInlines ls) : processInlines ys
+processEmbedded1 inlineCons ls ys = inlineCons (processInlines ls) : processInlines ys
 
 
 -- | build up a Str,Space,Str... sequence and then call the processStrSequence on
@@ -106,7 +106,7 @@ processEmbedded1 inlineCons ls ys = (inlineCons $ processInlines ls) : processIn
 buildStrSequence :: [TP.Inline] -> [TP.Inline] -> [TP.Inline]
 buildStrSequence xs (y@(TPD.Str _):ys) = buildStrSequence (xs ++ [y]) ys
 buildStrSequence xs (y@TPD.Space:ys) = buildStrSequence (xs ++ [y]) ys
-buildStrSequence xs ys = (processStrSequence xs) ++ processInlines ys
+buildStrSequence xs ys = processStrSequence xs ++ processInlines ys
 
 
 -- | now build a string out of the Str+Space sequence and parse it, reconstruct
