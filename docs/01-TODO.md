@@ -13,10 +13,10 @@
 [x] - check for duplicate routes
 [ ] - Render the file and write it
 [x] - switch site-page to index-page in heades
-[ ] - Rename existing RouteContext to HeaderContext to reflect that it's just
+[x] - Rename existing RouteContext to HeaderContext to reflect that it's just
       used internally to build the SourcePageHeader
-[ ] - Move HeaderContext into Header and rename SourcePageHeader to
-      SourcePageContext
+[x] - Move HeaderContext into Header
+[ ] - Rename SourcePageHeader to SourcePageContext
 [ ] - Flesh out the variables that will be available to a rendering page.
 [ ] - If there isn't a page identifying as the index, then have a boiler plate
       one with no content; i.e. just run the template for the index.
@@ -25,7 +25,7 @@
 
 Hard code the paths, etc, so we can try the whole rendering pipeline:
 
-  `src/index.md` -> `SourcePageContext` -> "/index.html" route -> `RouteContext` ->
+  `src/index.md` -> `SourcePageContext` -> "/index.html" route -> `RenderContext` ->
   rendered `index.html`.
 
 * [x] Write a minimal test1.md  -- this is the site index in the example-site

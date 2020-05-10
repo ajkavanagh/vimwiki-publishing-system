@@ -21,6 +21,8 @@ module Lib.Header
     , maybeExtractHeaderBlock
     , maybeDecodeHeader
     , emptySourcePageHeader
+    , HeaderContext(..)
+    , makeHeaderContextFromFileName
     ) where
 
 -- header.hs -- extract the header (maybe) from a File
@@ -55,30 +57,39 @@ site: <site-identifier> # the site that this belongs to.
 -- to a structure
 
 -- hide log, as we're pulling it in from co-log
-import           Prelude            hiding (log)
+import           Prelude               hiding (log)
+
+import           System.FilePath       (FilePath)
+import qualified System.FilePath       as FP
+import qualified System.Posix.Files    as SPF
 
 -- to decode the Yaml header
-import           Data.ByteString    (ByteString)
-import qualified Data.ByteString    as BS
-import           Data.Default.Class (Default, def)
-import qualified Data.List          as L
-import           Data.Maybe         (fromMaybe)
-import           Data.Yaml          ((.!=), (.:?))
-import qualified Data.Yaml          as Y
+import           Data.ByteString       (ByteString)
+import qualified Data.ByteString       as BS
+import           Data.Default.Class    (Default, def)
+import qualified Data.List             as L
+import           Data.Maybe            (fromMaybe)
+import           Data.Text.Titlecase   (titlecase)
+import           Data.Yaml             ((.!=), (.:?))
+import qualified Data.Yaml             as Y
 
 -- for dates
-import           Data.Time.Clock    (UTCTime)
+import           Data.Time.Clock       (UTCTime)
+import           Data.Time.Clock.POSIX (posixSecondsToUTCTime)
 
 -- For Polysemy logging of things going on.
-import           Colog.Polysemy     (Log, log)
-import           Polysemy           (Member, Members, Sem)
-import           Polysemy.Reader    (Reader, ask)
+import           Colog.Polysemy        (Log, log)
+import           Polysemy              (Member, Members, Sem)
+import           Polysemy.Error        (Error)
+import           Polysemy.Reader       (Reader, ask)
+
+-- effects for Polysemy
+import           Effect.File           (File, FileException (..), fileStatus)
 
 -- Local impots
-import           Lib.Dates          (parseDate)
-import qualified Lib.SiteGenConfig  as S
-import qualified Lib.RouteContext   as R
-import           Lib.Utils          (fixRoute)
+import           Lib.Dates             (parseDate)
+import qualified Lib.SiteGenConfig     as S
+import           Lib.Utils             (fixRoute, strToLower)
 
 
 maxHeaderSize :: Int
@@ -165,9 +176,41 @@ emptySourcePageHeader :: SourcePageHeader
 emptySourcePageHeader = def SourcePageHeader
 
 
+{-
+   The HeaderContext is build from the filename and file details.
+
+   * The slug is the path from the site route split as directory names to the
+     path of the slug.  The filename, if it contains spaces, is converted to '-'
+     characters.
+   * The file time is obtained from the file.
+   * The filepath is the normalised to the site directory.
+   * the autoTitle is obtained from the file name and path with spaces included,
+     but stripping off the extension.
+
+   It's stored as a context item purely so that it's easy to use in the code and
+   can be provided to the renderer if needed.
+-}
+data HeaderContext = HeaderContext
+    { hcAutoSlug        :: !String   -- slug created from the filepath
+    , hcFileTime        :: !UTCTime  -- The time extracted from the file system
+    , hcAbsFilePath     :: !FilePath -- the absolute file path for the filesystem
+    , hcRelFilePath     :: !FilePath -- the relative file path to the site shc
+    , hcVimWikiLinkPath :: !String   -- the path that vimwiki would use
+    , hcAutoTitle       :: !String   -- a title created from the rel file path
+    } deriving Show
+
+
+data FilePathParts = FilePathParts
+    { _fileName    :: !String
+    , _vimWikiLink :: !String
+    , _path        :: ![String]
+    , _normalised  :: !FilePath
+    } deriving Show
+
+
 maybeDecodeHeader :: Members '[ Log String
                               , Reader S.SiteGenConfig
-                              , Reader R.RouteContext
+                              , Reader HeaderContext
                               ] r
                   => ByteString
                   -> Sem r (Maybe SourcePageHeader)
@@ -185,28 +228,28 @@ maybeDecodeHeader bs = do
 
 
 -- TODO: this function probably shouldn't be here as it's mixing the concerns of
--- the SiteGenConfig and the RouteContext.  I suspect that this function should
--- be in the RouteContext when construction the actual RouteContext for the render
+-- the SiteGenConfig and the HeaderContext.  I suspect that this function should
+-- be in the HeaderContext when construction the actual HeaderContext for the render
 -- and the SourcePageHeader is not really needed (or at least the RawPageHeader is not
--- needed).  We should resolve these in RouteContext
+-- needed).  We should resolve these in HeaderContext
 makeSourcePageHeaderFromRawPageHeader :: Members '[ Log String
                                                   , Reader S.SiteGenConfig
-                                                  , Reader R.RouteContext
+                                                  , Reader HeaderContext
                                                   ] r
                                 => RawPageHeader
                                 -> Int
                                 -> Sem r SourcePageHeader
 makeSourcePageHeaderFromRawPageHeader rph len = do
     sgc <- ask @S.SiteGenConfig
-    rc  <- ask @R.RouteContext
+    rc  <- ask @HeaderContext
     pageDate <- convertDate $ _date rph
     updatedDate <- convertDate $ _updated rph
     pure SourcePageHeader
-        { phRoute           = fixRoute $ pick (_route rph) (R.rcAutoSlug rc)
-        , phAbsFilePath     = R.rcAbsFilePath rc
-        , phRelFilePath     = R.rcRelFilePath rc
-        , phVimWikiLinkPath = R.rcVimWikiLinkPath rc
-        , phTitle           = pick (_title rph) (R.rcAutoTitle rc)
+        { phRoute           = fixRoute $ pick (_route rph) (hcAutoSlug rc)
+        , phAbsFilePath     = hcAbsFilePath rc
+        , phRelFilePath     = hcRelFilePath rc
+        , phVimWikiLinkPath = hcVimWikiLinkPath rc
+        , phTitle           = pick (_title rph) (hcAutoTitle rc)
         , phTemplate        = _template rph
         , phStyle           = pick (_style rph) (S.sgcDefaultStyle sgc)
         , phTags            = _tags rph
@@ -219,6 +262,52 @@ makeSourcePageHeaderFromRawPageHeader rph len = do
         , phSiteID          = pick (_siteID rph) (S.sgcSiteID sgc)
         , phHeaderLen       = len
         }
+
+
+makeHeaderContextFromFileName
+    :: Members '[ File
+                , Error FileException
+                ] r
+    => FilePath         -- the source directory of the files (absolute)
+    -> FilePath         -- the filepath  (abs) of the file
+    -> Sem r HeaderContext
+makeHeaderContextFromFileName sfp afp = do
+    fs <- fileStatus afp
+    let rfp = FP.makeRelative sfp afp
+    let fpp = decodeFilePath rfp
+        time = posixSecondsToUTCTime $ SPF.modificationTimeHiRes fs
+    pure $ HeaderContext { hcAutoSlug=makeAutoSlug fpp
+                         , hcFileTime=time
+                         , hcAbsFilePath=afp
+                         , hcRelFilePath=_normalised fpp
+                         , hcVimWikiLinkPath=_vimWikiLink fpp
+                         , hcAutoTitle = makeAutoTitle fpp
+                         }
+
+
+-- decode the relative filepath into parts
+decodeFilePath :: FilePath -> FilePathParts
+decodeFilePath fp =
+    let _normalised = FP.normalise fp
+        noExt = FP.dropExtensions fp
+        parts = FP.splitDirectories noExt
+     in FilePathParts { _fileName = FP.takeFileName _normalised
+                      , _vimWikiLink = strToLower noExt   -- file names are lowered
+                      , _path = parts
+                      , _normalised = _normalised
+                      }
+
+
+-- | Make a slug from the file path parts, ensuring it is lower case and spaces
+-- and underscores are replaced by '-'s
+makeAutoSlug :: FilePathParts -> String
+makeAutoSlug fpp = FP.joinPath $ map fixRoute $ _path fpp
+
+
+makeAutoTitle :: FilePathParts -> String
+makeAutoTitle fpp =
+    let tParts = map titlecase $ _path fpp
+     in L.intercalate " / " tParts
 
 
 -- flipped fromMaybe as pick, as it makes more sense to pick the Maybe first in

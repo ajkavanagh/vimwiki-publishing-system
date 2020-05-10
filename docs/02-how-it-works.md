@@ -83,15 +83,16 @@ Something along the lines of:
   * Size of the file
   * Hash of the file has changed.
 
-For every *route* there will be a `RouteContext` record that maps where the page
-will be rendered, using which template.  The data available to the rendering
-template will be defined in the `RouteContext`.  So, we'll have multiple
-different types of `RouteContext` data, mapping to different template types?
+For every *route* there will be a `RenderContext` record that maps where the
+page will be rendered, using which template.  The data available to the
+rendering template will be defined in the `RenderContext`.  So, we'll have
+multiple different types of `RenderContext` data, mapping to different template
+types?
 
-Each .[extension] file will have a `SourceContext` that contains the
+Each .[extension] file will have a `SourcePageContext` that contains the
 information necessary to render the .[extension] file into an HTML fragment.
 
-The `RouteContext` needs to be able to handle:
+The `RenderContext` needs to be able to handle:
 
  - No SourceContext objects
  - Multiple SourceContext objects
@@ -118,9 +119,9 @@ order for the keys.  The collections are accessed by keys which are strings:
 
 ### Tags & Categories
 
-These are essentially a string => [`SourceContext`] items.  It almost certainly
-needs to be a list of those strings, so it's probably a list of tuples, or
-a mapping and then the tags can be extacted as keys.
+These are essentially a string => [`SourcePageContext`] items.  It almost
+certainly needs to be a list of those strings, so it's probably a list of
+tuples, or a mapping and then the tags can be extacted as keys.
 
 ### Diary pages
 

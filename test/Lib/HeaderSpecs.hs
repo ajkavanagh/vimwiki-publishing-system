@@ -33,12 +33,13 @@ import           Polysemy.Reader   (runReader)
 -- Bits to get the tests to compile
 import           Lib.Dates         (parseDate)
 import           Lib.SiteGenConfig (SiteGenConfig (..))
-import           Lib.RouteContext  (RouteContext (..))
 
 
-import           Lib.Header        (SourcePageHeader (..), dropWithNewLine,
-                                    findEndSiteGenHeader, isHeader,
-                                    maybeDecodeHeader, maybeExtractHeaderBlock)
+-- module under test
+import           Lib.Header        (HeaderContext (..), SourcePageHeader (..),
+                                    dropWithNewLine, findEndSiteGenHeader,
+                                    isHeader, maybeDecodeHeader,
+                                    maybeExtractHeaderBlock)
 
 
 
@@ -155,13 +156,13 @@ maybeExtractHeaderBlockSpecs = --do
 -}
 
 
-runMaybeDecodeHeader :: SiteGenConfig -> RouteContext -> ByteString
+runMaybeDecodeHeader :: SiteGenConfig -> HeaderContext -> ByteString
                      -> ([String], Maybe SourcePageHeader)
 runMaybeDecodeHeader sgc rc txt =
-    maybeDecodeHeader txt          -- [Log String , Reader SiteGenConfig , Reader RouteContext]
-        & runLogAsOutput           -- [????, Reader SiteGenConfig, Reader RouteContext]
-        & runOutputList            -- [Reader SiteGenConfig, Reader RouteContext]
-        & runReader sgc            -- [Reader RouteContext]
+    maybeDecodeHeader txt          -- [Log String , Reader SiteGenConfig , Reader HeaderContext]
+        & runLogAsOutput           -- [????, Reader SiteGenConfig, Reader HeaderContext]
+        & runOutputList            -- [Reader SiteGenConfig, Reader HeaderContext]
+        & runReader sgc            -- [Reader HeaderContext]
         & runReader rc             -- []
         & run
 
@@ -185,14 +186,14 @@ defaultSCG = SiteGenConfig
     }
 
 
-defaultRC :: RouteContext
-defaultRC = RouteContext
-    { rcAutoSlug="auto/slug"
-    , rcFileTime=fromMaybe undefined (parseDate "2020-03-28T09:00")
-    , rcRelFilePath="some-name.md"
-    , rcAbsFilePath="/some-name.md"
-    , rcVimWikiLinkPath="some-name"
-    , rcAutoTitle="auto-title"
+defaultHC :: HeaderContext
+defaultHC = HeaderContext
+    { hcAutoSlug="auto/slug"
+    , hcFileTime=fromMaybe undefined (parseDate "2020-03-28T09:00")
+    , hcRelFilePath="some-name.md"
+    , hcAbsFilePath="/some-name.md"
+    , hcVimWikiLinkPath="some-name"
+    , hcAutoTitle="auto-title"
     }
 
 
@@ -275,11 +276,11 @@ maybeDecodeHeaderSpecs = -- do
     describe "maybeDecodeHeader" $ do
 
         it "Should return (Nothing, 0) for an empty text" $
-            runMaybeDecodeHeader defaultSCG defaultRC ""
+            runMaybeDecodeHeader defaultSCG defaultHC ""
                 `shouldBe` ([], Nothing)
 
         it "Should return the title and length for a minimal header" $
-            runMaybeDecodeHeader defaultSCG defaultRC minimalHeader
+            runMaybeDecodeHeader defaultSCG defaultHC minimalHeader
                 `shouldBe` ([], Just (defaultSPH { phTitle="This is the day"
                                                  , phHeaderLen=39}))
 
@@ -287,5 +288,5 @@ maybeDecodeHeaderSpecs = -- do
             (BS.drop 39 minimalHeader) `shouldBe` "Done.\n"
 
         it "Should return the full SourcePageHeader from a full config" $
-            runMaybeDecodeHeader defaultSCG defaultRC fullHeader
+            runMaybeDecodeHeader defaultSCG defaultHC fullHeader
                 `shouldBe` ([], Just (fullHeaderSPH {phHeaderLen=278}))

@@ -36,19 +36,17 @@ import           Polysemy           (Embed, Members, Sem, embed, embedToFinal,
                                      run, runFinal)
 import           Polysemy.Error     (Error, throw)
 import qualified Polysemy.Error     as PE
-import           Polysemy.Reader    (Reader, runReader, asks)
+import           Polysemy.Reader    (Reader, asks, runReader)
 
 import           Effect.File        (File, FileException (..))
 import qualified Effect.File        as EF
 
-import           Lib.Header         (SourcePageHeader, maxHeaderSize,
-                                     maybeDecodeHeader)
-import           Lib.Utils          (strToLower)
+import           Lib.Header         (SourcePageHeader,
+                                     makeHeaderContextFromFileName,
+                                     maxHeaderSize, maybeDecodeHeader)
 import           Lib.SiteGenConfig  (maxFileToProcessSize)
 import qualified Lib.SiteGenConfig  as S
-
-import qualified Lib.RouteContext   as R
-
+import           Lib.Utils          (strToLower)
 
 
 -- | Get a list of files for a directory (the FilePath) and an extension
@@ -123,9 +121,9 @@ filePathToMaybeSourcePageHeader
     -> Sem r (Maybe SourcePageHeader)
 filePathToMaybeSourcePageHeader fp = do
     sfp <- asks @S.SiteGenConfig S.sgcSource
-    rc <- R.makeRouteContextFromFileName sfp fp
+    hc <- makeHeaderContextFromFileName sfp fp
     bs <- EF.readFile fp Nothing (Just maxHeaderSize)  -- read up to maxHeaderSize bytes
-    runReader rc $ maybeDecodeHeader bs   -- add in The Reader RouteContext to the Sem monad
+    runReader hc $ maybeDecodeHeader bs   -- add in The Reader HeaderContext to the Sem monad
 
 
 -- now convert a bunch of files to a list of SourcePageHeaders -- note the list
