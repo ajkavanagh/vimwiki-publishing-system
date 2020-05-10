@@ -20,10 +20,8 @@ import qualified Lib.Header             as H
 import qualified Lib.SiteGenState       as SGS
 
 -- module under test
-import           Lib.PandocUtils        (processPandocLinks)
-
--- this'll get moved somewhere eventually
-import           Experiments.Pandoc     (convertVimWikiLinks)
+import           Lib.PandocUtils        (convertVimWikiLinks,
+                                         processPandocLinks)
 
 
 processPandocLinksSpecs :: Spec
