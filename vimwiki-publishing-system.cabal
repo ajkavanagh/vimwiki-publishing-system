@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 804fecae3f4b5262eec725fd6550749efe3ff6cf26f769b825504764659d2d75
+-- hash: b6036da5a39f2c0d670ddcd5eb19c2298a11f1245aaaa6688d2ccfce309d9186
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -42,9 +42,9 @@ library
       Lib.PandocUtils
       Lib.RouteContext
       Lib.SiteGenConfig
+      Lib.SiteGenState
       Lib.Utils
       SiteGen
-      SiteGenState
       SourceContext
   other-modules:
       Paths_vimwiki_publishing_system
@@ -103,7 +103,8 @@ test-suite vimwiki-publishing-system-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      HeaderSpecs
+      Lib.HeaderSpecs
+      Lib.PandocUtilsSpecs
       Paths_vimwiki_publishing_system
   hs-source-dirs:
       test
@@ -113,10 +114,15 @@ test-suite vimwiki-publishing-system-test
     , bytestring
     , co-log-core
     , co-log-polysemy
+    , data-default
+    , data-default-class
     , hspec
+    , pandoc
+    , pandoc-types
     , polysemy
     , polysemy-plugin
     , raw-strings-qq
     , text
+    , unordered-containers
     , vimwiki-publishing-system
   default-language: Haskell2010

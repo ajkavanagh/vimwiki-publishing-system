@@ -14,7 +14,7 @@
 {-# OPTIONS_GHC -fplugin=Polysemy.Plugin #-}
 
 
-module HeaderSpecs where
+module Lib.HeaderSpecs where
 
 import           Data.ByteString   as BS
 import qualified Data.ByteString   (ByteString)

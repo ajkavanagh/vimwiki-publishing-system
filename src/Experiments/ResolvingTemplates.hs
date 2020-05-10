@@ -31,14 +31,14 @@ import           Lib.SiteGenConfig (SiteGenConfig(..), getSiteGenConfig, ConfigE
 import           Lib.Errors       (SiteGenError(..))
 
 -- this is going to move
-import           SiteGenState     (SiteGenReader, siteGenConfig)
+import           Lib.SiteGenState     (SiteGenReader, siteGenConfig)
 
 -- for tests -- remove when removing test code
 import           Lib.Files        (filePathToMaybeSourcePageHeader)
 import           Colog.Polysemy       (Log, runLogAction)
 import qualified Colog.Polysemy       as CP
 import           Colog.Core           (logStringStderr)
-import           SiteGenState     (makeSiteGenReader)
+import           Lib.SiteGenState     (makeSiteGenReader)
 import qualified Polysemy.Error       as PE
 import           Lib.Errors        (mapSiteGenError)
 import           Data.Function        ((&))

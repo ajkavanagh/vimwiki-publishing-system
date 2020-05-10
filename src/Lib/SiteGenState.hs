@@ -1,6 +1,11 @@
-module SiteGenState
+module Lib.SiteGenState
     ( SiteGenReader(..)
     , SiteGenState(..)
+    , FilePathToSPH
+    , RouteToSPH
+    , VimWikiLinkToSPH
+    , Route
+    , VimWikiLink
     , makeSiteGenReader
     , emptySiteGenState
     )
@@ -18,10 +23,12 @@ import           Lib.Errors          (SiteGenError)
 
 
 type Route = String
+type VimWikiLink = String
 
 
-type FilePathToSPH = HashMap.HashMap FilePath SourcePageHeader
-type RouteToSPH    = HashMap.HashMap Route SourcePageHeader
+type FilePathToSPH    = HashMap.HashMap FilePath SourcePageHeader
+type RouteToSPH       = HashMap.HashMap Route SourcePageHeader
+type VimWikiLinkToSPH = HashMap.HashMap VimWikiLink SourcePageHeader
 
 
 -- This is for the Reader which the
@@ -29,6 +36,7 @@ data SiteGenReader = SiteGenReader
     { siteGenConfig         :: !SiteGenConfig
     , siteSourcePageHeaders :: ![SourcePageHeader]
     , siteFilePathMap       :: !FilePathToSPH
+    , siteVimWikiLinkMap    :: !VimWikiLinkToSPH
     , siteRouteMap          :: !RouteToSPH
     } deriving (Show)
 
@@ -38,6 +46,7 @@ makeSiteGenReader sgc sphs = SiteGenReader
     { siteGenConfig=sgc
     , siteSourcePageHeaders=sphs
     , siteFilePathMap=HashMap.fromList $ map (\h -> (phAbsFilePath h, h)) sphs
+    , siteVimWikiLinkMap=HashMap.fromList $ map (\h -> (phVimWikiLinkPath h, h)) sphs
     , siteRouteMap=HashMap.fromList $ map (\h -> (phRoute h, h)) sphs
     }
 

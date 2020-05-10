@@ -1,10 +1,11 @@
 import           Test.Hspec        (Spec)
 import           Test.Hspec.Runner (configFastFail, defaultConfig, hspecWith)
 
-import           HeaderSpecs       (dropWithNewLineSpecs,
+import           Lib.HeaderSpecs   (dropWithNewLineSpecs,
                                     findEndSiteGenHeaderSpecs, isHeaderSpecs,
                                     maybeExtractHeaderBlockSpecs,
                                     maybeDecodeHeaderSpecs)
+import           Lib.PandocUtilsSpecs (processPandocLinksSpecs)
 
 
 main :: IO ()
@@ -13,8 +14,12 @@ main = hspecWith defaultConfig {configFastFail = True} specs
 
 specs :: Spec
 specs = do
+    -- HeaderSpecs
     isHeaderSpecs
     dropWithNewLineSpecs
     findEndSiteGenHeaderSpecs
     maybeExtractHeaderBlockSpecs
     maybeDecodeHeaderSpecs
+
+    -- PandocUtilsSpecs
+    processPandocLinksSpecs

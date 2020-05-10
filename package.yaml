@@ -108,9 +108,14 @@ tests:
     - bytestring
     - co-log-core
     - co-log-polysemy
+    - data-default
+    - data-default-class
     - hspec
+    - pandoc
+    - pandoc-types
     - polysemy
     - polysemy-plugin
     - raw-strings-qq
     - text
+    - unordered-containers
     - vimwiki-publishing-system
