@@ -90,7 +90,7 @@ two index pages in the same source directory.
 Thus the idea is to enable generic templates to be written to account for
 different parts of the site.
 
-## Templates, and how they are found
+## (Now Implemented) Templates, and how they are found
 
 I've kind of glossed over how templates are picked for each page.  So, the
 system attempts to *find* the template by look for more specialised templates
