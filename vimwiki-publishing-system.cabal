@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b6036da5a39f2c0d670ddcd5eb19c2298a11f1245aaaa6688d2ccfce309d9186
+-- hash: ee553be10ffba922446561e78252ee80eb447a217c3449f69091afafc6d72f9f
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -35,6 +35,7 @@ library
       Experiments.Pandoc
       Experiments.ResolvingTemplates
       Experiments.SemConduit
+      Experiments.SourceContext
       Lib.Dates
       Lib.Errors
       Lib.Files
@@ -45,7 +46,6 @@ library
       Lib.SiteGenState
       Lib.Utils
       SiteGen
-      SourceContext
   other-modules:
       Paths_vimwiki_publishing_system
   hs-source-dirs:

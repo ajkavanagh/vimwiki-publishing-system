@@ -1,8 +1,11 @@
-module SourceContext where
+module Experiments.SourceContext where
 
 
 import           Data.Time.Clock (UTCTime)
 import Data.Text as T
+
+-- NOTE: not entirely sure whether to keep this or not; seems to be a duplicate
+-- of SourcePageHeader which might be better named as SourceContext??
 
 {- |
 
