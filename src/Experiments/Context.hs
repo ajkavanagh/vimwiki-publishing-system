@@ -2,12 +2,10 @@
 {-# LANGUAGE ExtendedDefaultRules  #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE LambdaCase            #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -68,13 +66,13 @@ import           Experiments.Ginger   (parseToTemplate)
    So an @m (GVal m)@ is a thing that needs to be evalutated in the context on m.
 
 -}
-data Context m = Context { unContext :: Monad m => HashMap.HashMap Text (m (GVal m)) }
+newtype Context m = Context { unContext :: Monad m => HashMap.HashMap Text (m (GVal m)) }
 
 {-instance (Monad m, ToGVal m v) => ToGVal m (Context m v) where-}
     {-toGVal = TG.toGVal . unContext-}
 
 emptyContext :: Monad m => m (Context m)
-emptyContext = pure $ Context $ HashMap.empty
+emptyContext = pure $ Context HashMap.empty
 
 
 -- registerIntoContext :: Context m -> Context m
@@ -129,7 +127,7 @@ contextLookupLiftRun
     -> Text
     -> TG.Run TG.SourcePos (Sem r) Html (GVal (TG.Run TG.SourcePos (Sem r) Html))
 contextLookupLiftRun ctxt key = do
-    TG.liftRun $ CP.log @String $ "The key asked for was " ++ (show key)
+    TG.liftRun $ CP.log @String $ "The key asked for was " ++ show key
     case resolveContext ctxt key of
         Nothing -> pure def
         Just f' -> TG.liftRun (TG.marshalGVal <$> f')  -- lifts the Sem r to a TG.Run ...
@@ -144,7 +142,7 @@ contextLookup'
     -> Text
     -> Sem r (GVal (Sem r))
 contextLookup' ctxt key = do
-    CP.log @String $ "The key asked for was " ++ (show key)
+    CP.log @String $ "The key asked for was " ++ show key
     resolveContextM ctxt key
 
 
@@ -156,7 +154,7 @@ siteGenMGValM
     :: Member (Reader S.SiteGenConfig) r
     => Sem r (GVal (Sem r))
 siteGenMGValM = do
-    sgc <- PR.ask @(S.SiteGenConfig)
+    sgc <- PR.ask @S.SiteGenConfig
     pure $ TG.dict
         [ "siteYaml" ~> S.sgcSiteYaml sgc
         , "siteID" ~> S.sgcSiteID sgc
@@ -178,12 +176,10 @@ registerIntoContext
     :: Member (Reader S.SiteGenConfig) r
     => Context (Sem r) -> Context (Sem r)
 registerIntoContext ctxt =
-    Prelude.foldr go ctxt [ registerSiteGenIntoContext
-                          , registerBodyIntoContext
-                          , registerTitleIntoContext
-                          ]
-  where
-      go f c = f c
+    Prelude.foldr ($) ctxt [ registerSiteGenIntoContext
+                           , registerBodyIntoContext
+                           , registerTitleIntoContext
+                           ]
 
 
 registerSiteGenIntoContext
@@ -273,7 +269,7 @@ getSiteGenConfig
                 , File
                 , Error FileException
                 , Error S.ConfigException ] r
-    => Sem r (S.SiteGenConfig)
+    => Sem r S.SiteGenConfig
 getSiteGenConfig = do
     let fp = "./example-site/site.yaml"
         draft = True
@@ -285,10 +281,10 @@ runTestC x = x & EF.fileToIO
                & PE.errorToIOFinal @FileException
                & PE.errorToIOFinal @GingerException
                & PE.errorToIOFinal @S.ConfigException
-               & PW.runWriterAssocR
+               & PW.runWriterAssocR @Text
                & runLogAction @IO logStringStderr  -- [Embed IO, Error ConfigException]
                & embedToFinal @IO
-               & runFinal
+               & runFinal @IO
 
 runSGC x = x & EF.fileToIO
              & PE.errorToIOFinal @FileException
@@ -296,7 +292,7 @@ runSGC x = x & EF.fileToIO
              & PE.errorToIOFinal @S.ConfigException
              & runLogAction @IO logStringStderr  -- [Embed IO, Error ConfigException]
              & embedToFinal @IO
-             & runFinal
+             & runFinal @IO
 
 fromRight :: Show a => Either a b -> b
 fromRight (Right x) = x
@@ -304,7 +300,6 @@ fromRight (Left y)  = error (show y)
 
 -- something I can just call
 renderTestContextP = do
-    sgc <- (getSiteGenConfig & runSGC)
-    {-let sgc' = join $ join sgc-}
+    sgc <- getSiteGenConfig & runSGC
     let sgc' = fromRight $ fromRight $ fromRight sgc
-    (PR.runReader @S.SiteGenConfig sgc' $ renderTestContext) & runTestC
+    PR.runReader @S.SiteGenConfig sgc' renderTestContext & runTestC

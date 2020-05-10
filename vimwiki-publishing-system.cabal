@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ee553be10ffba922446561e78252ee80eb447a217c3449f69091afafc6d72f9f
+-- hash: becf9fbbeb514438d0c9bc58afbc22d142554eb2a8d06341edad4d9831068dfd
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -42,6 +42,7 @@ library
       Lib.Header
       Lib.PandocUtils
       Lib.RouteContext
+      Lib.RouteUtils
       Lib.SiteGenConfig
       Lib.SiteGenState
       Lib.Utils
@@ -105,6 +106,7 @@ test-suite vimwiki-publishing-system-test
   other-modules:
       Lib.HeaderSpecs
       Lib.PandocUtilsSpecs
+      Lib.RouteUtilsSpecs
       Paths_vimwiki_publishing_system
   hs-source-dirs:
       test

@@ -18,7 +18,7 @@ data SiteGenError
     | ConfigError Text Text       -- formed from Config Exception
     | PageError SourcePageHeader Text  -- an against a source page.
 --  | PandocError PandocException
-    deriving Show
+    deriving (Eq, Show)
 
 
 -- | Allows for custom error types to be coerced into the standard error resposne.
