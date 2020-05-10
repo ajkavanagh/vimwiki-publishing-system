@@ -12,7 +12,7 @@
 [x] - Ensure that internal links and routes are always lower case.
 [x] - check for duplicate routes
 [ ] - Render the file and write it
-[ ] - switch site-page to index-page in heades
+[x] - switch site-page to index-page in heades
 [ ] - Rename existing RouteContext to HeaderContext to reflect that it's just
       used internally to build the SourcePageHeader
 [ ] - Move HeaderContext into Header and rename SourcePageHeader to

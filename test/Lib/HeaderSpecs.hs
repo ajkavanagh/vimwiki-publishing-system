@@ -24,11 +24,7 @@ import           Test.Hspec        (Spec, describe, it, pending, shouldBe, xit)
 import           Text.RawString.QQ
 
 -- Polysemy related
-{-import           Colog.Core        (runLogAsOutput)-}
 import           Colog.Polysemy    (runLogAsOutput)
-{-import qualified Colog.Polysemy    as CP-}
-{-import           Polysemy          (Member, Members, Sem, embedToFinal, run,-}
-                                    {-runFinal)-}
 import           Polysemy          (run)
 import           Polysemy.Error    (Error, errorToIOFinal, runError, throw)
 import           Polysemy.Output   (runOutputList)
@@ -213,7 +209,7 @@ defaultSPH = SourcePageHeader
     , phCategory=Nothing
     , phDate=Nothing
     , phUpdated=Nothing
-    , phSitePage=Nothing
+    , phIndexPage=False
     , phAuthors=[]
     , phPublish=False
     , phSiteID="site1"
@@ -241,7 +237,7 @@ tags:
 category: category1
 date: 23-02-2010
 updated: 30-04-2020 09:10
-site-page: index2
+index-page: true
 authors:
   - Alex Kavanagh
 publish: true
@@ -264,7 +260,7 @@ fullHeaderSPH = SourcePageHeader
     , phCategory=Just "category1"
     , phDate=parseDate "23-02-2010"
     , phUpdated=parseDate "30-04-2020 09:10"
-    , phSitePage=Just "index2"
+    , phIndexPage=True
     , phAuthors=["Alex Kavanagh"]
     , phPublish=True
     , phSiteID="default"
@@ -292,4 +288,4 @@ maybeDecodeHeaderSpecs = -- do
 
         it "Should return the full SourcePageHeader from a full config" $
             runMaybeDecodeHeader defaultSCG defaultRC fullHeader
-                `shouldBe` ([], Just (fullHeaderSPH {phHeaderLen=279}))
+                `shouldBe` ([], Just (fullHeaderSPH {phHeaderLen=278}))

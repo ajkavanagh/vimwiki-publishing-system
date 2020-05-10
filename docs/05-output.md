@@ -48,33 +48,15 @@ The following items are taken into account for the page route:
    page at `/archive.html` or `/archive/index.html` depending on whethe
    `index-files` is set.
 
-### Site Pages
+### Other Pages
 
-NOTE: I don't think these will make the cut.  Index pages ae a better idea.
-
-Site pages are a special category of page, and I'm not entirely sure whether
-they are needed.  The theory goes like this:
-
-Let's say there is an *archived* area of the website.  i.e. pages that are
-deliberately moved to the archive.  This could be controlled in the pages by
-using a tag `archived`.
-
-In the templates area, there will be a `/archived/index.hmtl.j2`.  However, we
-don't actually need any content for the that page, just a way of activating it
-and ensuring that it get's written.  The same is true for the site index, etc.
-
-So we need an `index` site-page a `tags` site page and a `categories` site page
-to generate those *collection* pages.  There *can* be context from the page, but
-all that is needed is the sitegen header, to indicate that it is a site page and
-where to put it.
-
-Of course, we still need the program to automatically generate the pages for
-each tag and category, and there's no real 'language' to do that with.  So,
-we'll just make it part of the system; and that is what the sitegen config
-`generate-tags` and `generate-categories` is for.  When set to `True` they cause
-the program to create create pages for each tag and category in the
-`tags/tag-name` and `category/category-name` spaces. The index pages are created
-using the site-page feature.
+We still need the program to automatically generate the pages for each tag and
+category, and there's no real 'language' to do that with.  So, we'll just make
+it part of the system; and that is what the sitegen config `generate-tags` and
+`generate-categories` is for.  When set to `True` they cause the program to
+create create pages for each tag and category in the `tags/tag-name` and
+`category/category-name` spaces. The index pages are created using the
+site-page feature.
 
 ## Index Pages
 

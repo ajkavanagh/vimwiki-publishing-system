@@ -43,7 +43,7 @@ category: cat1     # The SINGLE category to apply to the page.
 date: 2019-10-11   # The Date/time to apply to the page
 updated: 2019-10-12 # Date/time the page was updated.
 route: some/route-name  # The permanent route to use for this page.
-site-page: index   # Use this page as the index (see later)
+index-page: true        # Use this page as the index (see later)
 authors: [tinwood]  # Authors of this page.
 publish: false      # default is false; set to true to publish it.
 site: <site-identifier> # the site that this belongs to.
@@ -86,18 +86,18 @@ maxHeaderSize = 100 * 20
 
 
 data RawPageHeader = RawPageHeader
-    { _route    :: !(Maybe String)
-    , _title    :: !(Maybe String)
-    , _template :: !String
-    , _style    :: !(Maybe String)
-    , _tags     :: ![String]
-    , _category :: !(Maybe String)
-    , _date     :: !(Maybe String)
-    , _updated  :: !(Maybe String)
-    , _sitePage :: !(Maybe String)
-    , _authors  :: ![String]
-    , _publish  :: !Bool
-    , _siteID   :: !(Maybe String)
+    { _route     :: !(Maybe String)
+    , _title     :: !(Maybe String)
+    , _template  :: !String
+    , _style     :: !(Maybe String)
+    , _tags      :: ![String]
+    , _category  :: !(Maybe String)
+    , _date      :: !(Maybe String)
+    , _updated   :: !(Maybe String)
+    , _indexPage :: !Bool
+    , _authors   :: ![String]
+    , _publish   :: !Bool
+    , _siteID    :: !(Maybe String)
     } deriving (Show)
 
 
@@ -111,7 +111,7 @@ instance Y.FromJSON RawPageHeader where
         <*> v .:? "category"
         <*> v .:? "date"
         <*> v .:? "updated"
-        <*> v .:? "site-page"
+        <*> v .:? "index-page" .!= False
         <*> v .:? "authors" .!= []
         <*> v .:? "publish" .!= False
         <*> v .:? "site"
@@ -131,7 +131,7 @@ data SourcePageHeader = SourcePageHeader
     , phCategory        :: !(Maybe String)
     , phDate            :: !(Maybe UTCTime)
     , phUpdated         :: !(Maybe UTCTime)
-    , phSitePage        :: !(Maybe String)
+    , phIndexPage       :: !Bool
     , phAuthors         :: ![String]
     , phPublish         :: !Bool
     , phSiteID          :: !String
@@ -153,7 +153,7 @@ instance Default SourcePageHeader where
         , phCategory=def
         , phDate=def
         , phUpdated=def
-        , phSitePage=def
+        , phIndexPage=False
         , phAuthors=def
         , phPublish=False
         , phSiteID=def
@@ -213,7 +213,7 @@ makeSourcePageHeaderFromRawPageHeader rph len = do
         , phCategory        = _category rph
         , phDate            = pageDate
         , phUpdated         = updatedDate
-        , phSitePage        = _sitePage rph
+        , phIndexPage       = _indexPage rph
         , phAuthors         = _authors rph
         , phPublish         = _publish rph
         , phSiteID          = pick (_siteID rph) (S.sgcSiteID sgc)

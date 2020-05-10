@@ -7,7 +7,7 @@ category: cat1
 date: 2019-10-11
 updated: 2019-10-12
 slug: some/slug-name
-site-page: index
+index-page: true
 author: [tinwood]
 draft: true
 publish: false
