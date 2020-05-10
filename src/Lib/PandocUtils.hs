@@ -23,6 +23,7 @@ import qualified Text.Pandoc.Walk       as TPW
 
 import qualified Network.URI            as NU
 import qualified Lib.Header             as H
+import           Lib.Utils              (strToLower)
 
 import qualified Lib.SiteGenState       as SGS
 
@@ -70,7 +71,7 @@ maybeRewriteLink hmap link@(TPD.Link attr desc (url, title))
       -- can we parse it
       case NU.parseRelativeReference url of
           Nothing -> [link]   -- assume it's something else and leave it alone
-          Just uri -> case HashMap.lookup (NU.uriPath uri) hmap of
+          Just uri -> case HashMap.lookup (strToLower $ NU.uriPath uri) hmap of
               -- if we don't find it, then convert it to text
               Nothing -> if null desc
                            then B.toList $ B.text title

@@ -8,7 +8,8 @@
 [x] - Extract the header from a file (if it has one)
 [x] - Ignore files without a header
 [x] - Ignore files that are draft (and the config isn't draft)
-[ ] - Find links
+[x] - Find links
+[x] - Ensure that internal links and routes are always lower case.
 [ ] - Render the file and write it
 [ ] - If there isn't a page identifying as the index, then have a boiler plate
       one with no content; i.e. just run the template for the index.

@@ -61,6 +61,22 @@ processPandocLinksSpecs = --do
                 `shouldBe` ("<p>This <a href=\"new-route\" title=\"link\">link</a> and that " <>
                             "<a href=\"new-route2\" title=\"Description\">Description</a>.</p>")
 
+        it "Should lowercase relative links to routes" $
+            runTest simpleMap (parse "This [[Link]] should be converted.")
+                `shouldBe` "<p>This <a href=\"new-route\" title=\"Link\">Link</a> should be converted.</p>"
+
+        it "Should replace a link with a fragment in it" $
+            runTest simpleMap (parse "This [[Link#segment]] should be converted.")
+                `shouldBe` ("<p>This <a href=\"new-route#segment\" " <>
+                            "title=\"Link#segment\">Link#segment</a>" <>
+                            " should be converted.</p>")
+
+        it "Should replace a link/description with a fragment in it" $
+            runTest simpleMap (parse "This [[Link#segment|Thing]] should be converted.")
+                `shouldBe` ("<p>This <a href=\"new-route#segment\" " <>
+                            "title=\"Thing\">Thing</a>" <>
+                            " should be converted.</p>")
+
 --
 -- a SGS.VimWikiLinkToSPH map with just link to re-write it to a route
 linkSPH :: H.SourcePageHeader

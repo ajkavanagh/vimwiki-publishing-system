@@ -11,6 +11,9 @@ module Lib.Utils
     , validateFileExists
     , validateDirExists
     , printIfDoesntExist
+    , flipUnderscores
+    , flipSpaces
+    , fixRoute
     ) where
 
 import           Conduit
@@ -60,6 +63,22 @@ isDebug = do
 strToLower :: String -> String
 strToLower = map C.toLower
 
+
+flipUnderscores :: String -> String
+flipUnderscores = map go
+  where
+      go '_' = '-'
+      go x   = x
+
+flipSpaces :: String -> String
+flipSpaces = map go
+  where
+      go ' ' = '-'
+      go x   = x
+
+
+fixRoute :: String -> String
+fixRoute = flipSpaces . flipUnderscores . strToLower
 
 validateWithTests :: a -> [a -> IO Bool] -> IO Bool
 validateWithTests a = foldM ander True

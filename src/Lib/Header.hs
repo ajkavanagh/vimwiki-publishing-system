@@ -78,6 +78,7 @@ import           Polysemy.Reader    (Reader, ask)
 import           Lib.Dates          (parseDate)
 import qualified Lib.SiteGenConfig  as S
 import qualified Lib.RouteContext   as R
+import           Lib.Utils          (fixRoute)
 
 
 maxHeaderSize :: Int
@@ -201,7 +202,7 @@ makeSourcePageHeaderFromRawPageHeader rph len = do
     pageDate <- convertDate $ _date rph
     updatedDate <- convertDate $ _updated rph
     pure SourcePageHeader
-        { phRoute           = pick (_route rph) (R.rcAutoSlug rc)
+        { phRoute           = fixRoute $ pick (_route rph) (R.rcAutoSlug rc)
         , phAbsFilePath     = R.rcAbsFilePath rc
         , phRelFilePath     = R.rcRelFilePath rc
         , phVimWikiLinkPath = R.rcVimWikiLinkPath rc

@@ -33,6 +33,8 @@ import           Polysemy.Error        (Error)
 
 import           Effect.File           (File, FileException (..), fileStatus)
 
+import           Lib.Utils             (fixRoute, strToLower)
+
 {-
    The RouteContext is build from the filename and file details.
 
@@ -95,18 +97,16 @@ decodeFilePath fp =
         noExt = FP.dropExtensions fp
         parts = FP.splitDirectories noExt
      in FilePathParts { _fileName = FP.takeFileName _normalised
-                      , _vimWikiLink = noExt
+                      , _vimWikiLink = strToLower noExt   -- file names are lowered
                       , _path = parts
                       , _normalised = _normalised
                       }
 
 
+-- | Make a slug from the file path parts, ensuring it is lower case and spaces
+-- and underscores are replaced by '-'s
 makeAutoSlug :: FilePathParts -> String
-makeAutoSlug fpp =
-    let repl ' ' = '-'
-        repl c   = c
-        ps = map (map repl) $ _path fpp
-     in FP.joinPath ps
+makeAutoSlug fpp = FP.joinPath $ map fixRoute $ _path fpp
 
 
 makeAutoTitle :: FilePathParts -> String
