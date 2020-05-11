@@ -12,37 +12,39 @@
 
 module Experiments.ResolvingTemplates where
 
-import           System.FilePath  (FilePath, pathSeparator, takeDirectory, splitPath, joinPath,
-                                   (</>), (<.>))
+import           System.FilePath   (FilePath, joinPath, pathSeparator,
+                                    splitPath, takeDirectory, (<.>), (</>))
 
-import           Control.Monad    (forM)
-import           Data.List        (inits, dropWhile)
+import           Control.Monad     (forM)
+import           Data.List         (dropWhile, inits)
 
-import           Polysemy         (Embed, Members, Sem, embed, embedToFinal, runFinal)
-import           Polysemy.Error   (Error, throw)
-import           Polysemy.Reader  (Reader)
-import qualified Polysemy.Reader  as PR
+import           Polysemy          (Embed, Members, Sem, embed, embedToFinal,
+                                    runFinal)
+import           Polysemy.Error    (Error, throw)
+import           Polysemy.Reader   (Reader)
+import qualified Polysemy.Reader   as PR
 
-import           Effect.File      (File, FileException)
-import qualified Effect.File      as EF
+import           Effect.File       (File, FileException)
+import qualified Effect.File       as EF
 
-import           Lib.Header       (SourcePageHeader(..))
-import           Lib.SiteGenConfig (SiteGenConfig(..), getSiteGenConfig, ConfigException)
-import           Lib.Errors       (SiteGenError(..))
+import           Lib.Errors        (SiteGenError (..))
+import           Lib.Header        (SourcePageContext (..))
+import           Lib.SiteGenConfig (ConfigException, SiteGenConfig (..),
+                                    getSiteGenConfig)
 
 -- this is going to move
-import           Lib.SiteGenState     (SiteGenReader, siteGenConfig)
+import           Lib.SiteGenState  (SiteGenReader, siteGenConfig)
 
 -- for tests -- remove when removing test code
-import           Lib.Files        (filePathToMaybeSourcePageHeader)
-import           Colog.Polysemy       (Log, runLogAction)
-import qualified Colog.Polysemy       as CP
-import           Colog.Core           (logStringStderr)
-import           Lib.SiteGenState     (makeSiteGenReader)
-import qualified Polysemy.Error       as PE
+import           Colog.Core        (logStringStderr)
+import           Colog.Polysemy    (Log, runLogAction)
+import qualified Colog.Polysemy    as CP
+import           Data.Function     ((&))
+import           Data.List         (intercalate)
 import           Lib.Errors        (mapSiteGenError)
-import           Data.Function        ((&))
-import           Data.List (intercalate)
+import           Lib.Files         (filePathToMaybeSourcePageContext)
+import           Lib.SiteGenState  (makeSiteGenReader)
+import qualified Polysemy.Error    as PE
 
 {-
    So the idea here is that we have a templates directory, and in the templates
@@ -68,14 +70,14 @@ resolveTemplatePath
                 , Error SiteGenError
                 , Log String
                 ] r
-    => SourcePageHeader
+    => SourcePageContext
     -> Sem r FilePath
-resolveTemplatePath sph = do
+resolveTemplatePath spc = do
     sgc <- PR.asks @SiteGenReader siteGenConfig
-    let tBaseName = phTemplate sph
+    let tBaseName = spcTemplate spc
         ext = sgcTemplateExt sgc
         tFileName = tBaseName <.> sgcTemplateExt sgc
-        sPath = phRelFilePath sph
+        sPath = spcRelFilePath spc
         dir = takeDirectory sPath
         dirParts = splitPath dir
         tPath = sgcTemplatesDir sgc
@@ -86,7 +88,7 @@ resolveTemplatePath sph = do
     exists <- forM tryPaths EF.doesFileExist
     let pairs = dropWhile (not.snd) $ zip tryPaths exists
     if null pairs
-      then throw $ PageError sph "Couldn't find a template"
+      then throw $ PageError spc "Couldn't find a template"
       else pure $ fst $ head pairs
 
 
@@ -106,12 +108,12 @@ testResolveTemplatePath = do
     let file = "./example-site/src/posts/test_post.md"
     fp <- EF.makeAbsolute file
     PR.runReader @SiteGenConfig sgc $ do
-        mSph <- filePathToMaybeSourcePageHeader fp
-        case mSph of
+        mSpc <- filePathToMaybeSourcePageContext fp
+        case mSpc of
             Nothing -> throw $ EF.FileException file "Not a sitegen file"
-            (Just sph) -> do
-                let sgr = makeSiteGenReader sgc [sph]
-                PR.runReader @SiteGenReader sgr $ resolveTemplatePath sph
+            (Just spc) -> do
+                let sgr = makeSiteGenReader sgc [spc]
+                PR.runReader @SiteGenReader sgr $ resolveTemplatePath spc
 
 
 -- Run the Sem r monad to IO

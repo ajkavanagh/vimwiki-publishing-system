@@ -22,7 +22,7 @@ See if we can do something with Sem r and Conduit at the same time.
 i.e. we have the @Sem r@ monad which has all of the effects that we want,
 but we want to chunk files (or just lists of files, etc.) so that we don't
 put everything in memory at the same time.  Obviously, we'll still have to
-have a list of the SourcePageHeader objects, but not hold the entire set of
+have a list of the SourcePageContext objects, but not hold the entire set of
 files in memory at the same time.
 
 This module is to explore combining Polysemy and Conduit into the same functions.
@@ -48,16 +48,16 @@ newtype ConduitM i o m r = ConduitM
 
 -}
 
-import Data.Function ((&))
+import           Data.Function     ((&))
 
-import Data.Conduit
+import           Data.Conduit
 import qualified Data.Conduit.List as CL
 
-import qualified Colog.Polysemy as CP
-import           Colog.Polysemy   (Log, runLogAction)
-import           Colog.Core                (logStringStdout)
-import           Polysemy         (Embed, Members, Sem, embed, run)
-import Polysemy.Output (runOutputList)
+import           Colog.Core        (logStringStdout)
+import           Colog.Polysemy    (Log, runLogAction)
+import qualified Colog.Polysemy    as CP
+import           Polysemy          (Embed, Members, Sem, embed, run)
+import           Polysemy.Output   (runOutputList)
 
 --
 -- type Source m o = ConduitT () o m ()

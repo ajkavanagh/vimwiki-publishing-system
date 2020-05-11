@@ -46,15 +46,15 @@ import qualified Lib.SiteGenState       as SGS
 -- The Link, if it's local, will be the filename minus the extension.  i.e. we
 -- have to add the extension and then try to match it to the filepath
 
-processPandocLinks :: SGS.VimWikiLinkToSPH -> TP.Pandoc -> TP.Pandoc
+processPandocLinks :: SGS.VimWikiLinkToSPC -> TP.Pandoc -> TP.Pandoc
 processPandocLinks hmap = TPW.walk (walkLinksInInlines hmap)
 
 
-walkLinksInInlines :: SGS.VimWikiLinkToSPH -> [TP.Inline] -> [TP.Inline]
+walkLinksInInlines :: SGS.VimWikiLinkToSPC -> [TP.Inline] -> [TP.Inline]
 walkLinksInInlines hmap xs = L.concat $ walkLinksInInlines' hmap [] xs
 
 
-walkLinksInInlines' :: SGS.VimWikiLinkToSPH -> [[TP.Inline]] -> [TP.Inline]
+walkLinksInInlines' :: SGS.VimWikiLinkToSPC -> [[TP.Inline]] -> [TP.Inline]
                     -> [[TP.Inline]]
 walkLinksInInlines' hmap ds xs =
     let (as, bs) = L.break findLink xs
@@ -74,8 +74,8 @@ walkLinksInInlines' hmap ds xs =
 --     and substitute in the text or inlines.  Most likely the text.
 -- use Network.URI to detect the whether it is relative or a URI.  If it is
 -- relative, parse it, pull out the relative bit, and match it against the
--- relative link of the the SourcePageHeader items.
-maybeRewriteLink :: SGS.VimWikiLinkToSPH -> TP.Inline -> [TP.Inline]
+-- relative link of the the SourcePageContext items.
+maybeRewriteLink :: SGS.VimWikiLinkToSPC -> TP.Inline -> [TP.Inline]
 maybeRewriteLink hmap link@(TPD.Link attr desc (url, title))
   -- it's a relative reference; they should ALL be within the site
   | NU.isRelativeReference url =
@@ -89,8 +89,8 @@ maybeRewriteLink hmap link@(TPD.Link attr desc (url, title))
                            else desc
               -- otherwise re-write it to the route; note we need to add back in
               -- any of the other bits of the url (query and fragment)
-              Just sph ->
-                  let newUri = show (uri {NU.uriPath=H.phRoute sph})
+              Just spc ->
+                  let newUri = show (uri {NU.uriPath=H.spcRoute spc})
                    in [TPD.Link attr desc (newUri, title)]
   -- it was absolute or something else; thus we just ignore the link
   | otherwise = [link]

@@ -36,7 +36,7 @@ import           Lib.SiteGenConfig (SiteGenConfig (..))
 
 
 -- module under test
-import           Lib.Header        (HeaderContext (..), SourcePageHeader (..),
+import           Lib.Header        (HeaderContext (..), SourcePageContext (..),
                                     dropWithNewLine, findEndSiteGenHeader,
                                     isHeader, maybeDecodeHeader,
                                     maybeExtractHeaderBlock)
@@ -157,7 +157,7 @@ maybeExtractHeaderBlockSpecs = --do
 
 
 runMaybeDecodeHeader :: SiteGenConfig -> HeaderContext -> ByteString
-                     -> ([String], Maybe SourcePageHeader)
+                     -> ([String], Maybe SourcePageContext)
 runMaybeDecodeHeader sgc rc txt =
     maybeDecodeHeader txt          -- [Log String , Reader SiteGenConfig , Reader HeaderContext]
         & runLogAsOutput           -- [????, Reader SiteGenConfig, Reader HeaderContext]
@@ -170,7 +170,7 @@ runMaybeDecodeHeader sgc rc txt =
 defaultSCG :: SiteGenConfig
 defaultSCG = SiteGenConfig
     { sgcSiteYaml="a/file/path"
-    , sgcSiteID="site1"
+    , sgcSiteId="site1"
     , sgcSource="src/"
     , sgcOutputDir="html/"
     , sgcExtension=".md"
@@ -197,24 +197,24 @@ defaultHC = HeaderContext
     }
 
 
-defaultSPH :: SourcePageHeader
-defaultSPH = SourcePageHeader
-    { phRoute="auto/slug"
-    , phRelFilePath="some-name.md"
-    , phAbsFilePath="/some-name.md"
-    , phVimWikiLinkPath="some-name"
-    , phTitle="auto-title"
-    , phTemplate="default"
-    , phStyle="default.css"
-    , phTags=[]
-    , phCategory=Nothing
-    , phDate=Nothing
-    , phUpdated=Nothing
-    , phIndexPage=False
-    , phAuthors=[]
-    , phPublish=False
-    , phSiteID="site1"
-    , phHeaderLen=0 -- the length of the headerblock; i.e. what to drop to get to the content.
+defaultSPC :: SourcePageContext
+defaultSPC = SourcePageContext
+    { spcRoute="auto/slug"
+    , spcRelFilePath="some-name.md"
+    , spcAbsFilePath="/some-name.md"
+    , spcVimWikiLinkPath="some-name"
+    , spcTitle="auto-title"
+    , spcTemplate="default"
+    , spcStyle="default.css"
+    , spcTags=[]
+    , spcCategory=Nothing
+    , spcDate=Nothing
+    , spcUpdated=Nothing
+    , spcIndexPage=False
+    , spcAuthors=[]
+    , spcPublish=False
+    , spcSiteId="site1"
+    , spcHeaderLen=0 -- the length of the headerblock; i.e. what to drop to get to the content.
     }
 
 
@@ -248,24 +248,24 @@ site: default
 # And the header
 |]
 
-fullHeaderSPH :: SourcePageHeader
-fullHeaderSPH = SourcePageHeader
-    { phRoute="the/route"
-    , phRelFilePath="some-name.md"
-    , phAbsFilePath="/some-name.md"
-    , phVimWikiLinkPath="some-name"
-    , phTitle="The title"
-    , phTemplate="not-default"
-    , phStyle="some-style.css"
-    , phTags=["tag1", "tag2"]
-    , phCategory=Just "category1"
-    , phDate=parseDate "23-02-2010"
-    , phUpdated=parseDate "30-04-2020 09:10"
-    , phIndexPage=True
-    , phAuthors=["Alex Kavanagh"]
-    , phPublish=True
-    , phSiteID="default"
-    , phHeaderLen=0 -- the length of the headerblock; i.e. what to drop to get to the content.
+fullHeaderSPC :: SourcePageContext
+fullHeaderSPC = SourcePageContext
+    { spcRoute="the/route"
+    , spcRelFilePath="some-name.md"
+    , spcAbsFilePath="/some-name.md"
+    , spcVimWikiLinkPath="some-name"
+    , spcTitle="The title"
+    , spcTemplate="not-default"
+    , spcStyle="some-style.css"
+    , spcTags=["tag1", "tag2"]
+    , spcCategory=Just "category1"
+    , spcDate=parseDate "23-02-2010"
+    , spcUpdated=parseDate "30-04-2020 09:10"
+    , spcIndexPage=True
+    , spcAuthors=["Alex Kavanagh"]
+    , spcPublish=True
+    , spcSiteId="default"
+    , spcHeaderLen=0 -- the length of the headerblock; i.e. what to drop to get to the content.
     }
 
 
@@ -281,12 +281,12 @@ maybeDecodeHeaderSpecs = -- do
 
         it "Should return the title and length for a minimal header" $
             runMaybeDecodeHeader defaultSCG defaultHC minimalHeader
-                `shouldBe` ([], Just (defaultSPH { phTitle="This is the day"
-                                                 , phHeaderLen=39}))
+                `shouldBe` ([], Just (defaultSPC { spcTitle="This is the day"
+                                                 , spcHeaderLen=39}))
 
         it "Should be 'Done.\\n' when dropping 39 chars from minimalHeader" $
             (BS.drop 39 minimalHeader) `shouldBe` "Done.\n"
 
-        it "Should return the full SourcePageHeader from a full config" $
+        it "Should return the full SourcePageContext from a full config" $
             runMaybeDecodeHeader defaultSCG defaultHC fullHeader
-                `shouldBe` ([], Just (fullHeaderSPH {phHeaderLen=278}))
+                `shouldBe` ([], Just (fullHeaderSPC {spcHeaderLen=278}))

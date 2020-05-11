@@ -157,7 +157,7 @@ siteGenMGValM = do
     sgc <- PR.ask @S.SiteGenConfig
     pure $ TG.dict
         [ "siteYaml" ~> S.sgcSiteYaml sgc
-        , "siteID" ~> S.sgcSiteID sgc
+        , "siteId" ~> S.sgcSiteId sgc
         , "source" ~> S.sgcSource sgc
         , "outputDir" ~> S.sgcOutputDir sgc
         , "extension" ~> S.sgcExtension sgc

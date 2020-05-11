@@ -31,7 +31,7 @@ a little more complicated than that, but not much.  These are the key points:
 
 Thus Pandoc conversion is performed with an AST filter to find and convert the
 links, and then to re-write the links according the the slugs help in the
-`SourcePageHeader` objects.  The tricky bit is the AST filter.
+`SourcePageContext` objects.  The tricky bit is the AST filter.
 
 Also, it will be run with `runPure` as we don't want to run it in `IO`.  This
 means we need to do all the file and IO handling ourselves.  But that's okay,

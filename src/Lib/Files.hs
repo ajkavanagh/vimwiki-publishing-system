@@ -14,8 +14,8 @@
 
 module Lib.Files
     ( sourceDirectory
-    , filePathToSourcePageHeaders
-    , filePathToMaybeSourcePageHeader
+    , filePathToSourcePageContexts
+    , filePathToMaybeSourcePageContext
     ) where
 
 
@@ -41,7 +41,7 @@ import           Polysemy.Reader    (Reader, asks, runReader)
 import           Effect.File        (File, FileException (..))
 import qualified Effect.File        as EF
 
-import           Lib.Header         (SourcePageHeader,
+import           Lib.Header         (SourcePageContext,
                                      makeHeaderContextFromFileName,
                                      maxHeaderSize, maybeDecodeHeader)
 import           Lib.SiteGenConfig  (maxFileToProcessSize)
@@ -92,7 +92,7 @@ isSmallerThanM size fp = do
 
 
 
--- | convert the FilePath -> Maybe SourcePageHeader
+-- | convert the FilePath -> Maybe SourcePageContext
 
 {- what we want to do is to read enough of the file to determine:
 
@@ -111,39 +111,39 @@ isSmallerThanM size fp = do
 
 -- read up to maxHeaderSize of the file (into a ByteString) and see if we can
 -- extract a header.
-filePathToMaybeSourcePageHeader
+filePathToMaybeSourcePageContext
     :: Members '[ File
                 , Error FileException
                 , Reader S.SiteGenConfig
                 , Log String
                 ] r
     => FilePath
-    -> Sem r (Maybe SourcePageHeader)
-filePathToMaybeSourcePageHeader fp = do
+    -> Sem r (Maybe SourcePageContext)
+filePathToMaybeSourcePageContext fp = do
     sfp <- asks @S.SiteGenConfig S.sgcSource
     hc <- makeHeaderContextFromFileName sfp fp
     bs <- EF.readFile fp Nothing (Just maxHeaderSize)  -- read up to maxHeaderSize bytes
     runReader hc $ maybeDecodeHeader bs   -- add in The Reader HeaderContext to the Sem monad
 
 
--- now convert a bunch of files to a list of SourcePageHeaders -- note the list
+-- now convert a bunch of files to a list of SourcePageContexts -- note the list
 -- may be empty if there are not headers available, or the files do not resolve.
-filePathsToSourcePageHeaders
+filePathsToSourcePageContexts
     :: Members '[ File
                 , Error FileException
                 , Reader S.SiteGenConfig
                 , Log String
                 ] r
     => [FilePath]
-    -> Sem r [SourcePageHeader]
-filePathsToSourcePageHeaders fs =
-    catMaybes <$> mapM filePathToMaybeSourcePageHeader fs
+    -> Sem r [SourcePageContext]
+filePathsToSourcePageContexts fs =
+    catMaybes <$> mapM filePathToMaybeSourcePageContext fs
 
 
 -- finally, we convert a single FilePath (a directory) to a list of
--- SourcePageHeaders.  This is the magic function to find out what we need to
+-- SourcePageContexts.  This is the magic function to find out what we need to
 -- process.
-filePathToSourcePageHeaders
+filePathToSourcePageContexts
     :: Members '[ File
                 , Error FileException
                 , Reader S.SiteGenConfig
@@ -151,9 +151,9 @@ filePathToSourcePageHeaders
                 ] r
     => FilePath       -- the directory
     -> String         -- the extension to filter by
-    -> Sem r [SourcePageHeader]
-filePathToSourcePageHeaders dir ext =
-    filePathsToSourcePageHeaders =<< sourceDirectory dir ext
+    -> Sem r [SourcePageContext]
+filePathToSourcePageContexts dir ext =
+    filePathsToSourcePageContexts =<< sourceDirectory dir ext
 
 
 

@@ -33,7 +33,7 @@ processPandocLinksSpecs = --do
             runTest HashMap.empty (parse "This has no link")
                 `shouldBe` "<p>This has no link</p>"
 
-        it "Should remove a link with no SPH" $
+        it "Should remove a link with no SPC" $
             runTest HashMap.empty (parse "This one [[does]] have a link.")
                 `shouldBe` "<p>This one does have a link.</p>"
 
@@ -76,16 +76,16 @@ processPandocLinksSpecs = --do
                             " should be converted.</p>")
 
 --
--- a SGS.VimWikiLinkToSPH map with just link to re-write it to a route
-linkSPH :: H.SourcePageHeader
-linkSPH = def {H.phRoute="new-route"}
+-- a SGS.VimWikiLinkToSPC map with just link to re-write it to a route
+linkSPC :: H.SourcePageContext
+linkSPC = def {H.spcRoute="new-route"}
 
 
-simpleMap :: SGS.VimWikiLinkToSPH
+simpleMap :: SGS.VimWikiLinkToSPC
 simpleMap = HashMap.fromList
-    [ ("does", linkSPH)
-    , ("link", linkSPH)
-    , ("link1", def {H.phRoute="new-route2"})
+    [ ("does", linkSPC)
+    , ("link", linkSPC)
+    , ("link1", def {H.spcRoute="new-route2"})
     ]
 
 --helpers for tests
@@ -93,16 +93,16 @@ parse :: String -> TP.Pandoc
 parse = B.doc . B.para . B.text
 
 
-runProcessPandocLinks :: SGS.VimWikiLinkToSPH -> TP.Pandoc -> TP.Pandoc
+runProcessPandocLinks :: SGS.VimWikiLinkToSPC -> TP.Pandoc -> TP.Pandoc
 runProcessPandocLinks hmap = TPW.walk (processPandocLinks hmap)
 
 
 -- convert the wikilinks and then see if we should re-write them
-process :: SGS.VimWikiLinkToSPH -> TP.Pandoc -> TP.Pandoc
+process :: SGS.VimWikiLinkToSPC -> TP.Pandoc -> TP.Pandoc
 process hmap doc = runProcessPandocLinks hmap $ convertVimWikiLinks doc
 
 
-runTest :: SGS.VimWikiLinkToSPH -> TP.Pandoc -> Text
+runTest :: SGS.VimWikiLinkToSPC -> TP.Pandoc -> Text
 runTest hmap x =
     either (error . show) id
            (TP.runPure (TP.writeHtml5String TP.def (process hmap x)))

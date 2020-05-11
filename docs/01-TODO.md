@@ -16,7 +16,7 @@
 [x] - Rename existing RouteContext to HeaderContext to reflect that it's just
       used internally to build the SourcePageHeader
 [x] - Move HeaderContext into Header
-[ ] - Rename SourcePageHeader to SourcePageContext
+[x] - Rename SourcePageHeader to SourcePageContext
 [ ] - Flesh out the variables that will be available to a rendering page.
 [ ] - If there isn't a page identifying as the index, then have a boiler plate
       one with no content; i.e. just run the template for the index.

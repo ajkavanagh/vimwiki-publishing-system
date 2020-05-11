@@ -31,20 +31,20 @@ checkDuplicateRoutesSpecs = --do
 
 
 
-s1 :: H.SourcePageHeader
-s1 = def {H.phRoute="r1", H.phRelFilePath="f1"}
+s1 :: H.SourcePageContext
+s1 = def {H.spcRoute="r1", H.spcRelFilePath="f1"}
 
 
-s2 :: H.SourcePageHeader
-s2 = def {H.phRoute="r2", H.phRelFilePath="f2"}
+s2 :: H.SourcePageContext
+s2 = def {H.spcRoute="r2", H.spcRelFilePath="f2"}
 
 
-s3 :: H.SourcePageHeader
-s3 = def {H.phRoute="r3", H.phRelFilePath="f3"}
+s3 :: H.SourcePageContext
+s3 = def {H.spcRoute="r3", H.spcRelFilePath="f3"}
 
 
-d1 :: H.SourcePageHeader
-d1 = def {H.phRoute="r1", H.phRelFilePath="d1"}
+d1 :: H.SourcePageContext
+d1 = def {H.spcRoute="r1", H.spcRelFilePath="d1"}
 
 
 -- errors

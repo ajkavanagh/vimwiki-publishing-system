@@ -166,7 +166,7 @@ runSiteGenSem args = do
     let ext = SGC.sgcExtension sgc
     CP.log @String $ "Looking in " ++ show sourceDir
     CP.log @String $ "Extension is " ++ show ext
-    phs <- runReader sgc $ F.filePathToSourcePageHeaders sourceDir ext
-    let files = map H.phRelFilePath phs
+    phs <- runReader sgc $ F.filePathToSourcePageContexts sourceDir ext
+    let files = map H.spcRelFilePath phs
     CP.log @String $ "Files are " ++ intercalate "\n" files
     pure ()

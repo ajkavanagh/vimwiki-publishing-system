@@ -64,7 +64,7 @@ generate-categories: true  # should sitegen generate categories
 -}
 
 data RawSiteGenConfig = RawSiteGenConfig
-    { _siteID             :: !String
+    { _siteId             :: !String
     , _source             :: !FilePath
     , _outputDir          :: !FilePath
     , _extension          :: !String
@@ -115,7 +115,7 @@ readConfig fp = do
 
 data SiteGenConfig = SiteGenConfig
     { sgcSiteYaml           :: !FilePath
-    , sgcSiteID             :: !String
+    , sgcSiteId             :: !String
     , sgcSource             :: !FilePath
     , sgcOutputDir          :: !FilePath
     , sgcExtension          :: !String
@@ -166,7 +166,7 @@ makeSiteGenConfigFromRaw configPath rawConfig forceDrafts = do
       then throw $ ConfigException "One or more directories didn't exist"
       else pure $ SiteGenConfig
           { sgcSiteYaml=configPath
-          , sgcSiteID=_siteID rawConfig
+          , sgcSiteId=_siteId rawConfig
           , sgcSource=fromJust source_
           , sgcOutputDir=fromJust outputDir_
           , sgcExtension=_extension rawConfig

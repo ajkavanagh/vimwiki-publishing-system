@@ -7,7 +7,7 @@ import           Data.Text         (Text)
 
 import           Effect.File       (FileException (..))
 import           Effect.Ginger     (GingerException (..))
-import           Lib.Header        (SourcePageHeader)
+import           Lib.Header        (SourcePageContext)
 import           Lib.SiteGenConfig (ConfigException (..))
 
 
@@ -16,7 +16,7 @@ data SiteGenError
     = FileError FilePath Text       -- formed from FileException Filename error
     | GingerError Text            -- initially, this'll just be the text for the error
     | ConfigError Text Text       -- formed from Config Exception
-    | PageError SourcePageHeader Text  -- an against a source page.
+    | PageError SourcePageContext Text  -- an against a source page.
 --  | PandocError PandocException
     deriving (Eq, Show)
 

@@ -1,9 +1,9 @@
 module Lib.SiteGenState
     ( SiteGenReader(..)
     , SiteGenState(..)
-    , FilePathToSPH
-    , RouteToSPH
-    , VimWikiLinkToSPH
+    , FilePathToSPC
+    , RouteToSPC
+    , VimWikiLinkToSPC
     , Route
     , VimWikiLink
     , makeSiteGenReader
@@ -17,7 +17,7 @@ import           Data.DList          (DList)
 import qualified Data.DList          as DList
 import           Data.Default.Class  (Default, def)
 
-import           Lib.Header          (SourcePageHeader (..))
+import           Lib.Header          (SourcePageContext (..))
 import           Lib.SiteGenConfig   (SiteGenConfig)
 import           Lib.Errors          (SiteGenError)
 
@@ -26,34 +26,34 @@ type Route = String
 type VimWikiLink = String
 
 
-type FilePathToSPH    = HashMap.HashMap FilePath SourcePageHeader
-type RouteToSPH       = HashMap.HashMap Route SourcePageHeader
-type VimWikiLinkToSPH = HashMap.HashMap VimWikiLink SourcePageHeader
+type FilePathToSPC    = HashMap.HashMap FilePath SourcePageContext
+type RouteToSPC       = HashMap.HashMap Route SourcePageContext
+type VimWikiLinkToSPC = HashMap.HashMap VimWikiLink SourcePageContext
 
 
 -- This is for the Reader which the
 data SiteGenReader = SiteGenReader
     { siteGenConfig         :: !SiteGenConfig
-    , siteSourcePageHeaders :: ![SourcePageHeader]
-    , siteFilePathMap       :: !FilePathToSPH
-    , siteVimWikiLinkMap    :: !VimWikiLinkToSPH
-    , siteRouteMap          :: !RouteToSPH
+    , siteSourcePageContexts :: ![SourcePageContext]
+    , siteFilePathMap       :: !FilePathToSPC
+    , siteVimWikiLinkMap    :: !VimWikiLinkToSPC
+    , siteRouteMap          :: !RouteToSPC
     } deriving (Show)
 
 
-makeSiteGenReader :: SiteGenConfig -> [SourcePageHeader] -> SiteGenReader
-makeSiteGenReader sgc sphs = SiteGenReader
+makeSiteGenReader :: SiteGenConfig -> [SourcePageContext] -> SiteGenReader
+makeSiteGenReader sgc spcs = SiteGenReader
     { siteGenConfig=sgc
-    , siteSourcePageHeaders=sphs
-    , siteFilePathMap=HashMap.fromList $ map (\h -> (phAbsFilePath h, h)) sphs
-    , siteVimWikiLinkMap=HashMap.fromList $ map (\h -> (phVimWikiLinkPath h, h)) sphs
-    , siteRouteMap=HashMap.fromList $ map (\h -> (phRoute h, h)) sphs
+    , siteSourcePageContexts=spcs
+    , siteFilePathMap=HashMap.fromList $ map (\h -> (spcAbsFilePath h, h)) spcs
+    , siteVimWikiLinkMap=HashMap.fromList $ map (\h -> (spcVimWikiLinkPath h, h)) spcs
+    , siteRouteMap=HashMap.fromList $ map (\h -> (spcRoute h, h)) spcs
     }
 
 
 -- | The State variable, that says where we ae at.
 -- The important things are:
---  * it has the 'current' SourcePageHeader that is being worked on.
+--  * it has the 'current' SourcePageContext that is being worked on.
 --  * There is a list of SiteGenErrors have been generated during the generation
 --    so far.
 
@@ -62,7 +62,7 @@ makeSiteGenReader sgc sphs = SiteGenReader
 
 
 data SiteGenState = SiteGenState
-    { siteGenPage   :: !SourcePageHeader
+    { siteGenPage   :: !SourcePageContext
     , siteGenErrors :: !(DList SiteGenError)
     } deriving (Show)
 
