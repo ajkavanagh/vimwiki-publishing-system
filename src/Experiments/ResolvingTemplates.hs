@@ -12,7 +12,7 @@
 
 module Experiments.ResolvingTemplates where
 
-import           System.FilePath   (FilePath, joinPath, pathSeparator,
+import           System.FilePath   (FilePath, joinPath, pathSeparator, isRelative,
                                     splitPath, takeDirectory, (<.>), (</>))
 
 import           Control.Monad     (forM)
@@ -51,14 +51,18 @@ import qualified Polysemy.Error    as PE
    directory we will have (possibly) subdirectories and template files.
 
     ./templates/
+        _templates/
+            index.html.j2
+            default.html.j2
         default.html.j2
         index.html.j2
         posts/
             index.html.j2
 
    So the idea is that in 'posts' and file that is asking for the 'default'
-   template will end up with the './templates/default.html.j2' templates, but if
-   asked for the 'index' template, it would get './templates/posts/index.html.j2'
+   template will end up with the './templates/_defaults/default.html.j2'
+   templates, but if asked for the 'index' template, it would get
+   './templates/posts/index.html.j2'
 
 -}
 
@@ -75,20 +79,22 @@ resolveTemplatePath
 resolveTemplatePath spc = do
     sgc <- PR.asks @SiteGenReader siteGenConfig
     let tBaseName = spcTemplate spc
-        ext = sgcTemplateExt sgc
+        hasPath = pathSeparator `elem` tBaseName
         tFileName = tBaseName <.> sgcTemplateExt sgc
         sPath = spcRelFilePath spc
         dir = takeDirectory sPath
-        dirParts = splitPath dir
         tPath = sgcTemplatesDir sgc
-        -- now got tPath for the templates and the parts of the path.
-        dirPaths = reverse $ inits dirParts
-        tryPaths = map (\ps -> tPath </> joinPath ps </> tFileName) dirPaths
+        tryPaths = map (tPath </>) $ case (isRelative tFileName, hasPath) of
+            (True, True) -> [ tFileName, "_defaults" </> tFileName ]
+            (True, False) -> [ dir </> tFileName
+                             , "_defaults" </> dir </> tFileName
+                             , "_defaults" </> tFileName ]
+            (False, _) -> [ tFileName]
     CP.log $ intercalate "\n" tryPaths
     exists <- forM tryPaths EF.doesFileExist
     let pairs = dropWhile (not.snd) $ zip tryPaths exists
     if null pairs
-      then throw $ PageError spc "Couldn't find a template"
+      then throw $ PageError spc "Couldn't resolve a template"
       else pure $ fst $ head pairs
 
 

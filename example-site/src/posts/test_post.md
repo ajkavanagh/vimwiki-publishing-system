@@ -1,5 +1,6 @@
 --- sitegen
 title: Test Post
+template: index
 ---
 # The title
 

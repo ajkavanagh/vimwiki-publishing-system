@@ -20,6 +20,32 @@
 [ ] - Flesh out the variables that will be available to a rendering page.
 [ ] - If there isn't a page identifying as the index, then have a boiler plate
       one with no content; i.e. just run the template for the index.
+[ ] - Templates
+  [x] - Allow templates to be absolute, and don't do a search.  e.g. if the
+        template is `/some-index` then only look for that file in the templates
+	directory, and error if it isn't found.
+  [x] - If the page is an `index-page` then the default is `index` not
+        `default`.
+  [x] - add a `_defaults` folder that contains the 'defaults' for the
+	templates.  This is present at the root level and is the default that
+	is searched for.
+  [ ] - need to deal with 404.html page - we want to custom generate it, and it
+        should have a template.
+[ ] - 404 pages
+  [ ] - recognise and filter out any page with a `/404` route as part of
+        'normal' page rendering.
+  [ ] - generate and recognise the 404 page - particularly, 1st check that the
+        template is available and route it directly in the `RenderContext`.
+[ ] - Index Pages
+  [x] - ensure that the default for template is `index` if the page is an index
+        page.
+  [ ] - For every route level, and index page is required.  We have to generate
+	the `SourcePageContext` for the route level if there is no explicit
+	index page.  This means a change to the `SourcePageContext`.
+  [ ] - Modified the `SourcePageContext` so that it can be 'detached' from
+	a page. In particular, the content file needs to be a `Maybe` so it can
+	be blank.
+
 
 ## Try just rendering the index.html file
 

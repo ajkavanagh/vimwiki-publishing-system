@@ -99,7 +99,7 @@ maxHeaderSize = 100 * 20
 data RawPageHeader = RawPageHeader
     { _route     :: !(Maybe String)
     , _title     :: !(Maybe String)
-    , _template  :: !String
+    , _template  :: !(Maybe String)
     , _style     :: !(Maybe String)
     , _tags      :: ![String]
     , _category  :: !(Maybe String)
@@ -116,7 +116,7 @@ instance Y.FromJSON RawPageHeader where
     parseJSON (Y.Object v) = RawPageHeader
         <$> v .:? "route"
         <*> v .:? "title"
-        <*> v .:? "template" .!= "default"
+        <*> v .:? "template"
         <*> v .:? "style"
         <*> v .:? "tags"     .!= []
         <*> v .:? "category"
@@ -244,13 +244,14 @@ makeSourcePageContextFromRawPageHeader rph len = do
     rc  <- ask @HeaderContext
     pageDate <- convertDate $ _date rph
     updatedDate <- convertDate $ _updated rph
+    let defTemplate = if _indexPage rph then "index" else "default"
     pure SourcePageContext
         { spcRoute           = fixRoute $ pick (_route rph) (hcAutoSlug rc)
         , spcAbsFilePath     = hcAbsFilePath rc
         , spcRelFilePath     = hcRelFilePath rc
         , spcVimWikiLinkPath = hcVimWikiLinkPath rc
         , spcTitle           = pick (_title rph) (hcAutoTitle rc)
-        , spcTemplate        = _template rph
+        , spcTemplate        = pick (_template rph) defTemplate
         , spcStyle           = pick (_style rph) (S.sgcDefaultStyle sgc)
         , spcTags            = _tags rph
         , spcCategory        = _category rph
