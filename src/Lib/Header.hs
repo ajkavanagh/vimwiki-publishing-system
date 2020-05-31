@@ -14,6 +14,7 @@
 
 module Lib.Header
     ( SourcePageContext(..)
+    , VirtualIndexPageContext(..)
     , dropWithNewLine
     , findEndSiteGenHeader
     , isHeader
@@ -69,6 +70,7 @@ import qualified Data.ByteString       as BS
 import           Data.Default.Class    (Default, def)
 import qualified Data.List             as L
 import           Data.Maybe            (fromMaybe)
+import qualified Data.Text             as T
 import           Data.Text.Titlecase   (titlecase)
 import           Data.Yaml             ((.!=), (.:?))
 import qualified Data.Yaml             as Y
@@ -86,7 +88,7 @@ import           Polysemy.Reader       (Reader, ask)
 -- effects for Polysemy
 import           Effect.File           (File, FileException (..), fileStatus)
 
--- Local impots
+-- Local imports
 import           Lib.Dates             (parseDate)
 import qualified Lib.SiteGenConfig     as S
 import           Lib.Utils             (fixRoute, strToLower)
@@ -206,6 +208,40 @@ data FilePathParts = FilePathParts
     , _path        :: ![String]
     , _normalised  :: !FilePath
     } deriving Show
+
+
+data VirtualIndexPageContext = VirtualIndexPageContext
+    { vipcRoute           :: !String
+    , vipcTitle           :: !String
+    , vipcTemplate        :: !String
+    , vipcStyle           :: !String
+    , vipcDate            :: !(Maybe UTCTime)
+    , vipcUpdated         :: !(Maybe UTCTime)
+    , vipcIndexPage       :: !Bool
+    , vipcPublish         :: !Bool
+    , vipcSiteId          :: !String
+    } deriving Show
+
+
+-- we can't derive generically, as there's no default for Bool
+instance Default VirtualIndexPageContext where
+    def = VirtualIndexPageContext
+        { vipcRoute=def
+        , vipcTitle=def
+        , vipcTemplate=def
+        , vipcStyle=def
+        , vipcDate=def
+        , vipcUpdated=def
+        , vipcIndexPage=True
+        , vipcPublish=True
+        , vipcSiteId=def
+        }
+
+
+emptyVirtualIndexPageContext :: VirtualIndexPageContext
+emptyVirtualIndexPageContext = def VirtualIndexPageContext
+
+---
 
 
 maybeDecodeHeader :: Members '[ Log String
