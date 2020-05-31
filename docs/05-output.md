@@ -72,7 +72,20 @@ two index pages in the same source directory.
 Thus the idea is to enable generic templates to be written to account for
 different parts of the site.
 
-## (Now Implemented) Templates, and how they are found
+## 404 pages
+
+We're going to assume that if a page isn't found then the webserver will attempt
+to display the 404.html page. Thus we're going to have to generate them
+directly, like the categories and tags pages.
+
+The theory is that iff, in the templates directory `404` + `ext` exists, then
+it will be rendered. If there is a page with a route of `/404` then that page
+will be used as the content for the `404.html` page.  Otherwise, a blank
+`content` variable will be supplied.  If there is no `404` template (with the
+appropriate extension) then no `404.html` page will be generated *even if* there
+is a route with `/404` - the page won't be rendered at all.
+
+# (Now Implemented) Templates, and how they are found
 
 I've kind of glossed over how templates are picked for each page.  So, the
 system attempts to *find* the template by look for more specialised templates
@@ -82,8 +95,11 @@ If no template is specified then `default` plus the extension (e.g. `html.j2`)
 is used to discover the template.  Then, the system searches for
 a `default.html.j2` template in the same subdirectory of the `templates`
 directory as the page source sits at.  If there is no file there, then the
-parent directory is searched until the root of the templates is reached.  If
-still no template is discovered then an error occurs.
+`_default` directory is searched. If still no template is discovered then an
+error occurs.
+
+If the page is an `index-page` then the default template is `index` and that is
+used to search for the template.
 
 If the template is defined and it has no path (i.e. it's just a file name) then
 the same searching is done, and again, if nothing is found then an error
@@ -92,3 +108,39 @@ occurs.
 If the template has a path (starting with `/`) then no search is done and the
 the file is appended to the template directory.  If it doesn't exist then an
 error occurs.
+
+## Examples
+
+With the following template directory structure:
+
+```
+\templates
+  _defaults\
+     index.html
+     default.html
+     page.html
+  posts\
+     index.html
+  things\
+     default.html
+```
+
+Then the following template 'calls' will result in:
+
+```
+(nothing) -> _defaults/default.html
+(nothing,index=true) -> _defaults/index.html
+(route:posts) -> _defaults/default.html
+(route:posts,index=true) posts/index.html
+(route:things,index=true) -> _defaults/index.html
+(route:things/page) -> things/default.html
+(route:other...) -> _default/default.html
+(route:posts/page1,template:page) -> _defaults/page.html
+(route:anything,template:page,index=true) -> _defaults/page.html
+(route:anything,template:/tpl,index=<anthing>) -> ERROR, no template
+```
+
+i.e. *most* of the time the template doesn't need to be specified as it will it
+will either be the `default` or `index` in the `templates` directory that
+matches the route or a `_defaults` one.  The template is only needed if the
+none of those match.
