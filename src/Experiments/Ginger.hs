@@ -13,7 +13,7 @@
 {-# LANGUAGE TypeOperators        #-}
 
 
--- {-# LANGUAGE AllowAmbiguousTypes  #-}  -- for the b below
+{-# LANGUAGE AllowAmbiguousTypes  #-}  -- for the b below
 
 {-# OPTIONS_GHC -fplugin=Polysemy.Plugin #-}
 
@@ -221,7 +221,7 @@ runTest x = x & EF.fileToIO
               & PE.errorToIOFinal @GingerException
               & runLogAction @IO logStringStderr  -- [Embed IO, Error ConfigException]
               & embedToFinal @IO
-              & runFinal
+              & runFinal @IO
 
 
 
