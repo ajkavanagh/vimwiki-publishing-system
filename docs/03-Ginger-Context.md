@@ -96,4 +96,40 @@ available as their own Effects.
 Also, individual pages will have to include the context(s) that are relevant to
 that page.  e.g. the Index will have different context keys than a context page.
 
+# Variables available for various pages
 
+An index page is generated at a route level, even if no page identifies itself
+as an index page at that route level.  There will be no content, no tags and no
+categories (for the index) and it will use the `index` template that is
+available.
+
+## Variables available in an Index Page
+
+The following variable are available to an index page:
+
+* `config` - the SiteGenConfig variable
+* `page` - the variables from the page context
+* `pages` - an array of page contexts from the *same* route as the index page.
+  What this means is that if the index page has a route of `/things` then any
+  pages with a route of `things/...` will be in the `pages` array.
+  * `summary` - the 'above-the-fold' summary of the content
+* `breadcrumbs` - an array (forwards from the route) of the route.  i.e. if
+  this page is `some/things` then `breadcrumbs` will be `['some', 'things']`.
+* `template` - the template that is being used to render the page.
+* `ert` - (aspirational) -- the estimated reading time, based on 275 words per
+  minute of the content.
+* `content` - the html generated from any content in the page.  For most index
+  pages, this is probably empty, but might be used.
+
+## Variables available for a regular page
+
+Note: they are essentially the same.
+
+* `config` - the SiteGenConfig
+* `page` - the variables from the page context
+* `pages` - and array of page contexts at the same route level as this page.
+* `breadcrumbs` as above
+* `template` the template being used.
+* `content` the html generated from the content of the page.
+* `ert` - (aspirational) -- the estimated reading time, based on 275 words per
+  minute of the content.
