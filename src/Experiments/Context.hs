@@ -28,8 +28,6 @@ import qualified Data.HashMap.Strict  as HashMap
 import           Data.Text            (Text)
 import qualified Data.Text            as T
 
-import           Control.Monad        (join)
-
 import           Colog.Core           (logStringStderr)
 import           Colog.Polysemy       (Log, runLogAction)
 import qualified Colog.Polysemy       as CP
@@ -66,13 +64,32 @@ import           Experiments.Ginger   (parseToTemplate)
    So an @m (GVal m)@ is a thing that needs to be evalutated in the context on m.
 
 -}
+
+-- This is the type that Ginger runs for Sem r when doing context lookups.
+type RunSem r = TG.Run TG.SourcePos (Sem r) Html
+type RunSemGVal r = TG.Run TG.SourcePos (Sem r) Html (GVal (TG.Run TG.SourcePos (Sem r) Html))
+
 newtype Context m = Context { unContext :: Monad m => HashMap.HashMap Text (m (GVal m)) }
 
-{-instance (Monad m, ToGVal m v) => ToGVal m (Context m v) where-}
-    {-toGVal = TG.toGVal . unContext-}
+emptyContext :: Monad m => Context m
+emptyContext = Context HashMap.empty
 
-emptyContext :: Monad m => m (Context m)
-emptyContext = pure $ Context HashMap.empty
+
+-- okay, the idea is to simulate tags['tag1'].pages
+-- which is  "resolve 'tags'" then lookup 'tag1' the lookup 'pages' and return
+-- whatever that is".  At each point, the asLookup on a GVal m needs to be
+-- called.
+--
+-- It turns out there is no way to do this.  So, we have to fall back to another
+-- mechanism, which is to use the @Function m@ type which is helfully:
+-- type Function m = [(Maybe Text, GVal m)] -> m (GVal m)
+-- i.e. it runs inside the monad.
+--
+-- Thus, we'll have a generic function 'getComputed' that takes a route and a
+-- string to represent what is wanted, and thus will be able to run inside the
+-- Sem r monad to get the information that is needed during template generation.
+-- Thus we can process summary's lazily so we don't have to do everything up
+-- front.  What's that going to look like?
 
 
 -- registerIntoContext :: Context m -> Context m
@@ -85,12 +102,6 @@ registerContextKeyGVal ctxt key f = Context $ HashMap.insert key f (unContext ct
 resolveContext :: Monad m => Context m -> Text -> Maybe (m (GVal m))
 resolveContext ctxt k = HashMap.lookup k $ unContext ctxt
 
-
-resolveContextM :: Monad m => Context m -> Text -> m (GVal m)
-resolveContextM ctxt k =
-    case resolveContext ctxt k of
-        Nothing -> pure def   -- a default GVal m
-        Just f' -> f'
 
 {-
    So how do we do key1.key2 lookups?
@@ -117,33 +128,20 @@ resolveContextM ctxt k =
 -- lookup the context value in the Context m hashmap.  The HashMap is in the
 -- (Sem r) monad, but this function can run in the (Run p m h) monad which can
 -- be built in to the renderer.
-contextLookupLiftRun
-    {-:: forall r b.-}
+contextLookup
     :: forall r.
-       {-( ToGVal (TG.Run TG.SourcePos (Sem r) Html) b-}
        ( Member (Log String) r
        )
-    => Context (Sem r)
+    => Context (RunSem r)
     -> Text
-    -> TG.Run TG.SourcePos (Sem r) Html (GVal (TG.Run TG.SourcePos (Sem r) Html))
-contextLookupLiftRun ctxt key = do
+    -> RunSemGVal r
+contextLookup ctxt key = do
     TG.liftRun $ CP.log @String $ "The key asked for was " ++ show key
     case resolveContext ctxt key of
-        Nothing -> pure def
-        Just f' -> TG.liftRun (TG.marshalGVal <$> f')  -- lifts the Sem r to a TG.Run ...
-
-
-contextLookup'
-    :: forall r b.
-        ( ToGVal (Sem r) b
-        , Member (Log String) r
-        )
-    => Context (Sem r)
-    -> Text
-    -> Sem r (GVal (Sem r))
-contextLookup' ctxt key = do
-    CP.log @String $ "The key asked for was " ++ show key
-    resolveContextM ctxt key
+        Nothing -> do
+            TG.liftRun $ CP.log @String "key was not resolved!"
+            pure def
+        Just f' -> f'
 
 
 -- so we want to provide the SiteGenConfig structure as a (GVal m) under the
@@ -152,9 +150,9 @@ contextLookup' ctxt key = do
 
 siteGenMGValM
     :: Member (Reader S.SiteGenConfig) r
-    => Sem r (GVal (Sem r))
+    => RunSemGVal r
 siteGenMGValM = do
-    sgc <- PR.ask @S.SiteGenConfig
+    sgc <- TG.liftRun $ PR.ask @S.SiteGenConfig
     pure $ TG.dict
         [ "siteYaml" ~> S.sgcSiteYaml sgc
         , "siteId" ~> S.sgcSiteId sgc
@@ -173,18 +171,37 @@ siteGenMGValM = do
 
 
 registerIntoContext
-    :: Member (Reader S.SiteGenConfig) r
-    => Context (Sem r) -> Context (Sem r)
+    :: ( Member (Reader S.SiteGenConfig) r
+       , Member (Log String) r
+       )
+    => Context (RunSem r) -> Context (RunSem r)
 registerIntoContext ctxt =
     Prelude.foldr ($) ctxt [ registerSiteGenIntoContext
                            , registerBodyIntoContext
                            , registerTitleIntoContext
+                           , registerDynamicLookupIntoContext
+                           , registerThingIntoContext
                            ]
+
+registerDynamicLookupIntoContext
+    :: Member (Log String) r
+    => Context (RunSem r) -> Context (RunSem r)
+registerDynamicLookupIntoContext ctxt =
+    registerContextKeyGVal ctxt "getValue" (pure $ TG.fromFunction dynamicLookup)
+
+--
+-- let's do a function that does dynamic lookup of the a variable; we'll just
+-- want to log what it does so we can see the form of the variables.
+-- type Function m = [(Maybe Text, GVal m)] -> m (GVal m)
+dynamicLookup :: Member (Log String) r => TG.Function (RunSem r)
+dynamicLookup args = do
+    TG.liftRun $ CP.log @String $ "Args are " ++ show args
+    pure $ TG.toGVal "from dynamicLookup"
 
 
 registerSiteGenIntoContext
     :: Member (Reader S.SiteGenConfig) r
-    => Context (Sem r) -> Context (Sem r)
+    => Context (RunSem r) -> Context (RunSem r)
 registerSiteGenIntoContext ctxt = registerContextKeyGVal ctxt "sitegen" siteGenMGValM
 
 
@@ -204,30 +221,33 @@ registerTitleIntoContext
 registerTitleIntoContext ctxt = registerContextKeyGVal ctxt "title" (valueInMonad "The title")
 
 
+registerThingIntoContext :: Member (Log String) r => Context (RunSem r) -> Context (RunSem r)
+registerThingIntoContext ctxt = registerContextKeyGVal ctxt "thing" thingMGValM
+
+
+thingMGValM :: Member (Log String) r => RunSemGVal r
+thingMGValM = pure $ TG.dict [("func", TG.fromFunction dynamicLookup)]
+
 -- and now some testing to see if it will go into a rendering system
 
 -- now let's try to construct our render function that takes the template
 renderTemplate
-    :: -- forall r b.
-       forall r.
-       -- ( ToGVal (TG.Run TG.SourcePos (Sem r) Html) b
-       {-, Member (Reader (HashMap.HashMap TG.VarName b)) r-}
-       {-( Member (Reader (Context (Sem r))) r-}
+    :: forall r.
        ( Member (Writer Text) r
        , Member (Error GingerException) r
        , Member (Log String) r
        )
-    => Context (Sem r)
+    => Context (RunSem r)
     -> Template TG.SourcePos
     -> Sem r ()
 renderTemplate ctxt tpl = do
-    {-mm <- PR.ask @(HashMap.HashMap TG.VarName b)  -- get the hashmap-}
-    {-ctxt <- PR.ask @(Context (Sem r))-}
-    let context = TG.makeContextHtmlM (contextLookupLiftRun ctxt) drainHtml
+    let context = TG.makeContextHtmlM (contextLookup ctxt) drainHtml
     res <- TG.runGingerT context tpl
     case res of
         Left err -> PE.throw $ GingerException (T.pack $ show err)
-        Right _  -> pure ()
+        Right t  -> do
+            CP.log @String $ "Output was: " ++ show t
+            pure ()
 
 
 -- get the html out (as text) -- we'll later push this to conduitT and write it
@@ -242,10 +262,12 @@ drainHtml html = PW.tell $ htmlSource html
 
 -- now try to tie it all together
 
-makeTheContextM
-    :: Member (Reader S.SiteGenConfig) r
-    => Sem r (Context (Sem r))
-makeTheContextM = registerIntoContext <$> emptyContext
+makeTheContextRunSemR
+    :: ( Member (Reader S.SiteGenConfig) r
+       , Member (Log String) r
+       )
+    => Context (RunSem r)
+makeTheContextRunSemR = registerIntoContext emptyContext
 
 
 -- a test function that uses the testData and the template
@@ -260,7 +282,7 @@ renderTestContext
     => Sem r ()
 renderTestContext = do
     tpl <- parseToTemplate "./example-site/templates/index.html.j2"
-    ctxt <- makeTheContextM
+    let ctxt = makeTheContextRunSemR
     renderTemplate ctxt tpl
 
 
