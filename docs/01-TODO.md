@@ -45,6 +45,9 @@
   [ ] - Modified the `SourcePageContext` so that it can be 'detached' from
 	a page. In particular, the content file needs to be a `Maybe` so it can
 	be blank.
+[ ] - Process the `<!--more-->` tag to say where a content summary ends.  e.g.
+      we walk the processed Pandoc text elements and find the this item.  Note
+      it only looks for the first one.  All the others are stripped.
 
 
 ## Try just rendering the index.html file
