@@ -25,6 +25,7 @@ import qualified System.Directory   as SD
 import           System.FilePath    (takeExtension)
 import           System.IO          (IOMode (ReadMode), SeekMode (AbsoluteSeek),
                                      hClose, hSeek, withBinaryFile)
+import qualified System.IO.Temp     as SIT
 import           System.IO.Error    (tryIOError)
 import qualified System.Posix.Files as SPF
 
@@ -66,7 +67,9 @@ instance Show FileException where
     show ex = "File Handing issue: " ++ ss
       where
           ss = case ex of
-              (FileException fp s) -> "FilePath: " ++ show fp ++ ", Error: " ++ show s
+              (FileException fp s) -> if null fp
+                                        then "Error: " ++ show s
+                                        else "FilePath: " ++ show fp ++ ", Error: " ++ show s
               (FileExceptions xs)  -> intercalate ", " $ map show xs
 
 
@@ -75,6 +78,7 @@ data File m a where
     FileStatus :: FilePath -> File m SPF.FileStatus
     ReadFile :: FilePath -> Maybe Int -> Maybe Int -> File m ByteString
     WriteFile :: FilePath -> ByteString -> File m ()
+    DeleteFile :: FilePath -> File m ()
 
     -- List files in Directories
     SourceDirectoryFilter :: FilePath -> (FilePath -> Bool) -> File m [FilePath]
@@ -84,6 +88,13 @@ data File m a where
     MakeAbsolute :: FilePath -> File m FilePath
     DoesDirectoryExist :: FilePath -> File m Bool
     DoesFileExist :: FilePath -> File m Bool
+
+    -- Temporary Dirctory/File Support
+    GetCanonicalTemporaryDirectory :: File m FilePath
+    CreateTempDirectory :: FilePath -> String -> File m FilePath
+    EmptyTempFile :: FilePath -> String -> File m FilePath
+    EmptySystemTempFile :: String -> File m FilePath
+
 
 makeSem ''File
 
@@ -115,6 +126,11 @@ fileToIO = interpret $ \case
     -- writeFile :: FilePath -> ByteString
     WriteFile fp bs ->
         throwIfException fp =<< embed (tryIOError $ BS.writeFile fp bs)
+
+    -- delete a file represented by the filepath
+    -- DeleteFile :: FilePath -> File m ()
+    DeleteFile fp ->
+        throwIfException fp =<< embed (tryIOError $ SD.removeFile fp)
 
     -- The next two functions use conduit and return a list of files.
     -- Conduit is used as it's convenient to list the files without using up
@@ -170,6 +186,23 @@ fileToIO = interpret $ \case
         throwIfException fp =<< embed
              ( tryIOError
              $ SD.doesFileExist fp)
+
+    -- Temporary Dirctory/File Support
+    -- GetCanonicalTemporaryDirectory :: File m FilePath
+    GetCanonicalTemporaryDirectory ->
+        throwIfException "" =<< embed (tryIOError SIT.getCanonicalTemporaryDirectory)
+
+    -- CreateTempDirectory :: FilePath -> String -> File m FilePath
+    CreateTempDirectory fp pat ->
+        throwIfException fp =<< embed (tryIOError $ SIT.createTempDirectory fp pat)
+
+    -- EmptyTempFile :: FilePath -> String -> File m FilePath
+    EmptyTempFile fp pat ->
+        throwIfException fp =<< embed (tryIOError $ SIT.emptyTempFile fp pat)
+
+    -- EmptySystemTempFile :: FilePath -> String -> File m FilePath
+    EmptySystemTempFile pat ->
+        throwIfException "" =<< embed (tryIOError $ SIT.emptySystemTempFile pat)
 
 
 -- helper function to throw an Either a b to a FileException if its a Left or
