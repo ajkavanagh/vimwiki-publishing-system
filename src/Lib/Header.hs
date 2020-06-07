@@ -14,7 +14,7 @@
 
 module Lib.Header
     ( SourcePageContext(..)
-    , VirtualIndexPageContext(..)
+    , VirtualPageContext(..)
     , dropWithNewLine
     , findEndSiteGenHeader
     , isHeader
@@ -210,36 +210,38 @@ data FilePathParts = FilePathParts
     } deriving Show
 
 
-data VirtualIndexPageContext = VirtualIndexPageContext
-    { vipcRoute           :: !String
-    , vipcTitle           :: !String
-    , vipcTemplate        :: !String
-    , vipcStyle           :: !String
-    , vipcDate            :: !(Maybe UTCTime)
-    , vipcUpdated         :: !(Maybe UTCTime)
-    , vipcIndexPage       :: !Bool
-    , vipcPublish         :: !Bool
-    , vipcSiteId          :: !String
+-- | A VirtualPage is one that has no source.  These represent things like
+-- phantom index pages, category indexes and category pages, tags and tag pages.
+data VirtualPageContext = VirtualPageContext
+    { vpcRoute           :: !String
+    , vpcTitle           :: !String
+    , vpcTemplate        :: !String
+    , vpcStyle           :: !String
+    , vpcDate            :: !(Maybe UTCTime)
+    , vpcUpdated         :: !(Maybe UTCTime)
+    , vpcIndexPage       :: !Bool
+    , vpcPublish         :: !Bool
+    , vpcSiteId          :: !String
     } deriving Show
 
 
 -- we can't derive generically, as there's no default for Bool
-instance Default VirtualIndexPageContext where
-    def = VirtualIndexPageContext
-        { vipcRoute=def
-        , vipcTitle=def
-        , vipcTemplate=def
-        , vipcStyle=def
-        , vipcDate=def
-        , vipcUpdated=def
-        , vipcIndexPage=True
-        , vipcPublish=True
-        , vipcSiteId=def
+instance Default VirtualPageContext where
+    def = VirtualPageContext
+        { vpcRoute=def
+        , vpcTitle=def
+        , vpcTemplate=def
+        , vpcStyle=def
+        , vpcDate=def
+        , vpcUpdated=def
+        , vpcIndexPage=True
+        , vpcPublish=True
+        , vpcSiteId=def
         }
 
 
-emptyVirtualIndexPageContext :: VirtualIndexPageContext
-emptyVirtualIndexPageContext = def VirtualIndexPageContext
+emptyVirtualPageContext :: VirtualPageContext
+emptyVirtualPageContext = def VirtualPageContext
 
 ---
 

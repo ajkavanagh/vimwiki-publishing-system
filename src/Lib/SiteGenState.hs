@@ -1,6 +1,8 @@
 module Lib.SiteGenState
     ( SiteGenReader(..)
     , SiteGenState(..)
+    , SourcePageContext(..)
+    , SiteGenConfig(..)
     , FilePathToSPC
     , RouteToSPC
     , VimWikiLinkToSPC

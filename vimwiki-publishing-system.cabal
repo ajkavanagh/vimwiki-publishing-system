@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 1cd38c84dc4adaf8a22f01688a1b6c9571317d5daab9d57de179a32f2dbf59e8
+-- hash: 92e32da05958ef895ee53eb9f3162a773fee91338d25d5b51df3af83ef32edc1
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -27,6 +27,7 @@ source-repository head
 
 library
   exposed-modules:
+      Effect.ByteStringStore
       Effect.File
       Effect.Ginger
       Experiments.Context
@@ -75,6 +76,7 @@ library
     , parser-combinators
     , polysemy
     , polysemy-plugin
+    , temporary
     , text
     , text-show
     , time

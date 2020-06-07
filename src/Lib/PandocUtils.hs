@@ -16,7 +16,16 @@ module Lib.PandocUtils
     , getSummaryNPandoc
     , TocItem(..)
     , extractToc
+    , dumpToc
+    , loadTocEither
+    , buildPandocFromTocItems
+    -- testing
+    , testToc
+    , runTest
+    , runTest2
     ) where
+
+import           TextShow
 
 -- General
 import Control.Monad (liftM)
@@ -24,7 +33,8 @@ import Control.Monad (liftM)
 -- for Pandoc processing
 import qualified Data.List              as L
 import qualified Data.Text              as T
-import qualified Data.Text.IO           as TIO
+import           Data.Text.Encoding     (decodeUtf8')
+import qualified Data.ByteString        as BS
 import           Data.HashMap.Strict    (HashMap)
 import qualified Data.HashMap.Strict    as HashMap
 
@@ -47,10 +57,154 @@ import           Text.Parsec.Text       (Parser)
 
 import           Control.Applicative    ((<|>))
 
+-- for persisting the table of contents as a blob -- we need this for stashing
+-- it and grabbing it as needed
+import qualified Data.Yaml        as Y
+import           Data.Yaml        ((.:), (.:?), (.!=), (.=))
+
 import qualified Lib.Header             as H
 import           Lib.Utils              (strToLower)
+import           Lib.Errors             as LE
 
 import qualified Lib.SiteGenState       as SGS
+
+
+-- testing - remove
+import Data.Either (fromRight)
+
+
+-- Provide the set of options to use with the reader; eventually we'll allow
+-- this to be override at the program creation stage.
+pandocMarkdownArgs :: TP.ReaderOptions
+pandocMarkdownArgs = TP.def { TP.readerExtensions =
+    TP.extensionsFromList
+        -- uris
+        [ TP.Ext_autolink_bare_uris   -- bare http(s):// converts to links
+        -- code blocks
+        , TP.Ext_backtick_code_blocks -- enable ``` for code blocks
+        , TP.Ext_inline_code_attributes     -- allow `<$>`{.haskell} inline
+        -- block formatting
+        , TP.Ext_escaped_line_breaks  -- allow \<cr> to be a hard break
+        , TP.Ext_blank_before_header  -- require a blank line before # header
+        , TP.Ext_space_in_atx_header -- requires a space after #
+        , TP.Ext_auto_identifiers    -- spec identifiers for headings
+        , TP.Ext_header_attributes -- allow {#identifier ...} after heading
+        , TP.Ext_implicit_header_references  -- allow [That Heading] links
+        , TP.Ext_blank_before_blockquote  -- ensure a blank before a block quotation
+        , TP.Ext_fenced_code_attributes -- allow attributes on code blocks
+        , TP.Ext_line_blocks  -- allow | for line blocks.
+        , TP.Ext_fancy_lists    -- enable lots of different list types
+        , TP.Ext_startnum  -- enable starting of lists at a number e.g. 9)
+        , TP.Ext_task_lists     -- use - [x] for task lists
+        , TP.Ext_definition_lists   -- allow markdown definition lists
+        , TP.Ext_example_lists    -- enable use of (@) list numbering
+        -- tables
+        , TP.Ext_table_captions   -- enable use of Table: this is the caption
+        , TP.Ext_pipe_tables     -- use '|' to indicate columns
+        -- formatting
+        , TP.Ext_all_symbols_escapable  -- allow escaping of */_ etc.
+        , TP.Ext_intraword_underscores   -- allow _ in words, not as formatting
+        , TP.Ext_strikeout                  -- allow use of ~~struckout~~ formatting
+        , TP.Ext_superscript                -- allow use of ^ e.g. 2^2^
+        , TP.Ext_subscript                  -- allow use of H~2~O
+        -- math
+        , TP.Ext_tex_math_dollars           -- recognise $some text math expression$
+        -- raw html attribute
+        , TP.Ext_raw_attribute              -- allow use of `<some thing/>`{=html}
+        -- processing for filters
+        , TP.Ext_native_divs                -- turns divs in Pandoc AST Div elements
+        , TP.Ext_native_spans               -- turns spans into Pandoc AST Span elements
+        -- images
+        , TP.Ext_implicit_figures           -- allow captioned images in bare paragraphs
+        , TP.Ext_link_attributes            -- switch on attributes for links
+        -- syntax for divs and spans
+        , TP.Ext_fenced_divs                -- use ::: as a fenced div
+        , TP.Ext_bracketed_spans            -- allow [some text]{.class ...} to be a Span
+        -- footnotes and inline notes
+        , TP.Ext_footnotes                  -- switch on footnotes [^1]
+        , TP.Ext_inline_notes               -- enable Some.^[inline note]
+        ]
+    }
+
+
+-- Provide the set of options to use with the writer to HTML.  This only needs
+-- to provide the fragment as we aren't doing complex templates of any kind.  We
+-- aren't even wrapping the content in a div; that'll go in the Ginger template.
+pandocHtmlArgs ::  TP.WriterOptions
+pandocHtmlArgs = TP.def { TP.writerTemplate = Nothing
+                        , TP.writerVariables = []
+                        , TP.writerTableOfContents = False
+                        --, TP.writerHTMLMathMethod = TP.MathJax "some url"
+                        , TP.writerSectionDivs = True
+                        , TP.writerHtmlQTags = True
+                        }
+
+
+-- | parse a markdown document all the way to html.
+-- Firstly we have to get the initial AST.  Then we munge the AST for
+--  - links
+--  - summary (extract that bit)
+--  - table of contents (extract and store to JSON)
+
+parseMarkdown :: BS.ByteString -> Either LE.SiteGenError TP.Pandoc
+parseMarkdown bs =
+    case decodeUtf8' bs of
+        Left e -> Left $ LE.PageDecodeError (showt e)
+        Right txt ->
+            let result = TP.runPure $ TP.readMarkdown pandocMarkdownArgs txt
+             in case result of
+                Left e -> Left $ LE.PandocReadError e
+                Right ast -> Right ast
+
+
+-- | process the pandoc AST so that:
+--  * wikilink links are discovered and turned into Pandoc AST links
+--  * local links that don't point to any pages are removed.
+--  * links are 'fixed up' so they point to the right place in the eventual
+--    site.
+processPandocAST :: SGS.VimWikiLinkToSPC -> TP.Pandoc -> TP.Pandoc
+processPandocAST hmap ast = processPandocLinks hmap $ convertVimWikiLinks ast
+
+
+-- take the Pandoc AST (that's probably been processed) and process it to HTML
+-- for content.  Then return this content.
+pandocToContentTextEither :: TP.Pandoc -> Either LE.SiteGenError T.Text
+pandocToContentTextEither ast =
+    let result = TP.runPure $ TP.writeHtml5String pandocHtmlArgs ast
+     in case result of
+        Left e -> Left $ LE.PandocWriteError e
+        Right txt -> Right txt
+
+
+-- take the PandocAST (that'll have been processed) and extract the summary.
+-- Use the SiteGenConfig reader to extract the ProgramDefaults so that we can
+-- use the 'extract' N words as needed.
+pandocToSummaryTextEither
+    :: Int              -- the number of words to use
+    -> TP.Pandoc        -- the Pandoc document to fetch the summary from
+    -- Plain HTML and marked up HTML versions of the summary
+    -> Either LE.SiteGenError (T.Text, T.Text)
+pandocToSummaryTextEither n ast = do
+    plain <- renderWithOneOfEither getSummaryPlain (getSummaryNPlain n) ast
+    html <- renderWithOneOfEither getSummaryPandoc (getSummaryNPandoc n) ast
+    pure (plain, html)
+
+
+-- | helper to choose one of the summary functions
+renderWithOneOfEither
+    :: (TP.Pandoc -> Maybe TP.Pandoc)
+    -> (TP.Pandoc -> TP.Pandoc)
+    -> TP.Pandoc
+    -> Either LE.SiteGenError T.Text
+renderWithOneOfEither f1 f2 ast =
+    let mAst = f1 ast <|> pure (f2 ast)
+     in case mAst of
+        Nothing -> Left $ LE.PandocProcessError "Couldn't extract text?"
+        Just ast' ->
+            let resultTxt = TP.runPure $ TP.writeHtml5String pandocHtmlArgs ast'
+             in case resultTxt of
+                Left e -> Left $ LE.PandocWriteError e
+                Right txt -> Right txt
 
 
 -- | re-write Pandoc Links if they map to a source name.  i.e. map it to a
@@ -446,7 +600,10 @@ processMStr n as m (i:is) = case i of
 data TocItem = TocItem { tocTitle :: T.Text
                        , tocLink :: T.Text
                        , tocLevel :: Int
-                       } deriving Show
+                       }
+
+instance Show TocItem where
+    show TocItem {tocTitle=t, tocLink=l, tocLevel=n} = "T(" ++ show t ++ ", " ++ show n ++ ")"
 
 
 extractToc :: TP.Pandoc -> [TocItem]
@@ -463,6 +620,161 @@ queryHeaders (TP.Header level attr lst) =
       (ident,_,_) = attr
       _link  = T.pack $ "#" <> ident
 
+-- now persist and parse TocItem to a Yaml item for storage
+instance Y.FromJSON TocItem where
+    parseJSON (Y.Object v) = TocItem
+        <$> v .: "tocTitle"                                       -- site: <site-identifier>
+        <*> v .: "tocLink"
+        <*> v .: "tocLevel"
+    parseJSON _ = error "Can't parse SitegenConfig from YAML/JSON"
+
+instance Y.ToJSON TocItem where
+    toJSON (TocItem tocTitle tocLink tocLevel)
+      = Y.object [ "tocTitle" .= tocTitle
+                 , "tocLink"  .= tocLink
+                 , "tocLevel" .= tocLevel
+                 ]
+
+
+dumpToc :: [TocItem] -> BS.ByteString
+dumpToc = Y.encode
+
+
+-- would rather se decodeEither but it's deprecated; thus let's just use this
+loadTocEither :: BS.ByteString -> Either String [TocItem]
+loadTocEither bs = case Y.decodeEither' bs of
+    Left e -> Left (show e)
+    Right ts -> Right ts
+
+
+-- | extract the Table of Contents from a Pandoc document to a bytestring if it
+-- needs to be saved.
+extractTocItemsToByteString :: TP.Pandoc -> BS.ByteString
+extractTocItemsToByteString = dumpToc . extractToc
+
+
+-- | extract the TocItems out of the bytestring and into a Right
+-- Left is a site error (suitable for raising).
+byteStringToTocItemsEither :: BS.ByteString -> Either LE.SiteGenError [TocItem]
+byteStringToTocItemsEither bs =
+    case loadTocEither bs of
+        Left e -> Left $ LE.OtherError $ T.pack $ "Could decode TocItems? : " ++ e
+        Right ts -> Right ts
+
+
+--
+-- | render the TableOfContents from the TOC Pandoc that was previously
+-- extracted.  This is a bit different as we don't render it until it's actually
+-- asked for by the template (via Ginger).  Hence, this function expects the TOC
+-- as a [TocItem] and then calls the relevant Pandoc utils to build the Pandoc
+-- document from that.  This is then rendered to Text.
+renderTocItemsToHtml :: Int -> [TocItem] -> Either LE.SiteGenError T.Text
+renderTocItemsToHtml n ts =
+    let pd = buildPandocFromTocItems n ts
+        resultTxt = TP.runPure $ TP.writeHtml5String pandocHtmlArgs pd
+     in case resultTxt of
+        Left e -> Left $ LE.PandocWriteError e
+        Right txt -> Right txt
+
+
+-- | build a Pandoc TOC div using TocItem to the level asked for.
+-- This will be a <div id="toc"> and then and then a tree of <ul> inside divs
+-- where each item is clickable and each div contains a ul of <a> links
+buildPandocFromTocItems :: Int -> [TocItem] -> TP.Pandoc
+buildPandocFromTocItems levels ts =
+    let ts' = filter (\t -> tocLevel t <= levels) ts
+     in B.doc $ B.divWith ("toc", [".toc"], []) (tocBuildList 1 ts')
+
+
+-- build the list at level n
+tocBuildList :: Int -> [TocItem] -> B.Blocks
+tocBuildList _ [] = B.singleton TP.Null
+tocBuildList n ts = B.bulletList $ tocStartList n ts
+
+
+-- | initial build list -- we need to start at level 1, regardless of what the
+-- first level is.  If it is a 1 then we just return the B.bulletList at level
+-- 1, and find the rest at level 1, if it's at level n then try for that.
+tocStartList :: Int -> [TocItem] -> [B.Blocks]
+-- no items = no List Items
+tocStartList n [] = []
+-- test the first item
+tocStartList n ts@(t:_) =
+    let level = tocLevel t in case n `compare` level of
+        EQ -> tocBuildListItems ts
+        LT -> let (cs, rs) = L.break (\i -> tocLevel i == n) ts
+               in tocMissingItem <> B.bulletList (tocStartList (n+1) cs) : tocStartList n rs
+        GT -> error $ "The logic is broken: n(" ++ show n ++ ") > level(" ++ show level ++ ")"
+
+
+
+tocBuildListItems :: [TocItem] -> [B.Blocks]
+tocBuildListItems [] = []
+-- if just the last item in the list, covert it to a link inside a Plain block
+tocBuildListItems [t] = [B.plain (tocItemToLink t)]
+-- compare the two items at the top of the list.  If same level then build a
+-- list and recurse.  If the 2nd is higher than the first then embed the
+-- subsequent lists into the same list item.
+-- If the 2nd is lower than the first then we have a malformed TOC due to a
+-- malformed set of headers.  However, we should already have dealt with this
+-- before we get here, and so it's an error.
+tocBuildListItems (t1:t2:ts) = case tocLevel t1 `compare` tocLevel t2 of
+    -- they are the same, create an item and do the next one
+    EQ -> B.plain (tocItemToLink t1) : tocBuildListItems (t2:ts)
+    -- t1 < t2 means we have a sublist starting at t2.  find all the elements
+    -- lower than t1 and group them and process them and then continue at the
+    -- same level
+    LT -> let levelT1 = tocLevel t1
+              (cs, rs) = L.break (\t -> tocLevel t == levelT1) (t2:ts)
+           in B.plain (tocItemToLink t1) <> tocBuildList (levelT1 + 1) cs : tocBuildListItems rs
+    -- something wierd happened.  We can't go from a 2 - 1 (for example) as we
+    -- are supposed to have already dealt with that issue
+    GT -> error $ "tocBuildListItems can't deal with " ++ show (tocLevel t1) ++ " > " ++ show (tocLevel t2)
+
+
+-- make a Pandoc Link from a TocItem
+-- adds a class .tocLevelN to for the level
+tocItemToLink :: TocItem -> B.Inlines
+tocItemToLink TocItem {tocTitle=title, tocLink=link, tocLevel=level} =
+    B.linkWith ("", [".tocLevel" ++ show level], [])
+               (T.unpack link)
+               sTitle
+               (B.text sTitle)
+  where
+      sTitle = T.unpack title
+
+-- add a Plain text item that stands in for a missing heading
+tocMissingItem :: B.Blocks
+tocMissingItem = B.plain $ B.text "<missing heading>"
+
+
+-- adhoc testing of toc lists
+testToc = [ TocItem {tocTitle="t0.1.1", tocLink="#0", tocLevel=3}
+          , TocItem {tocTitle="t1", tocLink="#1", tocLevel=1}
+          , TocItem {tocTitle="t2", tocLink="#2", tocLevel=1}
+          , TocItem {tocTitle="t3", tocLink="#3", tocLevel=1}
+          , TocItem {tocTitle="t3.1", tocLink="#4", tocLevel=2}
+          , TocItem {tocTitle="t3.2", tocLink="#5", tocLevel=2}
+          , TocItem {tocTitle="t3.2.1", tocLink="#6", tocLevel=3}
+          , TocItem {tocTitle="t3.3", tocLink="#7", tocLevel=2}
+          , TocItem {tocTitle="t3.3.1", tocLink="#8", tocLevel=3}
+          , TocItem {tocTitle="t3.3.2", tocLink="#9", tocLevel=3}
+          , TocItem {tocTitle="t3.3.3", tocLink="#10", tocLevel=3}
+          , TocItem {tocTitle="t3.3.3.1", tocLink="#11", tocLevel=4}
+          , TocItem {tocTitle="t3.4", tocLink="#12", tocLevel=2}
+          , TocItem {tocTitle="t4", tocLink="#13", tocLevel=1}
+          , TocItem {tocTitle="t4.x.1", tocLink="#14", tocLevel=3}
+          , TocItem {tocTitle="t4.1", tocLink="#15", tocLevel=2}
+          ]
 
 -- this was the testing function
--- runTest x = TP.runPure (TP.writeHtml5String TP.def (convertVimWikiLinks x))
+{-runTest x = TP.runPure (TP.writeHtml5String TP.def x)-}
+
+runTest :: Int -> FilePath -> IO ()
+runTest n fp = do
+    let pd = buildPandocFromTocItems n testToc
+        html = fromRight "" $ TP.runPure (TP.writeHtml5String TP.def pd)
+    writeFile fp (T.unpack html)
+
+runTest2 :: Int -> TP.Pandoc
+runTest2 n = buildPandocFromTocItems n testToc

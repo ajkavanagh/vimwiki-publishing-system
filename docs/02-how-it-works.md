@@ -50,10 +50,10 @@ To identify these pages we need routes -> pages.
 ie.
 
 - / -> index page
-- tags -> tags page (list of tags, and pages that have those tags)
-- categories -> categories page (list of categories, and pages that have those
+- tags/ -> tags page (list of tags, and pages that have those tags)
+- categories/ -> categories page (list of categories, and pages that have those
   categories).
-- diary -> diary list page (list of diary pages)
+- diary/ -> diary list page (list of diary pages)
 - page/slug-name -> a particular page identified by the page itself.
 
 So to keep it simple, the templates will be:

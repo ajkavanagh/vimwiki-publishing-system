@@ -42,6 +42,7 @@ library:
     - parser-combinators
     - pandoc
     - pandoc-types
+    - temporary
     - text
     - text-show
     - time

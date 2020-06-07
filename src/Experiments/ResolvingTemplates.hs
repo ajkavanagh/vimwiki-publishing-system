@@ -94,7 +94,7 @@ resolveTemplatePath spc = do
     exists <- forM tryPaths EF.doesFileExist
     let pairs = dropWhile (not.snd) $ zip tryPaths exists
     if null pairs
-      then throw $ PageError spc "Couldn't resolve a template"
+      then throw $ SourcePageContextError spc "Couldn't resolve a template"
       else pure $ fst $ head pairs
 
 

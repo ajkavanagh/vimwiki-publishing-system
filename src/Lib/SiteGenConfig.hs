@@ -77,6 +77,7 @@ data RawSiteGenConfig = RawSiteGenConfig
     , _generateCategories :: !Bool
     , _publishDrafts      :: !Bool
     , _indexFiles         :: !Bool
+    , _maxSummaryWords    :: !Int
     } deriving (Show)
 
 
@@ -95,6 +96,7 @@ instance Y.FromJSON RawSiteGenConfig where
         <*> v .:? "generate-categories" .!= False              -- should sitegen generate categories
         <*> v .:? "publish-drafts"      .!= False              -- should we publish drafs?
         <*> v .:? "index-files"         .!= True               -- should index files be generated?
+        <*> v .:? "max-summary-words"   .!= 70                 -- Number of words to grab for summary
     parseJSON _ = error "Can't parse SitegenConfig from YAML/JSON"
 
 
@@ -104,8 +106,8 @@ readConfig
                 , Error FileException
                 , Error ConfigException
                 ] r
-       => FilePath
-       -> Sem r RawSiteGenConfig
+    => FilePath
+    -> Sem r RawSiteGenConfig
 readConfig fp = do
     bs <- EF.readFile fp Nothing Nothing
     case Y.decodeEither' bs of
@@ -128,6 +130,7 @@ data SiteGenConfig = SiteGenConfig
     , sgcGenerateCategories :: !Bool
     , sgcPublishDrafts      :: !Bool
     , sgcIndexFiles         :: !Bool
+    , sgcMaxSummaryWords    :: !Int
     } deriving (Show)
 
 
@@ -137,9 +140,9 @@ getSiteGenConfig
                 , Error FileException
                 , Error ConfigException
                 ] r
-       => FilePath
-       -> Bool
-       -> Sem r SiteGenConfig
+    => FilePath
+    -> Bool
+    -> Sem r SiteGenConfig
 getSiteGenConfig configFileName forceDrafts = do
     configPath <- EF.makeAbsolute configFileName
     rawConfig <- readConfig configPath
@@ -152,10 +155,10 @@ makeSiteGenConfigFromRaw
                 , Error FileException
                 , Error ConfigException
                 ] r
-       => FilePath
-       -> RawSiteGenConfig
-       -> Bool
-       -> Sem r SiteGenConfig
+    => FilePath
+    -> RawSiteGenConfig
+    -> Bool
+    -> Sem r SiteGenConfig
 makeSiteGenConfigFromRaw configPath rawConfig forceDrafts = do
     let root = takeDirectory configPath
     source_ <- resolvePath (_source rawConfig) root "source dir"
@@ -179,6 +182,7 @@ makeSiteGenConfigFromRaw configPath rawConfig forceDrafts = do
           , sgcGenerateCategories=_generateCategories rawConfig
           , sgcPublishDrafts=_publishDrafts rawConfig || forceDrafts
           , sgcIndexFiles=_indexFiles rawConfig
+          , sgcMaxSummaryWords = _maxSummaryWords rawConfig
           }
 
 
