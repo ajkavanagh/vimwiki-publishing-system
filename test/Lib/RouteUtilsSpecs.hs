@@ -48,5 +48,5 @@ d1 = def {H.spcRoute="r1", H.spcRelFilePath="d1"}
 
 
 -- errors
-e1 = PageError s1 "Pages share same route: \"r1\", filenames: f1, d1"
-e2 = PageError d1 "Pages share same route: \"r1\", filenames: f1, d1"
+e1 = RU.DuplicateRouteError s1 "Pages share same route: \"r1\", filenames: f1, d1"
+e2 = RU.DuplicateRouteError d1 "Pages share same route: \"r1\", filenames: f1, d1"

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 92e32da05958ef895ee53eb9f3162a773fee91338d25d5b51df3af83ef32edc1
+-- hash: f41b2d13dc8d636a4dfb4339cb48a7890911ea2f091d85b05ab936532fa954a0
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -35,17 +35,17 @@ library
       Experiments.Ginger
       Experiments.Pandoc
       Experiments.RenderContext
-      Experiments.ResolvingTemplates
       Experiments.SemConduit
-      Experiments.SourceClass
       Lib.Dates
       Lib.Errors
       Lib.Files
       Lib.Header
       Lib.PandocUtils
+      Lib.ResolvingTemplates
       Lib.RouteUtils
       Lib.SiteGenConfig
       Lib.SiteGenState
+      Lib.SourceClass
       Lib.Utils
       SiteGen
   other-modules:
@@ -76,6 +76,7 @@ library
     , parser-combinators
     , polysemy
     , polysemy-plugin
+    , split
     , temporary
     , text
     , text-show

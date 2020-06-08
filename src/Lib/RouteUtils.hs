@@ -6,22 +6,31 @@ module Lib.RouteUtils
     , indexRouteFor
     , isIndexRoute
     , findMissingIndexRoutes
+    , addVPCIndexPages
+    , RouteError(..)
     ) where
 
-import qualified Data.List  as L
-import Data.Ord (comparing)
-import qualified Data.Text as T
+import           Data.Default.Class (Default, def)
+import qualified Data.List          as L
+import qualified Data.List.Split    as LS
+import           Data.Ord           (comparing)
+import qualified Data.Text          as T
 
-import qualified System.FilePath as F
+import qualified System.FilePath    as F
 
-import           Lib.Errors (SiteGenError (..))
-import           Lib.Header (SourcePageContext(..))
+import           Lib.Errors         (SiteGenError (..))
+import           Lib.Header         (SourcePageContext (..),
+                                     VirtualPageContext (..))
+import           Lib.SourceClass    (SourceContext (..))
 
+
+data RouteError = DuplicateRouteError SourcePageContext T.Text
+                  deriving (Eq, Show)
 
 -- | check for duplicate routes in [SourcePageContext]
 -- If duplicate then throw an error against the 2nd SPC with details of
 -- the error
-checkDuplicateRoutes :: [SourcePageContext] -> [SiteGenError]
+checkDuplicateRoutes :: [SourcePageContext] -> [RouteError]
 checkDuplicateRoutes spcs =
     let pairs = map (\spc -> (spcRoute spc, spc)) spcs
         sPairs = L.sortOn fst pairs
@@ -33,15 +42,15 @@ checkDuplicateRoutes spcs =
     comp (x1,_) (x2,_) = x1 == x2
 
 
-makeError' :: [(String, SourcePageContext)] -> [SiteGenError]
+makeError' :: [(String, SourcePageContext)] -> [RouteError]
 makeError' pairs =
     let route = fst $ head pairs
         fileNames = map (spcRelFilePath . snd) pairs
         spcs = map snd pairs
      in map (go route fileNames) spcs
   where
-      go :: String -> [FilePath] -> SourcePageContext -> SiteGenError
-      go r fps spc = SourcePageContextError spc (T.pack ("Pages share same route: "
+      go :: String -> [FilePath] -> SourcePageContext -> RouteError
+      go r fps spc = DuplicateRouteError spc (T.pack ("Pages share same route: "
                                              <> show r
                                              <> ", filenames: "
                                              <> L.intercalate ", " fps))
@@ -53,8 +62,8 @@ ensureIndexRoutesIn :: [SourcePageContext] -> [SourcePageContext]
 ensureIndexRoutesIn spcs = go <$> spcs
   where go spc = let r = spcRoute spc
                   in if spcIndexPage spc && isIndexRoute r
-                       then spc
-                       else spc { spcRoute=r <> [F.pathSeparator] }
+                       then spc { spcRoute=r <> "/" }
+                       else spc
 
 
 -- | identify the missing index pages in the routes.
@@ -70,17 +79,37 @@ findMissingIndexRoutes spcs =
 
 isIndexRoute :: String -> Bool
 isIndexRoute "" = False
-isIndexRoute s = last s == F.pathSeparator
+isIndexRoute s  = last s == '/'
 
 
 -- | compute the index route for a route.  if it ends in the path separator,
 -- then it is an index route; otherwise take the last part off, and then that is
 -- a route.
 indexRouteFor :: String -> String
-indexRouteFor "" = [F.pathSeparator]
+indexRouteFor "" = "/"
 indexRouteFor s
-  | last s == F.pathSeparator = s
+  | last s == '/' = s
   | otherwise =
-      case F.splitPath s of
-          [] -> [F.pathSeparator]
-          xs -> F.joinPath (L.init xs)
+      case LS.splitOn "/" s of
+          [] -> "/"
+          xs -> L.intercalate "/" (L.init xs)  <> "/"
+
+
+-- | ensure that we have a set of VirtualPageContext records for each missing
+-- index page.  Note that SourceContext is a wrapper around the
+-- SourcePageContext and the VirtualPageContext, and the SourceClass is used to
+-- paper over the cracks in most places.
+addVPCIndexPages :: [SourcePageContext] -> [SourceContext]
+addVPCIndexPages spcs =
+    let missingIndexes = findMissingIndexRoutes spcs
+        vpcs = map makeVPCForIndex missingIndexes
+     in map SPC spcs ++ map VPC vpcs
+
+
+makeVPCForIndex :: String -> VirtualPageContext
+makeVPCForIndex route = def { vpcRoute = route
+                            , vpcVimWikiLinkPath = route
+                            , vpcTitle = "Page: " ++ route
+                            , vpcTemplate = "index"
+                            , vpcIndexPage = True
+                            }

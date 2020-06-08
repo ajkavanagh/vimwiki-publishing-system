@@ -44,12 +44,14 @@ import           Effect.File               (File, FileException, fileToIO)
 -- Local Libraries
 import qualified Lib.Files                 as F
 import qualified Lib.Header                as H
+import qualified Lib.RouteUtils            as RU
+import           Lib.SiteGenConfig         (ConfigException, SiteGenConfig)
+import qualified Lib.SiteGenConfig         as SGC
+import qualified Lib.SourceClass           as SC
 import           Lib.Utils                 (isDebug, isMarkDownFile,
                                             isMarkDownStr, printIfDoesntExist,
                                             strToLower, validateFileExists,
                                             validateWithTests)
-import           Lib.SiteGenConfig         (ConfigException, SiteGenConfig)
-import qualified Lib.SiteGenConfig         as SGC
 
 sitegenProgram :: IO ()
 sitegenProgram = sitegenCli =<< execParser opts
@@ -72,7 +74,7 @@ data SitegenArgs = SitegenArgs
     , extraArgs     :: ![String]
     }
     deriving Show
-    
+
 
 -- debug helper to create a SitegenArgs from some values
 makeSitegenArgs :: String -> Bool -> Bool -> SitegenArgs
@@ -133,7 +135,7 @@ runSiteGen args = do
         & errorToIOFinal @ConfigException
         & errorToIOFinal @FileException
         & embedToFinal @IO
-        & runFinal
+        & runFinal @IO
     case res of
         Right _ ->
             return ()
@@ -166,7 +168,16 @@ runSiteGenSem args = do
     let ext = SGC.sgcExtension sgc
     CP.log @String $ "Looking in " ++ show sourceDir
     CP.log @String $ "Extension is " ++ show ext
-    phs <- runReader sgc $ F.filePathToSourcePageContexts sourceDir ext
-    let files = map H.spcRelFilePath phs
-    CP.log @String $ "Files are " ++ intercalate "\n" files
+    spcs <- runReader sgc $ F.filePathToSourcePageContexts sourceDir ext
+    CP.log @String $ "SPCs are:\n" ++ intercalate "\n" (map show spcs)
+    let files = map H.spcRelFilePath spcs
+    CP.log @String $ "Files are: " ++ intercalate ", " files
+    let dr = RU.checkDuplicateRoutes spcs
+    CP.log @String $ "Duplicate routes: " ++ intercalate ", " (map show dr)
+    let mr = RU.findMissingIndexRoutes spcs
+    CP.log @String $ "Missing routes: Len (" ++ show (length mr) ++ ") = " ++ intercalate ", " mr
+    let spcs' = RU.ensureIndexRoutesIn spcs
+        scs = RU.addVPCIndexPages spcs'
+    CP.log @String $ "Final route set: " ++ intercalate ", " (map SC.scRoute scs)
+    CP.log @String $ "Final SourceContext set:\n" ++ intercalate "\n" (map show scs)
     pure ()

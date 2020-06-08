@@ -183,6 +183,7 @@ defaultSCG = SiteGenConfig
     , sgcGenerateCategories=True
     , sgcPublishDrafts=True
     , sgcIndexFiles=True
+    , sgcMaxSummaryWords=70
     }
 
 

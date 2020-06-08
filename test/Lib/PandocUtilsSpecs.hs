@@ -18,6 +18,8 @@ import           Data.Text              (Text)
 -- local modules to set up tests
 import qualified Lib.Header             as H
 import qualified Lib.SiteGenState       as SGS
+import qualified Lib.SourceClass        as SC
+
 
 -- module under test
 import           Lib.PandocUtils        (convertVimWikiLinks,
@@ -76,16 +78,16 @@ processPandocLinksSpecs = --do
                             " should be converted.</p>")
 
 --
--- a SGS.VimWikiLinkToSPC map with just link to re-write it to a route
+-- a SGS.VimWikiLinkToSC map with just link to re-write it to a route
 linkSPC :: H.SourcePageContext
 linkSPC = def {H.spcRoute="new-route"}
 
 
-simpleMap :: SGS.VimWikiLinkToSPC
+simpleMap :: SGS.VimWikiLinkToSC
 simpleMap = HashMap.fromList
-    [ ("does", linkSPC)
-    , ("link", linkSPC)
-    , ("link1", def {H.spcRoute="new-route2"})
+    [ ("does", SC.SPC linkSPC)
+    , ("link", SC.SPC linkSPC)
+    , ("link1", SC.SPC $ def {H.spcRoute="new-route2"})
     ]
 
 --helpers for tests
@@ -93,16 +95,16 @@ parse :: String -> TP.Pandoc
 parse = B.doc . B.para . B.text
 
 
-runProcessPandocLinks :: SGS.VimWikiLinkToSPC -> TP.Pandoc -> TP.Pandoc
+runProcessPandocLinks :: SGS.VimWikiLinkToSC -> TP.Pandoc -> TP.Pandoc
 runProcessPandocLinks hmap = TPW.walk (processPandocLinks hmap)
 
 
 -- convert the wikilinks and then see if we should re-write them
-process :: SGS.VimWikiLinkToSPC -> TP.Pandoc -> TP.Pandoc
+process :: SGS.VimWikiLinkToSC -> TP.Pandoc -> TP.Pandoc
 process hmap doc = runProcessPandocLinks hmap $ convertVimWikiLinks doc
 
 
-runTest :: SGS.VimWikiLinkToSPC -> TP.Pandoc -> Text
+runTest :: SGS.VimWikiLinkToSC -> TP.Pandoc -> Text
 runTest hmap x =
     either (error . show) id
            (TP.runPure (TP.writeHtml5String TP.def (process hmap x)))

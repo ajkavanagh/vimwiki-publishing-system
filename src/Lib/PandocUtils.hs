@@ -28,18 +28,18 @@ module Lib.PandocUtils
 import           TextShow
 
 -- General
-import Control.Monad (liftM)
+import           Control.Monad          (liftM)
 
 -- for Pandoc processing
-import qualified Data.List              as L
-import qualified Data.Text              as T
-import           Data.Text.Encoding     (decodeUtf8')
 import qualified Data.ByteString        as BS
 import           Data.HashMap.Strict    (HashMap)
 import qualified Data.HashMap.Strict    as HashMap
+import qualified Data.List              as L
+import qualified Data.Text              as T
+import           Data.Text.Encoding     (decodeUtf8')
 
-import qualified Data.DList             as DList
 import           Data.DList             (DList)
+import qualified Data.DList             as DList
 
 import qualified Text.Pandoc            as TP
 import qualified Text.Pandoc.Builder    as B
@@ -59,18 +59,18 @@ import           Control.Applicative    ((<|>))
 
 -- for persisting the table of contents as a blob -- we need this for stashing
 -- it and grabbing it as needed
-import qualified Data.Yaml        as Y
-import           Data.Yaml        ((.:), (.:?), (.!=), (.=))
+import           Data.Yaml              ((.!=), (.:), (.:?), (.=))
+import qualified Data.Yaml              as Y
 
-import qualified Lib.Header             as H
-import           Lib.Utils              (strToLower)
 import           Lib.Errors             as LE
-
+import qualified Lib.Header             as H
 import qualified Lib.SiteGenState       as SGS
+import qualified Lib.SourceClass        as SC
+import           Lib.Utils              (strToLower)
 
 
 -- testing - remove
-import Data.Either (fromRight)
+import           Data.Either            (fromRight)
 
 
 -- Provide the set of options to use with the reader; eventually we'll allow
@@ -153,7 +153,7 @@ parseMarkdown bs =
         Right txt ->
             let result = TP.runPure $ TP.readMarkdown pandocMarkdownArgs txt
              in case result of
-                Left e -> Left $ LE.PandocReadError e
+                Left e    -> Left $ LE.PandocReadError e
                 Right ast -> Right ast
 
 
@@ -162,7 +162,7 @@ parseMarkdown bs =
 --  * local links that don't point to any pages are removed.
 --  * links are 'fixed up' so they point to the right place in the eventual
 --    site.
-processPandocAST :: SGS.VimWikiLinkToSPC -> TP.Pandoc -> TP.Pandoc
+processPandocAST :: SGS.VimWikiLinkToSC -> TP.Pandoc -> TP.Pandoc
 processPandocAST hmap ast = processPandocLinks hmap $ convertVimWikiLinks ast
 
 
@@ -172,7 +172,7 @@ pandocToContentTextEither :: TP.Pandoc -> Either LE.SiteGenError T.Text
 pandocToContentTextEither ast =
     let result = TP.runPure $ TP.writeHtml5String pandocHtmlArgs ast
      in case result of
-        Left e -> Left $ LE.PandocWriteError e
+        Left e    -> Left $ LE.PandocWriteError e
         Right txt -> Right txt
 
 
@@ -203,7 +203,7 @@ renderWithOneOfEither f1 f2 ast =
         Just ast' ->
             let resultTxt = TP.runPure $ TP.writeHtml5String pandocHtmlArgs ast'
              in case resultTxt of
-                Left e -> Left $ LE.PandocWriteError e
+                Left e    -> Left $ LE.PandocWriteError e
                 Right txt -> Right txt
 
 
@@ -215,15 +215,17 @@ renderWithOneOfEither f1 f2 ast =
 -- The Link, if it's local, will be the filename minus the extension.  i.e. we
 -- have to add the extension and then try to match it to the filepath
 
-processPandocLinks :: SGS.VimWikiLinkToSPC -> TP.Pandoc -> TP.Pandoc
+processPandocLinks :: SGS.VimWikiLinkToSC -> TP.Pandoc -> TP.Pandoc
 processPandocLinks hmap = TPW.walk (walkLinksInInlines hmap)
 
 
-walkLinksInInlines :: SGS.VimWikiLinkToSPC -> [TP.Inline] -> [TP.Inline]
+walkLinksInInlines :: SGS.VimWikiLinkToSC -> [TP.Inline] -> [TP.Inline]
 walkLinksInInlines hmap xs = L.concat $ walkLinksInInlines' hmap [] xs
 
 
-walkLinksInInlines' :: SGS.VimWikiLinkToSPC -> [[TP.Inline]] -> [TP.Inline]
+walkLinksInInlines' :: SGS.VimWikiLinkToSC
+                    -> [[TP.Inline]]
+                    -> [TP.Inline]
                     -> [[TP.Inline]]
 walkLinksInInlines' hmap ds xs =
     let (as, bs) = L.break findLink xs
@@ -232,7 +234,7 @@ walkLinksInInlines' hmap ds xs =
          (b:bs') -> walkLinksInInlines' hmap (maybeRewriteLink hmap b : as : ds) bs'
   where
       findLink TPD.Link {} = True
-      findLink _ = False
+      findLink _           = False
 
 
 -- rewrite the Link.  Options
@@ -244,7 +246,7 @@ walkLinksInInlines' hmap ds xs =
 -- use Network.URI to detect the whether it is relative or a URI.  If it is
 -- relative, parse it, pull out the relative bit, and match it against the
 -- relative link of the the SourcePageContext items.
-maybeRewriteLink :: SGS.VimWikiLinkToSPC -> TP.Inline -> [TP.Inline]
+maybeRewriteLink :: SGS.VimWikiLinkToSC -> TP.Inline -> [TP.Inline]
 maybeRewriteLink hmap link@(TPD.Link attr desc (url, title))
   -- it's a relative reference; they should ALL be within the site
   | NU.isRelativeReference url =
@@ -259,7 +261,7 @@ maybeRewriteLink hmap link@(TPD.Link attr desc (url, title))
               -- otherwise re-write it to the route; note we need to add back in
               -- any of the other bits of the url (query and fragment)
               Just spc ->
-                  let newUri = show (uri {NU.uriPath=H.spcRoute spc})
+                  let newUri = show (uri {NU.uriPath=SC.scRoute spc})
                    in [TPD.Link attr desc (newUri, title)]
   -- it was absolute or something else; thus we just ignore the link
   | otherwise = [link]
@@ -457,8 +459,8 @@ flattenPandoc (TP.Pandoc meta bs) = TP.Pandoc meta (filter isPlainOrPara bs)
 
 isPlainOrPara :: TP.Block -> Bool
 isPlainOrPara (TP.Plain _) = True
-isPlainOrPara (TP.Para _) = True
-isPlainOrPara _ = False
+isPlainOrPara (TP.Para _)  = True
+isPlainOrPara _            = False
 
 
 -- | extract just the Str, Space elements from the Pandoc provided in Plain or
@@ -473,8 +475,8 @@ extractStrSpace (TP.Pandoc meta bs) =
 
 extractBlock :: TP.Block -> [TP.Inline]
 extractBlock (TP.Plain is) = concatMap extractInlines is
-extractBlock (TP.Para is) = concatMap extractInlines is
-extractBlock _ = []
+extractBlock (TP.Para is)  = concatMap extractInlines is
+extractBlock _             = []
 
 
 extractInlines :: TP.Inline -> [TP.Inline]
@@ -545,8 +547,8 @@ takeNWords' n meta m ds [] = TP.Pandoc meta (reverse ds)
 takeNWords' n meta m ds (b:bs) =
     let (b', m') = case b of
             (TP.Plain ps) -> map' TP.Plain $ processMStr n [] m ps
-            (TP.Para ps) -> map' TP.Plain $ processMStr n [] m ps
-            x -> (b, m)
+            (TP.Para ps)  -> map' TP.Plain $ processMStr n [] m ps
+            x             -> (b, m)
      in if m < n
           then takeNWords' n meta m' (b':ds) bs
           else TP.Pandoc meta (reverse (b':ds))
@@ -577,7 +579,7 @@ processMStr n as m (i:is) = case i of
     (TPD.SmallCaps ls)   -> recurseIntoInline TPD.SmallCaps ls
     (TPD.Quoted qt ls)   -> recurseIntoInline (TPD.Quoted qt) ls
     (TPD.Cite cite ls)   -> recurseIntoInline (TPD.Cite cite) ls
-    _ -> processMStr n (i:as) m is
+    _                    -> processMStr n (i:as) m is
   where
       -- recurse into the Inline to find/count other Str and then carry on
       -- processing the remaining Str at the current level
@@ -598,7 +600,7 @@ processMStr n as m (i:is) = case i of
 
 
 data TocItem = TocItem { tocTitle :: T.Text
-                       , tocLink :: T.Text
+                       , tocLink  :: T.Text
                        , tocLevel :: Int
                        }
 
@@ -643,7 +645,7 @@ dumpToc = Y.encode
 -- would rather se decodeEither but it's deprecated; thus let's just use this
 loadTocEither :: BS.ByteString -> Either String [TocItem]
 loadTocEither bs = case Y.decodeEither' bs of
-    Left e -> Left (show e)
+    Left e   -> Left (show e)
     Right ts -> Right ts
 
 
@@ -673,7 +675,7 @@ renderTocItemsToHtml n ts =
     let pd = buildPandocFromTocItems n ts
         resultTxt = TP.runPure $ TP.writeHtml5String pandocHtmlArgs pd
      in case resultTxt of
-        Left e -> Left $ LE.PandocWriteError e
+        Left e    -> Left $ LE.PandocWriteError e
         Right txt -> Right txt
 
 

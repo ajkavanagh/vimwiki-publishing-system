@@ -10,13 +10,13 @@
 {-# LANGUAGE TypeOperators       #-}
 
 
-module Experiments.ResolvingTemplates where
+module Lib.ResolvingTemplates where
 
-import           System.FilePath   (FilePath, joinPath, pathSeparator, isRelative,
-                                    splitPath, takeDirectory, (<.>), (</>))
+import           System.FilePath   (FilePath, isRelative, joinPath,
+                                    pathSeparator, splitPath, takeDirectory,
+                                    (<.>), (</>))
 
 import           Control.Monad     (forM)
-import           Data.List         (dropWhile, inits)
 
 import           Polysemy          (Embed, Members, Sem, embed, embedToFinal,
                                     runFinal)
@@ -27,23 +27,23 @@ import qualified Polysemy.Reader   as PR
 import           Effect.File       (File, FileException)
 import qualified Effect.File       as EF
 
-import           Lib.Errors        (SiteGenError (..))
 import           Lib.Header        (SourcePageContext (..))
 import           Lib.SiteGenConfig (ConfigException, SiteGenConfig (..),
                                     getSiteGenConfig)
-
--- this is going to move
-import           Lib.SiteGenState  (SiteGenReader, siteGenConfig)
-
 -- for tests -- remove when removing test code
 import           Colog.Core        (logStringStderr)
 import           Colog.Polysemy    (Log, runLogAction)
 import qualified Colog.Polysemy    as CP
+
 import           Data.Function     ((&))
-import           Data.List         (intercalate)
-import           Lib.Errors        (mapSiteGenError)
+import           Data.List         (dropWhile, inits, intercalate)
+
+import           Lib.Errors        (SiteGenError (..), mapSiteGenError)
 import           Lib.Files         (filePathToMaybeSourcePageContext)
-import           Lib.SiteGenState  (makeSiteGenReader)
+import           Lib.SiteGenState  (SiteGenReader, makeSiteGenReader,
+                                    siteGenConfig)
+import qualified Lib.SourceClass   as SC
+
 import qualified Polysemy.Error    as PE
 
 {-
@@ -118,7 +118,7 @@ testResolveTemplatePath = do
         case mSpc of
             Nothing -> throw $ EF.FileException file "Not a sitegen file"
             (Just spc) -> do
-                let sgr = makeSiteGenReader sgc [spc]
+                let sgr = makeSiteGenReader sgc [SC.SPC spc]
                 PR.runReader @SiteGenReader sgr $ resolveTemplatePath spc
 
 

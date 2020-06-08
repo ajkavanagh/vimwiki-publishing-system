@@ -3,9 +3,9 @@ module Lib.SiteGenState
     , SiteGenState(..)
     , SourcePageContext(..)
     , SiteGenConfig(..)
-    , FilePathToSPC
-    , RouteToSPC
-    , VimWikiLinkToSPC
+    , FilePathToSC
+    , RouteToSC
+    , VimWikiLinkToSC
     , Route
     , VimWikiLink
     , makeSiteGenReader
@@ -14,42 +14,43 @@ module Lib.SiteGenState
     where
 
 
-import qualified Data.HashMap.Strict as HashMap
+import           Data.Default.Class  (Default, def)
 import           Data.DList          (DList)
 import qualified Data.DList          as DList
-import           Data.Default.Class  (Default, def)
+import qualified Data.HashMap.Strict as HashMap
 
+import           Lib.Errors          (SiteGenError)
 import           Lib.Header          (SourcePageContext (..))
 import           Lib.SiteGenConfig   (SiteGenConfig)
-import           Lib.Errors          (SiteGenError)
+
+import           Lib.SourceClass     (SourceContext (..))
+import qualified Lib.SourceClass     as SC
 
 
 type Route = String
 type VimWikiLink = String
 
 
-type FilePathToSPC    = HashMap.HashMap FilePath SourcePageContext
-type RouteToSPC       = HashMap.HashMap Route SourcePageContext
-type VimWikiLinkToSPC = HashMap.HashMap VimWikiLink SourcePageContext
+type FilePathToSC    = HashMap.HashMap FilePath SourceContext
+type RouteToSC       = HashMap.HashMap Route SourceContext
+type VimWikiLinkToSC = HashMap.HashMap VimWikiLink SourceContext
 
 
 -- This is for the Reader which the
 data SiteGenReader = SiteGenReader
-    { siteGenConfig         :: !SiteGenConfig
-    , siteSourcePageContexts :: ![SourcePageContext]
-    , siteFilePathMap       :: !FilePathToSPC
-    , siteVimWikiLinkMap    :: !VimWikiLinkToSPC
-    , siteRouteMap          :: !RouteToSPC
+    { siteGenConfig      :: !SiteGenConfig
+    , siteSourceContexts :: ![SourceContext]
+    , siteVimWikiLinkMap :: !VimWikiLinkToSC
+    , siteRouteMap       :: !RouteToSC
     } deriving (Show)
 
 
-makeSiteGenReader :: SiteGenConfig -> [SourcePageContext] -> SiteGenReader
-makeSiteGenReader sgc spcs = SiteGenReader
+makeSiteGenReader :: SiteGenConfig -> [SourceContext] -> SiteGenReader
+makeSiteGenReader sgc scs = SiteGenReader
     { siteGenConfig=sgc
-    , siteSourcePageContexts=spcs
-    , siteFilePathMap=HashMap.fromList $ map (\h -> (spcAbsFilePath h, h)) spcs
-    , siteVimWikiLinkMap=HashMap.fromList $ map (\h -> (spcVimWikiLinkPath h, h)) spcs
-    , siteRouteMap=HashMap.fromList $ map (\h -> (spcRoute h, h)) spcs
+    , siteSourceContexts=scs
+    , siteVimWikiLinkMap=HashMap.fromList $ map (\h -> (SC.scVimWikiLinkPath h, h)) scs
+    , siteRouteMap=HashMap.fromList $ map (\h -> (SC.scRoute h, h)) scs
     }
 
 

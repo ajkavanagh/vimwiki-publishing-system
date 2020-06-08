@@ -214,6 +214,7 @@ data FilePathParts = FilePathParts
 -- phantom index pages, category indexes and category pages, tags and tag pages.
 data VirtualPageContext = VirtualPageContext
     { vpcRoute           :: !String
+    , vpcVimWikiLinkPath :: !String
     , vpcTitle           :: !String
     , vpcTemplate        :: !String
     , vpcStyle           :: !String
@@ -221,7 +222,6 @@ data VirtualPageContext = VirtualPageContext
     , vpcUpdated         :: !(Maybe UTCTime)
     , vpcIndexPage       :: !Bool
     , vpcPublish         :: !Bool
-    , vpcSiteId          :: !String
     } deriving Show
 
 
@@ -229,14 +229,14 @@ data VirtualPageContext = VirtualPageContext
 instance Default VirtualPageContext where
     def = VirtualPageContext
         { vpcRoute=def
+        , vpcVimWikiLinkPath=def
         , vpcTitle=def
         , vpcTemplate=def
         , vpcStyle=def
         , vpcDate=def
         , vpcUpdated=def
-        , vpcIndexPage=True
+        , vpcIndexPage=False
         , vpcPublish=True
-        , vpcSiteId=def
         }
 
 
