@@ -11,14 +11,15 @@
 [x] - Find links
 [x] - Ensure that internal links and routes are always lower case.
 [x] - check for duplicate routes
-[ ] - Render the file and write it
+[x] - Render the file
+[ ] - ... and write it
 [x] - switch site-page to index-page in heades
 [x] - Rename existing RouteContext to HeaderContext to reflect that it's just
       used internally to build the SourcePageHeader
 [x] - Move HeaderContext into Header
 [x] - Rename SourcePageHeader to SourcePageContext
 [ ] - Flesh out the variables that will be available to a rendering page.
-[ ] - If there isn't a page identifying as the index, then have a boiler plate
+[x] - If there isn't a page identifying as the index, then have a boiler plate
       one with no content; i.e. just run the template for the index.
 [ ] - Templates
   [x] - Allow templates to be absolute, and don't do a search.  e.g. if the
@@ -36,15 +37,12 @@
         'normal' page rendering.
   [ ] - generate and recognise the 404 page - particularly, 1st check that the
         template is available and route it directly in the `RenderContext`.
-[ ] - Index Pages
+[x] - Index Pages
   [x] - ensure that the default for template is `index` if the page is an index
         page.
-  [ ] - For every route level, and index page is required.  We have to generate
-	the `SourcePageContext` for the route level if there is no explicit
-	index page.  This means a change to the `SourcePageContext`.
-  [ ] - Modified the `SourcePageContext` so that it can be 'detached' from
-	a page. In particular, the content file needs to be a `Maybe` so it can
-	be blank.
+  [x] - For every route level, and index page is required.  We have to generate
+	the `VirtualPageContext` for the route level if there is no explicit
+	index page.
 [x] - Process the `<!--more-->` tag to say where a content summary ends.  e.g.
       we walk the processed Pandoc text elements and find the this item.  Note
       it only looks for the first one.  All the others are stripped.
@@ -62,22 +60,9 @@ Hard code the paths, etc, so we can try the whole rendering pipeline:
 * [ ] Add a wrapper (HMTL) header/footer/sidebar block structure
 * [x] Write the `SourcePageContext` definition.
 * [x] Build the `SourcePageContext` from the test1.md file
-  * [ ] This should reference that it's an index file and needs the index
+  * [x] This should reference that it's an index file and needs the index
         template.
-  * [ ] It also contains the *route*
-* [ ] Write the minimal `RenderContext` definition.  The `RenderContext` is the
-      thing that is given to Ginger to actually render the file; it needs to
-      contain all the variables (GVal m) that are needed to render the page.
-* [ ] Build a `RenderContext` for the *route* `index` (this will actually
-      eventually render to a file called `index/index.html` so that URLs can be
-      `index` rather than `index.html`.
-  * [ ] This will reference the template from that is derived from the
-	`SourcePageContext` as it contains the slug for the index page.  i.e.
-	when building the `RenderContext` then `SourcePageContext` provides the
-	template for it.
-  * [ ] The `RenderContext` will have all of the data necesssary to now render
-        the file.  Note that we are not yet bothered about tags, categories and
-        other links to files; this will come later.
-* [ ] Render the `index/index.html` file using Ginger.
-  * [ ] Workout how to map variables into the template; need to get them into
+  * [x] It also contains the *route*
+* [x] Render the `index/index.html` file using Ginger.
+  * [x] Workout how to map variables into the template; need to get them into
         `GVal` things.
