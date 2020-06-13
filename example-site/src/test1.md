@@ -11,7 +11,7 @@ index-page: true
 author: [tinwood]
 draft: true
 publish: false
-site: site1
+site: default
 ---
 # The title
 

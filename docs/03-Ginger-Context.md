@@ -1,5 +1,8 @@
 # Ginger Context issues
 
+**NOTE: this is not actually how it works; we'll re-write this so that it makes
+more sense.**
+
 Understanding how the Context of `GVal m` values is created is slightly
 complicated.  A 'simple' way to do it would be to attempt to produce it all up
 front, and marshall it into a single, huge, GVal.

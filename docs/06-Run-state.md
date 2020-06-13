@@ -1,5 +1,7 @@
 # Run State - how we track what we are doing
 
+**NOTE: this is not accurate any more and likely will be removed.**
+
 So in the program, we need to know what we are doing.  Which means that we need
 to collect together the various *mutable* and *immutable* parts of the state of
 the application and bring them together.

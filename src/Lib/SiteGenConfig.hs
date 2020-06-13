@@ -82,7 +82,7 @@ data RawSiteGenConfig = RawSiteGenConfig
 
 instance Y.FromJSON RawSiteGenConfig where
     parseJSON (Y.Object v) = RawSiteGenConfig
-        <$> v .:  "site"                                       -- site: <site-identifier>
+        <$> v .:? "site"                .!= "default"          -- site: <site-identifier>
         <*> v .:? "source"              .!= "./src"            -- the directory (relative to the site.yaml) to start
         <*> v .:? "output-dir"          .!= "./html"           -- where to place output files
         <*> v .:? "extension"           .!= ".md"              -- the extension for source files

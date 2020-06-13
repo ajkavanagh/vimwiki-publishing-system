@@ -83,30 +83,16 @@ Something along the lines of:
   * Size of the file
   * Hash of the file has changed.
 
-For every *route* there will be a `RenderContext` record that maps where the
-page will be rendered, using which template.  The data available to the
-rendering template will be defined in the `RenderContext`.  So, we'll have
-multiple different types of `RenderContext` data, mapping to different template
-types?
-
 Each .[extension] file will have a `SourcePageContext` that contains the
 information necessary to render the .[extension] file into an HTML fragment.
 
-The `RenderContext` needs to be able to handle:
+Rendering needs to be able to handle:
 
  - No SourceContext objects
  - Multiple SourceContext objects
  - Tags
  - Categories
  - Diary entries  -- pages with a template?
-
-One issue is we have to resolve all the files to things that will actually get
-written and then resolve those to where they will be liked. One strategy is to
-do the following:
-
- - Go through all the files looking for the extension and the "--- sitegen"
-   header. These will then resolve to a *route* => .[ext] file.  At some stage,
-   need to determine if the file changed; can just force a regenerate now.
 
 ## Modelling tags, categories and diary pages
 

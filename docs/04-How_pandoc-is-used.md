@@ -1,8 +1,7 @@
 # How Pandoc is used in SiteGen
 
-Note: Pandoc is used in LibVps in a very simple manner.  It's just used to
-convert a single Markdown file into HTML as part of the vimwiki-to-html command
-set.
+Note: Pandoc is used in a very simple manner.  It's just used to convert
+a single Markdown file into HTML as part of the vimwiki-to-html command set.
 
 This mini-document is to describe how Pandoc is used within the publishing
 system, within the context of Ginger templates and the rest of the system.
