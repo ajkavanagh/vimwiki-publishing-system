@@ -7,7 +7,7 @@
 {-# LANGUAGE PolyKinds            #-}
 {-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
---{-# LANGUAGE TemplateHaskell      #-}
+{-# LANGUAGE TemplateHaskell      #-}
 --{-# LANGUAGE TypeApplications     #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeOperators        #-}
@@ -58,9 +58,11 @@ data ByteStringStore m a where
     ClearAll :: ByteStringStore m ()
 
 
--- makeSem ''ByteStringStore
+makeSem ''ByteStringStore
+
 
 type BSHMStore = HashMap Text ByteString
+
 
 bsStoreAsHash :: Member (State BSHMStore) r
               => Sem (ByteStringStore ': r) a
@@ -81,6 +83,7 @@ bsStoreAsHash = interpret $ \case
 
 
 type BSHMFile = HashMap Text FilePath
+
 
 bsStoreAsFile :: ( Member (State BSHMFile) r
                  , Member File r

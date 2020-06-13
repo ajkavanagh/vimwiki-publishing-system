@@ -211,7 +211,7 @@ renderTestData
     => Sem r (Text)
 renderTestData = do
     tpl <- parseToTemplate "./example-site/templates/index.html.j2"
-    (o, _) <- PW.runWriterAssocR $ PR.runReader testData $ renderTemplate tpl
+    (o, _) <- PW.runWriterAssocR @Text $ PR.runReader testData $ renderTemplate tpl
     pure o
 
 

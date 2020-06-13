@@ -9,6 +9,7 @@ import           Effect.File       (FileException (..))
 import           Effect.Ginger     (GingerException (..))
 import           Lib.Header        (SourcePageContext)
 import           Lib.SiteGenConfig (ConfigException (..))
+import           Lib.SourceClass   (SourceContext)
 
 import qualified Text.Pandoc.Error            as TPE
 
@@ -23,6 +24,7 @@ data SiteGenError
     | GingerError Text            -- initially, this'll just be the text for the error
     | ConfigError Text Text       -- formed from Config Exception
     | SourcePageContextError SourcePageContext Text
+    | SourceContextError SourceContext Text
     | PageDecodeError Text
     | PandocReadError TPE.PandocError
     | PandocWriteError TPE.PandocError

@@ -38,17 +38,15 @@ type VimWikiLinkToSC = HashMap.HashMap VimWikiLink SourceContext
 
 -- This is for the Reader which the
 data SiteGenReader = SiteGenReader
-    { siteGenConfig      :: !SiteGenConfig
-    , siteSourceContexts :: ![SourceContext]
+    { siteSourceContexts :: ![SourceContext]
     , siteVimWikiLinkMap :: !VimWikiLinkToSC
     , siteRouteMap       :: !RouteToSC
     } deriving (Show)
 
 
-makeSiteGenReader :: SiteGenConfig -> [SourceContext] -> SiteGenReader
-makeSiteGenReader sgc scs = SiteGenReader
-    { siteGenConfig=sgc
-    , siteSourceContexts=scs
+makeSiteGenReader :: [SourceContext] -> SiteGenReader
+makeSiteGenReader scs = SiteGenReader
+    { siteSourceContexts=scs
     , siteVimWikiLinkMap=HashMap.fromList $ map (\h -> (SC.scVimWikiLinkPath h, h)) scs
     , siteRouteMap=HashMap.fromList $ map (\h -> (SC.scRoute h, h)) scs
     }

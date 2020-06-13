@@ -40,7 +40,7 @@ module Lib.Header
 --- sitegen
 title: The page <title> value
 template: default  # the template file (minus .extension) to render this page with
-style: style.css   # the style sheet to apply to this page.
+                   # note that the style is driven from the template!
 tags: [tag1, tag2] # tags to apply to the page
 category: cat1     # The SINGLE category to apply to the page.
 date: 2019-10-11   # The Date/time to apply to the page
@@ -102,7 +102,6 @@ data RawPageHeader = RawPageHeader
     { _route     :: !(Maybe String)
     , _title     :: !(Maybe String)
     , _template  :: !(Maybe String)
-    , _style     :: !(Maybe String)
     , _tags      :: ![String]
     , _category  :: !(Maybe String)
     , _date      :: !(Maybe String)
@@ -119,7 +118,6 @@ instance Y.FromJSON RawPageHeader where
         <$> v .:? "route"
         <*> v .:? "title"
         <*> v .:? "template"
-        <*> v .:? "style"
         <*> v .:? "tags"     .!= []
         <*> v .:? "category"
         <*> v .:? "date"
@@ -139,7 +137,6 @@ data SourcePageContext = SourcePageContext
     , spcVimWikiLinkPath :: !String
     , spcTitle           :: !String
     , spcTemplate        :: !String
-    , spcStyle           :: !String
     , spcTags            :: ![String]
     , spcCategory        :: !(Maybe String)
     , spcDate            :: !(Maybe UTCTime)
@@ -161,7 +158,6 @@ instance Default SourcePageContext where
         , spcVimWikiLinkPath=def
         , spcTitle=def
         , spcTemplate=def
-        , spcStyle=def
         , spcTags=def
         , spcCategory=def
         , spcDate=def
@@ -217,7 +213,6 @@ data VirtualPageContext = VirtualPageContext
     , vpcVimWikiLinkPath :: !String
     , vpcTitle           :: !String
     , vpcTemplate        :: !String
-    , vpcStyle           :: !String
     , vpcDate            :: !(Maybe UTCTime)
     , vpcUpdated         :: !(Maybe UTCTime)
     , vpcIndexPage       :: !Bool
@@ -232,7 +227,6 @@ instance Default VirtualPageContext where
         , vpcVimWikiLinkPath=def
         , vpcTitle=def
         , vpcTemplate=def
-        , vpcStyle=def
         , vpcDate=def
         , vpcUpdated=def
         , vpcIndexPage=False
@@ -290,7 +284,6 @@ makeSourcePageContextFromRawPageHeader rph len = do
         , spcVimWikiLinkPath = hcVimWikiLinkPath rc
         , spcTitle           = pick (_title rph) (hcAutoTitle rc)
         , spcTemplate        = pick (_template rph) defTemplate
-        , spcStyle           = pick (_style rph) (S.sgcDefaultStyle sgc)
         , spcTags            = _tags rph
         , spcCategory        = _category rph
         , spcDate            = pageDate

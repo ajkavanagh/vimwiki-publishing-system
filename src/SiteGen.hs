@@ -19,6 +19,7 @@ module SiteGen
 
 import           Data.Function             ((&))
 import           Data.List                 (intercalate)
+import qualified Data.HashMap.Strict as HashMap
 
 import           System.Exit               (ExitCode (..), exitWith)
 
@@ -28,20 +29,25 @@ import           Options.Applicative
 import           Options.Applicative.Types (ReadM, readerAsk)
 
 -- monad related stuff
-import           Control.Monad             (foldM, liftM2, unless, when)
+import           Control.Monad             (foldM, liftM2, unless, when, forM_)
 
 -- Polysemy
 import           Colog.Core                (logStringStderr)
 import           Colog.Polysemy            (Log, runLogAction)
 import qualified Colog.Polysemy            as CP
 import           Polysemy
-import           Polysemy.Error
+import           Polysemy.Error            (Error, errorToIOFinal, mapError)
+import qualified Polysemy.Error            as PE
 import           Polysemy.Reader           (runReader)
+import           Polysemy.State            (runState)
 
 -- Application Effects
 import           Effect.File               (File, FileException, fileToIO)
+import           Effect.Ginger        (GingerException(..))
+import Effect.ByteStringStore         (bsStoreAsHash, BSHMStore)
 
 -- Local Libraries
+import           Lib.Errors               (SiteGenError, mapSiteGenError)
 import qualified Lib.Files                 as F
 import qualified Lib.Header                as H
 import qualified Lib.RouteUtils            as RU
@@ -52,6 +58,9 @@ import           Lib.Utils                 (isDebug, isMarkDownFile,
                                             isMarkDownStr, printIfDoesntExist,
                                             strToLower, validateFileExists,
                                             validateWithTests)
+import           Experiments.RenderUtils   (renderSourceContext)
+import           Lib.SiteGenState          (makeSiteGenReader, SiteGenReader, SiteGenState, emptySiteGenState)
+
 
 sitegenProgram :: IO ()
 sitegenProgram = sitegenCli =<< execParser opts
@@ -130,10 +139,13 @@ validateSitegenArgs args = validateWithTests args tests
 runSiteGen :: SitegenArgs -> IO ()
 runSiteGen args = do
     res <- runSiteGenSem args
-        & runLogAction @IO logStringStderr
         & fileToIO
-        & errorToIOFinal @ConfigException
-        & errorToIOFinal @FileException
+        & mapError @ConfigException mapSiteGenError
+        & mapError @FileException mapSiteGenError
+        & mapError @GingerException mapSiteGenError
+        & mapError @FileException mapSiteGenError
+        & errorToIOFinal @SiteGenError
+        & runLogAction @IO logStringStderr
         & embedToFinal @IO
         & runFinal @IO
     case res of
@@ -156,7 +168,10 @@ runSiteGenSem
     :: Members '[ Log String
                 , File
                 , Error FileException
-                , Error ConfigException ] r
+                , Error ConfigException
+                , Error GingerException
+                , Error SiteGenError
+                ] r
     => SitegenArgs -> Sem r ()
 runSiteGenSem args = do
     let fp = siteConfigArg args
@@ -180,4 +195,15 @@ runSiteGenSem args = do
         scs = RU.addVPCIndexPages spcs'
     CP.log @String $ "Final route set: " ++ intercalate ", " (map SC.scRoute scs)
     CP.log @String $ "Final SourceContext set:\n" ++ intercalate "\n" (map show scs)
+    -- Create the SiteGenState and Reader
+    let sgr = makeSiteGenReader scs
+
+    -- now just call the rendering function to render all of these files
+    runReader @SiteGenConfig sgc
+        $ runReader @SiteGenReader sgr
+        $ runState @BSHMStore HashMap.empty
+        $ bsStoreAsHash
+        $ runState @SiteGenState emptySiteGenState
+        $ forM_ scs renderSourceContext
+
     pure ()

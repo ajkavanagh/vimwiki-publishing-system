@@ -19,6 +19,12 @@ module Lib.PandocUtils
     , dumpToc
     , loadTocEither
     , buildPandocFromTocItems
+    , parseMarkdown
+    , processPandocAST
+    , pandocToContentTextEither
+    , pandocToSummaryTextEither
+    , extractTocItemsToByteString
+    , renderTocItemsToHtml
     -- testing
     , testToc
     , runTest
@@ -186,8 +192,8 @@ pandocToSummaryTextEither
     -> Either LE.SiteGenError (T.Text, T.Text)
 pandocToSummaryTextEither n ast = do
     plain <- renderWithOneOfEither getSummaryPlain (getSummaryNPlain n) ast
-    html <- renderWithOneOfEither getSummaryPandoc (getSummaryNPandoc n) ast
-    pure (plain, html)
+    rich <- renderWithOneOfEither getSummaryPandoc (getSummaryNPandoc n) ast
+    pure (plain, rich)
 
 
 -- | helper to choose one of the summary functions

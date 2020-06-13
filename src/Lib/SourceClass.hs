@@ -20,11 +20,18 @@ import qualified Lib.Header as H
 -- other ones that come about.
 
 
+-- | wrap up the concrete page contexts into a SourceContext
+data SourceContext = SPC H.SourcePageContext
+                   | VPC H.VirtualPageContext
+                   deriving Show
+
+
 class Source s where
     scRoute    :: s -> String
     scVimWikiLinkPath :: s -> String
     scAbsFilePath :: s -> Maybe String
     scRelFilePath :: s -> Maybe String
+
 
 instance Source H.SourcePageContext where
     -- route    :: s -> String
@@ -54,68 +61,19 @@ instance Source H.VirtualPageContext where
     scRelFilePath _ = Nothing
 
 
-class SourceM s m where
-    scContentM  :: Monad m => s -> m Text
-    scSummaryM  :: Monad m => s -> m Text
-    scCategoryM :: Monad m => s -> m Text
-    scTagsM     :: Monad m => s -> m [Text]
-    scRouteM    :: Monad m => s -> m String
-
-
-instance SourceM H.SourcePageContext m where
-    -- content :: Monad m => s -> m Text
-    scContentM spc = pure ""
-
-    -- summary :: Monad m => s -> m Text
-    scSummaryM spc = pure ""
-
-    -- category :: Monad m => s -> m Text
-    scCategoryM spc = pure $ T.pack $ fromMaybe "" $ H.spcCategory spc
-
-    -- tags     :: Monad m => s -> m [Text]
-    scTagsM spc = pure $ map T.pack $ H.spcTags spc
-
-    -- route    :: Monad m => s -> m String
-    scRouteM spc = pure $ H.spcRoute spc
-
-
-instance SourceM H.VirtualPageContext m where
-    -- content :: Monad m => s -> m Text
-    scContentM _ = pure ""
-
-    -- summary :: Monad m => s -> m Text
-    scSummaryM _ = pure ""
-
-    -- category :: Monad m => s -> m Text
-    scCategoryM _ = pure ""
-
-    -- tags     :: Monad m => s -> m [Text]
-    scTagsM _ = pure []
-
-    -- route    :: Monad m => s -> m String
-    scRouteM vpc = pure $ H.vpcRoute vpc
-
-
-
--- | wrap up the concrete page contexts into a SourceContext
-data SourceContext = SPC H.SourcePageContext
-                   | VPC H.VirtualPageContext
-                   deriving Show
-
-
 instance Source SourceContext where
     -- route    :: s -> String
-    scRoute (SPC sc) = H.spcRoute sc
-    scRoute (VPC sc) = H.vpcRoute sc
+    scRoute (SPC sc) = scRoute sc
+    scRoute (VPC sc) = scRoute sc
 
     --vimWikiLinkPath :: s -> String
-    scVimWikiLinkPath (SPC sc) = H.spcVimWikiLinkPath sc
-    scVimWikiLinkPath (VPC sc) = H.vpcVimWikiLinkPath sc
+    scVimWikiLinkPath (SPC sc) = scVimWikiLinkPath sc
+    scVimWikiLinkPath (VPC sc) = scVimWikiLinkPath sc
 
     -- absFilePath :: s -> Maybe String
-    scAbsFilePath (SPC sc) = Just $ H.spcAbsFilePath sc
-    scAbsFilePath (VPC _) = Nothing
+    scAbsFilePath (SPC sc) = scAbsFilePath sc
+    scAbsFilePath (VPC sc) = scAbsFilePath sc
 
     --relFilePath :: s -> Maybe String
-    scRelFilePath (SPC sc) = Just $ H.spcRelFilePath sc
-    scRelFilePath (VPC _) = Nothing
+    scRelFilePath (SPC sc) = scRelFilePath sc
+    scRelFilePath (VPC sc) = scRelFilePath sc

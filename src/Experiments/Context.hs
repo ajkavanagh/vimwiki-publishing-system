@@ -162,8 +162,7 @@ siteGenMGValM = do
         , "indexPageName" ~> S.sgcIndexPageName sgc
         , "templatesDir" ~> S.sgcTemplatesDir sgc
         , "templateExt" ~> S.sgcTemplateExt sgc
-        , "cssDir" ~> S.sgcCssDir sgc
-        , "defaultStyle" ~> S.sgcDefaultStyle sgc
+        , "staticDir" ~> S.sgcStaticDir sgc
         , "generateTags" ~> S.sgcGenerateTags sgc
         , "generateCategories" ~> S.sgcGenerateCategories sgc
         , "publishDrafts" ~> S.sgcPublishDrafts sgc
@@ -228,6 +227,10 @@ registerThingIntoContext ctxt = registerContextKeyGVal ctxt "thing" thingMGValM
 thingMGValM :: Member (Log String) r => RunSemGVal r
 thingMGValM = pure $ TG.dict [("func", TG.fromFunction dynamicLookup)]
 
+------
+
+-- THIS IS ALL TEST FUNCTIONS:
+--
 -- and now some testing to see if it will go into a rendering system
 
 -- now let's try to construct our render function that takes the template

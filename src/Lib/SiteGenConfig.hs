@@ -71,8 +71,7 @@ data RawSiteGenConfig = RawSiteGenConfig
     , _indexPageName      :: !String
     , _templatesDir       :: !FilePath
     , _templateExt        :: !String
-    , _cssDir             :: !FilePath
-    , _defaultStyle       :: !String
+    , _staticDir          :: !FilePath
     , _generateTags       :: !Bool
     , _generateCategories :: !Bool
     , _publishDrafts      :: !Bool
@@ -90,8 +89,7 @@ instance Y.FromJSON RawSiteGenConfig where
         <*> v .:? "index-page-name"     .!= "index"            -- The 'start' page for the site.
         <*> v .:? "templates-dir"       .!= "./templates"      -- directory to find templates
         <*> v .:? "template-ext"        .!= ".html"            -- the extension used for templates
-        <*> v .:? "css-dir"             .!= "./templates/css"  -- directory to find css files.
-        <*> v .:? "default-style"       .!= "style.css"        -- name of the default style sheet.
+        <*> v .:? "static-dir"          .!= "./static"         -- where the static files currently live
         <*> v .:? "generate-tags"       .!= False              -- should sitegen generate a tags page
         <*> v .:? "generate-categories" .!= False              -- should sitegen generate categories
         <*> v .:? "publish-drafts"      .!= False              -- should we publish drafs?
@@ -124,8 +122,7 @@ data SiteGenConfig = SiteGenConfig
     , sgcIndexPageName      :: !String
     , sgcTemplatesDir       :: !FilePath
     , sgcTemplateExt        :: !String
-    , sgcCssDir             :: !FilePath
-    , sgcDefaultStyle       :: !String
+    , sgcStaticDir          :: !FilePath
     , sgcGenerateTags       :: !Bool
     , sgcGenerateCategories :: !Bool
     , sgcPublishDrafts      :: !Bool
@@ -164,8 +161,8 @@ makeSiteGenConfigFromRaw configPath rawConfig forceDrafts = do
     source_ <- resolvePath (_source rawConfig) root "source dir"
     outputDir_ <- resolvePath (_outputDir rawConfig) root "output dir"
     templatesDir_ <- resolvePath (_templatesDir rawConfig) root "templates dir"
-    cssDir_ <- resolvePath (_cssDir rawConfig) root "css dir"
-    if any isNothing [source_, outputDir_, templatesDir_, cssDir_]
+    staticDir_ <- resolvePath (_staticDir rawConfig) root "statics dir"
+    if any isNothing [source_, outputDir_, templatesDir_, staticDir_]
       then throw $ ConfigException "One or more directories didn't exist"
       else pure $ SiteGenConfig
           { sgcSiteYaml=configPath
@@ -176,8 +173,7 @@ makeSiteGenConfigFromRaw configPath rawConfig forceDrafts = do
           , sgcIndexPageName=_indexPageName rawConfig
           , sgcTemplatesDir=fromJust templatesDir_
           , sgcTemplateExt=_templateExt rawConfig
-          , sgcCssDir=fromJust cssDir_
-          , sgcDefaultStyle=_defaultStyle rawConfig
+          , sgcStaticDir=fromJust staticDir_
           , sgcGenerateTags=_generateTags rawConfig
           , sgcGenerateCategories=_generateCategories rawConfig
           , sgcPublishDrafts=_publishDrafts rawConfig || forceDrafts
