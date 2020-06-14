@@ -18,7 +18,7 @@
 
 {-# OPTIONS_GHC -fplugin=Polysemy.Plugin #-}
 
-module Experiments.Pandoc where
+module Lib.Pandoc where
 
 import           TextShow
 

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 80d5f083b490ff9492cd68299d0ed582197cfe79fc3bc07c37436b0967a6403d
+-- hash: fb31820436b7a80fddc890e32593e71389fc2c3b5210fb74a1f4eea16708af6c
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -33,7 +33,6 @@ library
       Experiments.Context
       Experiments.Errors
       Experiments.Ginger
-      Experiments.Pandoc
       Experiments.RenderUtils
       Experiments.SemConduit
       Lib.Context
@@ -46,6 +45,7 @@ library
       Lib.Files
       Lib.Ginger
       Lib.Header
+      Lib.Pandoc
       Lib.PandocUtils
       Lib.ResolvingTemplates
       Lib.RouteUtils

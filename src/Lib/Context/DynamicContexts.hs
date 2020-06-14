@@ -51,7 +51,7 @@ import qualified Effect.ByteStringStore as EB
 import           Effect.File            (File)
 import qualified Effect.File            as EF
 
-import           Experiments.Pandoc     (scContentM, scSummaryM, scTocM)
+import           Lib.Pandoc             (scContentM, scSummaryM, scTocM)
 import           Lib.Context.Core       (Context, RunSem, RunSemGVal,
                                          contextFromList)
 import           Lib.Errors             (SiteGenError)
