@@ -2,12 +2,10 @@
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE GADTs                #-}
-{-# LANGUAGE LambdaCase           #-}
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE PolyKinds            #-}
 {-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
-{-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeApplications     #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeOperators        #-}
@@ -24,72 +22,43 @@ import           TextShow
 
 import           Control.Applicative   ((<|>))
 
--- global modules tests rely on
-import qualified Text.Pandoc            as TP
-import qualified Text.Pandoc.Builder    as B
-import qualified Text.Pandoc.Definition as TPD
-import qualified Text.Pandoc.Walk       as TPW
-
-import           Data.Default           (def)
-import qualified Data.HashMap.Strict    as HashMap
 import           Data.Text              (Text)
 import           Data.Text              as T
 import           Data.Text.Encoding     (decodeUtf8', encodeUtf8)
 import           Data.ByteString        (ByteString)
 import           Data.Maybe             (fromMaybe)
 
--- local modules to set up tests
-import qualified Lib.Header             as H
-import qualified Lib.SiteGenState       as SGS
-import           Lib.SiteGenConfig      (SiteGenConfig)
-import qualified Lib.SiteGenConfig      as SGC
-import qualified Lib.Errors             as LE
-import Lib.Errors             (SiteGenError)
-
--- module under test
-import           Lib.PandocUtils        (parseMarkdown, processPandocAST,
-                                         pandocToContentTextEither,
-                                         pandocToSummaryTextEither,
-                                         extractTocItemsToByteString,
-                                         renderTocItemsToHtml,
-                                         convertVimWikiLinks,
-                                         processPandocLinks,
-                                         findSummary, getSummaryPlain, getSummaryNPlain, getSummaryPandoc, getSummaryNPandoc,
-                                         buildPandocFromTocItems, TocItem(..),
-                                         dumpToc, extractToc, loadTocEither)
-
-
-import           Colog.Core           (logStringStderr)
-import           Colog.Polysemy       (Log, runLogAction)
+import           Colog.Polysemy       (Log)
 import qualified Colog.Polysemy       as CP
-import           Polysemy             (Embed, Member, Members, Sem, embed,
-                                       embedToFinal, interpret, makeSem, run,
-                                       runFinal)
+
+import           Polysemy             (Member, Sem)
 import           Polysemy.Error       (Error)
 import qualified Polysemy.Error       as PE
 import           Polysemy.Reader      (Reader)
 import qualified Polysemy.Reader      as PR
-import           Polysemy.Writer      (Writer)
-import qualified Polysemy.Writer      as PW
 import           Polysemy.State      (State)
-import qualified Polysemy.State      as PS
 
 import           Effect.ByteStringStore (ByteStringStore)
 import qualified Effect.ByteStringStore as EB
 import           Effect.File (File)
 import qualified Effect.File as EF
 
-import Lib.SiteGenState     (SiteGenState, SiteGenReader)
+import           Lib.SiteGenState     (SiteGenState, SiteGenReader)
 import qualified Lib.SiteGenState     as SGS
 import           Lib.SourceClass      (SourceContext(..))
+import qualified Lib.Header             as H
+import           Lib.SiteGenConfig      (SiteGenConfig)
+import qualified Lib.SiteGenConfig      as SGC
+import qualified Lib.Errors             as LE
+import Lib.Errors             (SiteGenError)
 
+import           Lib.PandocUtils        (parseMarkdown, processPandocAST,
+                                         pandocToContentTextEither,
+                                         pandocToSummaryTextEither,
+                                         extractTocItemsToByteString,
+                                         renderTocItemsToHtml,
+                                         loadTocEither)
 
--- parse a thing to a pandoc document (raw)
-
-
---helpers for tests
-{-parse :: String -> TP.Pandoc-}
-{-parse = B.doc . B.para . B.text-}
 
 scContentM
     :: ( Member File r
