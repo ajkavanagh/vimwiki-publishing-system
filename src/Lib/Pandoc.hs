@@ -10,54 +10,50 @@
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeOperators        #-}
 
--- for instance Source - remove if we don't do it that way!
---{-# LANGUAGE FlexibleInstances   #-}
---{-# LANGUAGE MultiParamTypeClasses #-}
-
 {-# OPTIONS_GHC -fplugin=Polysemy.Plugin #-}
 
 module Lib.Pandoc where
 
 import           TextShow
 
-import           Control.Applicative   ((<|>))
+import           Control.Applicative    ((<|>))
 
+import           Data.ByteString        (ByteString)
+import           Data.Maybe             (fromMaybe)
 import           Data.Text              (Text)
 import           Data.Text              as T
 import           Data.Text.Encoding     (decodeUtf8', encodeUtf8)
-import           Data.ByteString        (ByteString)
-import           Data.Maybe             (fromMaybe)
 
-import           Colog.Polysemy       (Log)
-import qualified Colog.Polysemy       as CP
+import           Colog.Polysemy         (Log)
+import qualified Colog.Polysemy         as CP
 
-import           Polysemy             (Member, Sem)
-import           Polysemy.Error       (Error)
-import qualified Polysemy.Error       as PE
-import           Polysemy.Reader      (Reader)
-import qualified Polysemy.Reader      as PR
-import           Polysemy.State      (State)
+import           Polysemy               (Member, Sem)
+import           Polysemy.Error         (Error)
+import qualified Polysemy.Error         as PE
+import           Polysemy.Reader        (Reader)
+import qualified Polysemy.Reader        as PR
+import           Polysemy.State         (State)
 
 import           Effect.ByteStringStore (ByteStringStore)
 import qualified Effect.ByteStringStore as EB
-import           Effect.File (File)
-import qualified Effect.File as EF
+import           Effect.File            (File)
+import qualified Effect.File            as EF
 
-import           Lib.SiteGenState     (SiteGenState, SiteGenReader)
-import qualified Lib.SiteGenState     as SGS
-import           Lib.SourceClass      (SourceContext(..))
+import           Lib.Errors             (SiteGenError)
+import qualified Lib.Errors             as LE
 import qualified Lib.Header             as H
 import           Lib.SiteGenConfig      (SiteGenConfig)
 import qualified Lib.SiteGenConfig      as SGC
-import qualified Lib.Errors             as LE
-import Lib.Errors             (SiteGenError)
+import           Lib.SiteGenState       (SiteGenReader, SiteGenState)
+import qualified Lib.SiteGenState       as SGS
+import           Lib.SourceClass        (SourceContext (..))
 
-import           Lib.PandocUtils        (parseMarkdown, processPandocAST,
+import           Lib.PandocUtils        (extractTocItemsToByteString,
+                                         loadTocEither,
                                          pandocToContentTextEither,
                                          pandocToSummaryTextEither,
-                                         extractTocItemsToByteString,
-                                         renderTocItemsToHtml,
-                                         loadTocEither)
+                                         parseMarkdown, processPandocAST,
+                                         renderTocItemsToHtml)
 
 
 scContentM
@@ -146,10 +142,10 @@ processSPCToByteStringStore spc item = do
     EB.store (key <> keySuffixFor Toc) toc
     CP.log @String $ "... completed: content, summary and toc for " <> H.spcRelFilePath spc
     pure $ case item of
-        Content -> content
+        Content      -> content
         SummaryPlain -> plain
-        SummaryRich -> rich
-        Toc -> toc
+        SummaryRich  -> rich
+        Toc          -> toc
 
 
 keySuffixFor :: ItemType -> Text
@@ -192,7 +188,7 @@ fetchStoreOrProcessAsBSFor spc item = do
 
 throwOrReturn :: (TextShow e, Member (Error SiteGenError) r) => Either e a -> Sem r a
 throwOrReturn ex = case ex of
-    Left e -> PE.throw $ LE.OtherError (showt e)
+    Left e  -> PE.throw $ LE.OtherError (showt e)
     Right x -> pure x
 
 
@@ -245,5 +241,5 @@ fetchTocHtml spc mLevels = do
     tocItems <- throwOrReturn =<< loadTocEither <$> fetchStoreOrProcessAsBSFor spc Toc
     let levels = fromMaybe 6 mLevels
     case renderTocItemsToHtml levels tocItems of
-        Left e -> PE.throw e
+        Left e     -> PE.throw e
         Right html -> pure html
