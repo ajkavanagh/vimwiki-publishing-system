@@ -47,7 +47,7 @@ import           Effect.File               (File, FileException, fileToIO)
 import           Effect.Ginger             (GingerException (..))
 
 -- Local Libraries
-import           Experiments.RenderUtils   (renderSourceContext)
+import           Lib.RenderUtils           (renderSourceContext)
 import           Lib.Errors                (SiteGenError, mapSiteGenError)
 import qualified Lib.Files                 as F
 import qualified Lib.Header                as H

@@ -13,7 +13,7 @@
 {-# OPTIONS_GHC -fplugin=Polysemy.Plugin #-}
 
 
-module Experiments.RenderUtils
+module Lib.RenderUtils
     ( renderSourceContext
     )
     where
