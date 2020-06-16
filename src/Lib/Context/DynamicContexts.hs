@@ -6,7 +6,6 @@
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 
@@ -21,44 +20,28 @@
 module Lib.Context.DynamicContexts where
 
 import           Data.Maybe             (isNothing)
-import           Data.Scientific        (Scientific, toBoundedInteger)
 import           Data.Text              (Text)
 
 import           Text.Ginger            ((~>))
 import qualified Text.Ginger            as TG
 
+import           Colog.Polysemy         (Log)
 import           Polysemy               (Member, Sem)
-import           Polysemy.Reader        (Reader)
-import qualified Polysemy.Reader        as PR
-
-import           Colog.Core             (logStringStderr)
-import           Colog.Polysemy         (Log, runLogAction)
-import qualified Colog.Polysemy         as CP
-import           Polysemy               (Embed, Member, Members, Sem, embed,
-                                         embedToFinal, interpret, makeSem, run,
-                                         runFinal)
 import           Polysemy.Error         (Error)
-import qualified Polysemy.Error         as PE
 import           Polysemy.Reader        (Reader)
-import qualified Polysemy.Reader        as PR
 import           Polysemy.State         (State)
-import qualified Polysemy.State         as PS
 import           Polysemy.Writer        (Writer)
-import qualified Polysemy.Writer        as PW
 
 import           Effect.ByteStringStore (ByteStringStore)
-import qualified Effect.ByteStringStore as EB
 import           Effect.File            (File)
-import qualified Effect.File            as EF
 
-import           Lib.Pandoc             (scContentM, scSummaryM, scTocM)
 import           Lib.Context.Core       (Context, RunSem, RunSemGVal,
                                          contextFromList)
 import           Lib.Errors             (SiteGenError)
+import qualified Lib.Header             as H
+import           Lib.Pandoc             (scContentM, scSummaryM, scTocM)
 import           Lib.SiteGenConfig      (SiteGenConfig)
-import qualified Lib.SiteGenConfig      as S
 import           Lib.SiteGenState       (SiteGenReader, SiteGenState)
-import qualified Lib.SourceClass        as SC
 
 
 -- Basically, this module provides the 'content', 'summary' and 'toc' html
@@ -77,7 +60,7 @@ pageFunctionsContext
        , Member (Error SiteGenError) r
        , Member (Log String) r
        )
-    => SC.SourceContext
+    => H.SourceContext
     -> Context (RunSem r)
 pageFunctionsContext sc = contextFromList
     [ ("content",  funcDynamicMGValM contentDynamic sc)
@@ -94,7 +77,7 @@ pageFunctionsAsGValDict
        , Member (Error SiteGenError) r
        , Member (Log String) r
        )
-    => SC.SourceContext
+    => H.SourceContext
     -> TG.GVal (RunSem r)
 pageFunctionsAsGValDict sc =
     TG.dict [ ("content", TG.fromFunction (contentDynamic sc))
@@ -113,8 +96,8 @@ funcDynamicMGValM
        , Member (Error SiteGenError) r
        , Member (Log String) r
        )
-    => (SC.SourceContext -> TG.Function (RunSem r))
-    -> SC.SourceContext
+    => (H.SourceContext -> TG.Function (RunSem r))
+    -> H.SourceContext
     -> RunSemGVal r
 funcDynamicMGValM f sc = pure $ TG.fromFunction $ f sc
 
@@ -130,7 +113,7 @@ contentDynamic
        , Member (Error SiteGenError) r
        , Member (Log String) r
        )
-    => SC.SourceContext
+    => H.SourceContext
     -> TG.Function (RunSem r)
 contentDynamic sc _ = do           -- content ignores the args
     txt <- TG.liftRun $ scContentM sc
@@ -149,7 +132,7 @@ summaryDynamic
        , Member (Error SiteGenError) r
        , Member (Log String) r
        )
-    => SC.SourceContext
+    => H.SourceContext
     -> TG.Function (RunSem r)
 summaryDynamic sc _ = do   -- summary ignores the args, and selects for Rich only
     txt <- TG.liftRun $ scSummaryM sc True
@@ -168,7 +151,7 @@ tocDynamic
        , Member (Error SiteGenError) r
        , Member (Log String) r
        )
-    => SC.SourceContext
+    => H.SourceContext
     -> TG.Function (RunSem r)
 tocDynamic sc args = do
     let mLevels = tryExtractIntArg args

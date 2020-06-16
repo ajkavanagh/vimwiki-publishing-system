@@ -7,11 +7,10 @@ import           Data.Text         (Text)
 
 import           Effect.File       (FileException (..))
 import           Effect.Ginger     (GingerException (..))
-import           Lib.Header        (SourcePageContext)
+import           Lib.Header        (SourceContext, SourcePageContext)
 import           Lib.SiteGenConfig (ConfigException (..))
-import           Lib.SourceClass   (SourceContext)
 
-import qualified Text.Pandoc.Error            as TPE
+import qualified Text.Pandoc.Error as TPE
 
 -- move this, but it's here whilst I consider its proper home
 {-data PageError = SourcePageContextError SourcePageContext Text-}

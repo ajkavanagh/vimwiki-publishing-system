@@ -6,7 +6,6 @@
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
---{-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 
@@ -20,22 +19,21 @@
 
 module Lib.Context.PageContexts where
 
-import Data.Time.Clock  (UTCTime)
-import Data.Time.LocalTime (LocalTime, utc, utcToLocalTime)
+import           Data.Time.Clock     (UTCTime)
+import           Data.Time.LocalTime (LocalTime, utc, utcToLocalTime)
 
-import           Text.Ginger      ((~>))
-import qualified Text.Ginger      as TG
+import           Text.Ginger         ((~>))
+import qualified Text.Ginger         as TG
 
-import qualified Lib.Header       as H
-import qualified Lib.SourceClass  as SC
-import           Lib.Context.Core (Context, contextFromList)
+import           Lib.Context.Core    (Context, contextFromList)
+import qualified Lib.Header          as H
 
 -- Provide contexts for the SourcePageContext and the VirtualPageContext records
 -- They will be provided under the key 'header'
 
-pageHeaderContextFor :: Monad m => SC.SourceContext -> Context m
-pageHeaderContextFor (SC.SPC spc) = sourcePageContextFor spc
-pageHeaderContextFor (SC.VPC vpc) = virtualPageContextFor vpc
+pageHeaderContextFor :: Monad m => H.SourceContext -> Context m
+pageHeaderContextFor (H.SPC spc) = sourcePageContextFor spc
+pageHeaderContextFor (H.VPC vpc) = virtualPageContextFor vpc
 
 
 sourcePageContextFor :: Monad m => H.SourcePageContext -> Context m

@@ -17,8 +17,7 @@ import           Data.Text              (Text)
 
 -- local modules to set up tests
 import qualified Lib.Header             as H
-import qualified Lib.SiteGenState       as SGS
-import qualified Lib.SourceClass        as SC
+import qualified Types.SiteGenState     as SGS
 
 
 -- module under test
@@ -50,11 +49,11 @@ processPandocLinksSpecs = --do
 
         it "Should not detect a uri link in text" $
             runTest simpleMap (parse "this http://example.com should stay as text")
-                `shouldBe` ("<p>this http://example.com should stay as text</p>")
+                `shouldBe` "<p>this http://example.com should stay as text</p>"
 
         it "Should not remove a wiki uri link" $
             runTest simpleMap (parse "this [[http://example.com|link]] should be a link")
-                `shouldBe` ("<p>this <a href=\"http://example.com\" title=\"link\">link</a> should be a link</p>")
+                `shouldBe` "<p>this <a href=\"http://example.com\" title=\"link\">link</a> should be a link</p>"
 
         it "Should work with two links" $
             runTest simpleMap (parse  "This [[link]] and that [[link1|Description]].")
@@ -85,9 +84,9 @@ linkSPC = def {H.spcRoute="new-route"}
 
 simpleMap :: SGS.VimWikiLinkToSC
 simpleMap = HashMap.fromList
-    [ ("does", SC.SPC linkSPC)
-    , ("link", SC.SPC linkSPC)
-    , ("link1", SC.SPC $ def {H.spcRoute="new-route2"})
+    [ ("does", H.SPC linkSPC)
+    , ("link", H.SPC linkSPC)
+    , ("link1", H.SPC $ def {H.spcRoute="new-route2"})
     ]
 
 --helpers for tests

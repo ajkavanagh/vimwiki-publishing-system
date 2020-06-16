@@ -70,10 +70,8 @@ import qualified Data.Yaml              as Y
 
 import           Lib.Errors             as LE
 import qualified Lib.Header             as H
-import qualified Lib.SiteGenState       as SGS
-import qualified Lib.SourceClass        as SC
 import           Lib.Utils              (strToLower)
-
+import qualified Types.SiteGenState     as SGS
 
 -- testing - remove
 import           Data.Either            (fromRight)
@@ -266,8 +264,8 @@ maybeRewriteLink hmap link@(TPD.Link attr desc (url, title))
                            else desc
               -- otherwise re-write it to the route; note we need to add back in
               -- any of the other bits of the url (query and fragment)
-              Just spc ->
-                  let newUri = show (uri {NU.uriPath=SC.scRoute spc})
+              Just sc ->
+                  let newUri = show (uri {NU.uriPath=H.scRoute sc})
                    in [TPD.Link attr desc (newUri, title)]
   -- it was absolute or something else; thus we just ignore the link
   | otherwise = [link]

@@ -15,6 +15,7 @@
 module Lib.Header
     ( SourcePageContext(..)
     , VirtualPageContext(..)
+    , SourceContext(..)
     , dropWithNewLine
     , findEndSiteGenHeader
     , isHeader
@@ -24,6 +25,10 @@ module Lib.Header
     , emptySourcePageContext
     , HeaderContext(..)
     , makeHeaderContextFromFileName
+    , scRoute
+    , scVimWikiLinkPath
+    , scAbsFilePath
+    , scRelFilePath
     ) where
 
 -- header.hs -- extract the header (maybe) from a File
@@ -94,8 +99,37 @@ import qualified Lib.SiteGenConfig     as S
 import           Lib.Utils             (fixRoute, strToLower)
 
 
+-- TODO: make this a global in the SiteGenConfig
 maxHeaderSize :: Int
 maxHeaderSize = 100 * 20
+
+-- | Generalise over the the SourcePage and VirtualPage contexts so we can stuff
+-- them in a list of contexts.  We'll use some convenience functions to get the
+-- stuff out.
+data SourceContext = SPC SourcePageContext
+                   | VPC VirtualPageContext
+                   deriving Show
+
+
+
+scRoute           :: SourceContext -> String
+scRoute (SPC spc) = spcRoute spc
+scRoute (VPC vpc) = vpcRoute vpc
+
+
+scVimWikiLinkPath :: SourceContext -> String
+scVimWikiLinkPath (SPC spc) = spcVimWikiLinkPath spc
+scVimWikiLinkPath (VPC vpc) = vpcVimWikiLinkPath vpc
+
+
+scAbsFilePath     :: SourceContext -> Maybe String
+scAbsFilePath (SPC spc) = Just $ spcAbsFilePath spc
+scAbsFilePath (VPC _)   = Nothing
+
+
+scRelFilePath     :: SourceContext -> Maybe String
+scRelFilePath (SPC spc) = Just $ spcRelFilePath spc
+scRelFilePath (VPC _)   = Nothing
 
 
 data RawPageHeader = RawPageHeader
@@ -250,9 +284,8 @@ maybeDecodeHeader bs = do
     let (maybeHeader, count) = maybeExtractHeaderBlock bs
     let maybeRawPH = Y.decodeEither' <$> maybeHeader
     case maybeRawPH of
-        Just (Right rph) -> do
-            ph <- makeSourcePageContextFromRawPageHeader rph count
-            pure $ Just ph
+        Just (Right rph) ->
+            Just <$> makeSourcePageContextFromRawPageHeader rph count
         Just (Left ex) -> do
             log @String $ "Error decoding yaml block: " ++ show ex
             pure Nothing
@@ -308,13 +341,13 @@ makeHeaderContextFromFileName sfp afp = do
     let rfp = FP.makeRelative sfp afp
     let fpp = decodeFilePath rfp
         time = posixSecondsToUTCTime $ SPF.modificationTimeHiRes fs
-    pure $ HeaderContext { hcAutoSlug=makeAutoSlug fpp
-                         , hcFileTime=time
-                         , hcAbsFilePath=afp
-                         , hcRelFilePath=_normalised fpp
-                         , hcVimWikiLinkPath=_vimWikiLink fpp
-                         , hcAutoTitle = makeAutoTitle fpp
-                         }
+    pure HeaderContext { hcAutoSlug=makeAutoSlug fpp
+                       , hcFileTime=time
+                       , hcAbsFilePath=afp
+                       , hcRelFilePath=_normalised fpp
+                       , hcVimWikiLinkPath=_vimWikiLink fpp
+                       , hcAutoTitle = makeAutoTitle fpp
+                       }
 
 
 -- decode the relative filepath into parts

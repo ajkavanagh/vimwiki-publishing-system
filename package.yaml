@@ -81,6 +81,7 @@ executables:
     - -O2
     - -flate-specialise
     - -fspecialise-aggressively
+    - -fprint-potential-instances
     - -fplugin=Polysemy.Plugin
     dependencies:
     - vimwiki-publishing-system

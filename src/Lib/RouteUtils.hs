@@ -19,9 +19,8 @@ import qualified Data.Text          as T
 import qualified System.FilePath    as F
 
 import           Lib.Errors         (SiteGenError (..))
-import           Lib.Header         (SourcePageContext (..),
+import           Lib.Header         (SourceContext (..), SourcePageContext (..),
                                      VirtualPageContext (..))
-import           Lib.SourceClass    (SourceContext (..))
 
 
 data RouteError = DuplicateRouteError SourcePageContext T.Text

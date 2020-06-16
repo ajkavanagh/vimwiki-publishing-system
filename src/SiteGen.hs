@@ -18,8 +18,8 @@ module SiteGen
       where
 
 import           Data.Function             ((&))
+import qualified Data.HashMap.Strict       as HashMap
 import           Data.List                 (intercalate)
-import qualified Data.HashMap.Strict as HashMap
 
 import           System.Exit               (ExitCode (..), exitWith)
 
@@ -29,7 +29,7 @@ import           Options.Applicative
 import           Options.Applicative.Types (ReadM, readerAsk)
 
 -- monad related stuff
-import           Control.Monad             (foldM, liftM2, unless, when, forM_)
+import           Control.Monad             (foldM, forM_, liftM2, unless, when)
 
 -- Polysemy
 import           Colog.Core                (logStringStderr)
@@ -42,24 +42,25 @@ import           Polysemy.Reader           (runReader)
 import           Polysemy.State            (runState)
 
 -- Application Effects
+import           Effect.ByteStringStore    (BSHMStore, bsStoreAsHash)
 import           Effect.File               (File, FileException, fileToIO)
-import           Effect.Ginger        (GingerException(..))
-import Effect.ByteStringStore         (bsStoreAsHash, BSHMStore)
+import           Effect.Ginger             (GingerException (..))
 
 -- Local Libraries
-import           Lib.Errors               (SiteGenError, mapSiteGenError)
+import           Experiments.RenderUtils   (renderSourceContext)
+import           Lib.Errors                (SiteGenError, mapSiteGenError)
 import qualified Lib.Files                 as F
 import qualified Lib.Header                as H
 import qualified Lib.RouteUtils            as RU
 import           Lib.SiteGenConfig         (ConfigException, SiteGenConfig)
 import qualified Lib.SiteGenConfig         as SGC
-import qualified Lib.SourceClass           as SC
+import           Lib.SiteGenState          (SiteGenReader, SiteGenState,
+                                            emptySiteGenState,
+                                            makeSiteGenReader)
 import           Lib.Utils                 (isDebug, isMarkDownFile,
                                             isMarkDownStr, printIfDoesntExist,
                                             strToLower, validateFileExists,
                                             validateWithTests)
-import           Experiments.RenderUtils   (renderSourceContext)
-import           Lib.SiteGenState          (makeSiteGenReader, SiteGenReader, SiteGenState, emptySiteGenState)
 
 
 sitegenProgram :: IO ()
@@ -193,7 +194,7 @@ runSiteGenSem args = do
     CP.log @String $ "Missing routes: Len (" ++ show (length mr) ++ ") = " ++ intercalate ", " mr
     let spcs' = RU.ensureIndexRoutesIn spcs
         scs = RU.addVPCIndexPages spcs'
-    CP.log @String $ "Final route set: " ++ intercalate ", " (map SC.scRoute scs)
+    CP.log @String $ "Final route set: " ++ intercalate ", " (map H.scRoute scs)
     CP.log @String $ "Final SourceContext set:\n" ++ intercalate "\n" (map show scs)
     -- Create the SiteGenState and Reader
     let sgr = makeSiteGenReader scs

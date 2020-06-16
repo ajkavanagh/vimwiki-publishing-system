@@ -21,13 +21,15 @@ import           Control.Monad     (forM)
 import           Polysemy          (Embed, Members, Sem, embed, embedToFinal,
                                     runFinal)
 import           Polysemy.Error    (Error, throw)
+import qualified Polysemy.Error    as PE
 import           Polysemy.Reader   (Reader)
 import qualified Polysemy.Reader   as PR
 
 import           Effect.File       (File, FileException)
 import qualified Effect.File       as EF
 
-import           Lib.Header        (SourcePageContext(..), VirtualPageContext(..))
+import           Lib.Header        (SourcePageContext (..),
+                                    VirtualPageContext (..))
 import           Lib.SiteGenConfig (ConfigException, SiteGenConfig (..),
                                     getSiteGenConfig)
 -- for tests -- remove when removing test code
@@ -40,10 +42,9 @@ import           Data.List         (dropWhile, inits, intercalate)
 
 import           Lib.Errors        (SiteGenError (..), mapSiteGenError)
 import           Lib.Files         (filePathToMaybeSourcePageContext)
+import qualified Lib.Header        as H
 import           Lib.SiteGenState  (SiteGenReader, makeSiteGenReader)
-import qualified Lib.SourceClass   as SC
 
-import qualified Polysemy.Error    as PE
 
 {-
    So the idea here is that we have a templates directory, and in the templates
@@ -105,18 +106,18 @@ resolveTemplatePath
                 , Error SiteGenError
                 , Log String
                 ] r
-    => SC.SourceContext
+    => H.SourceContext
     -> Sem r FilePath
 resolveTemplatePath sc = do
     sgc <- PR.ask @SiteGenConfig
-    let tBaseName = case sc of 
-            (SC.SPC spc) -> spcTemplate spc
-            (SC.VPC vpc) -> vpcTemplate vpc
+    let tBaseName = case sc of
+            (H.SPC spc) -> spcTemplate spc
+            (H.VPC vpc) -> vpcTemplate vpc
         hasPath = pathSeparator `elem` tBaseName
         tFileName = tBaseName <.> sgcTemplateExt sgc
         sPath = case sc of
-            (SC.SPC spc) -> spcRelFilePath spc
-            (SC.VPC vpc) -> vpcRoute vpc
+            (H.SPC spc) -> spcRelFilePath spc
+            (H.VPC vpc) -> vpcRoute vpc
         dir = takeDirectory sPath
         tPath = sgcTemplatesDir sgc
         tryPaths = map (tPath </>) $ case (isRelative tFileName, hasPath) of
@@ -153,7 +154,7 @@ testResolveTemplatePath = do
         case mSpc of
             Nothing -> throw $ EF.FileException file "Not a sitegen file"
             (Just spc) -> do
-                let sgr = makeSiteGenReader [SC.SPC spc]
+                let sgr = makeSiteGenReader [H.SPC spc]
                 PR.runReader @SiteGenReader sgr $ PR.runReader @SiteGenConfig sgc $ resolveTemplatePathSPC spc
 
 

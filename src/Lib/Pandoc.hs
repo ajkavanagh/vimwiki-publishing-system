@@ -1,14 +1,18 @@
-{-# LANGUAGE DataKinds            #-}
-{-# LANGUAGE ExtendedDefaultRules #-}
-{-# LANGUAGE FlexibleContexts     #-}
-{-# LANGUAGE GADTs                #-}
-{-# LANGUAGE OverloadedStrings    #-}
-{-# LANGUAGE PolyKinds            #-}
-{-# LANGUAGE RankNTypes           #-}
-{-# LANGUAGE ScopedTypeVariables  #-}
-{-# LANGUAGE TypeApplications     #-}
-{-# LANGUAGE TypeFamilies         #-}
-{-# LANGUAGE TypeOperators        #-}
+{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE ExtendedDefaultRules  #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE PolyKinds             #-}
+{-# LANGUAGE RankNTypes            #-}
+{-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeApplications      #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE TypeOperators         #-}
+
+{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE UndecidableInstances  #-}
 
 {-# OPTIONS_GHC -fplugin=Polysemy.Plugin #-}
 
@@ -16,7 +20,7 @@ module Lib.Pandoc where
 
 import           TextShow
 
-import           Control.Applicative    ((<|>))
+--import           Control.Applicative    ((<|>))
 
 import           Data.ByteString        (ByteString)
 import           Data.Maybe             (fromMaybe)
@@ -44,9 +48,8 @@ import qualified Lib.Errors             as LE
 import qualified Lib.Header             as H
 import           Lib.SiteGenConfig      (SiteGenConfig)
 import qualified Lib.SiteGenConfig      as SGC
-import           Lib.SiteGenState       (SiteGenReader, SiteGenState)
-import qualified Lib.SiteGenState       as SGS
-import           Lib.SourceClass        (SourceContext (..))
+import           Types.SiteGenState     (SiteGenReader, SiteGenState,
+                                         siteVimWikiLinkMap)
 
 import           Lib.PandocUtils        (extractTocItemsToByteString,
                                          loadTocEither,
@@ -65,10 +68,10 @@ scContentM
        , Member (Error SiteGenError) r
        , Member (Log String) r
        )
-    => SourceContext
+    => H.SourceContext
     -> Sem r Text
-scContentM (VPC _)   = pure ""
-scContentM (SPC spc) = fetchContentHtml spc
+scContentM (H.VPC _)   = pure ""
+scContentM (H.SPC spc) = fetchContentHtml spc
 
 
 scSummaryM
@@ -80,11 +83,11 @@ scSummaryM
        , Member (Error SiteGenError) r
        , Member (Log String) r
        )
-    => SourceContext
+    => H.SourceContext
     -> Bool
     -> Sem r Text
-scSummaryM (VPC _) _   = pure ""
-scSummaryM (SPC spc) b = fetchSummaryHtml spc b
+scSummaryM (H.VPC _) _   = pure ""
+scSummaryM (H.SPC spc) b = fetchSummaryHtml spc b
 
 
 scTocM
@@ -96,11 +99,11 @@ scTocM
        , Member (Error SiteGenError) r
        , Member (Log String) r
        )
-    => SourceContext
+    => H.SourceContext
     -> Maybe Int
     -> Sem r Text
-scTocM (VPC _) _    = pure ""
-scTocM (SPC spc) mi = fetchTocHtml spc mi
+scTocM (H.VPC _) _    = pure ""
+scTocM (H.SPC spc) mi = fetchTocHtml spc mi
 
 
 data ItemType = Content
@@ -128,7 +131,7 @@ processSPCToByteStringStore spc item = do
     CP.log @String $ "Parsing and processing: " <> H.spcRelFilePath spc
     bs <- EF.readFile (H.spcAbsFilePath spc) (Just $ H.spcHeaderLen spc) Nothing
     pd <- PE.fromEither $ parseMarkdown bs
-    vws <- PR.asks @SiteGenReader SGS.siteVimWikiLinkMap
+    vws <- PR.asks @SiteGenReader siteVimWikiLinkMap
     maxSummaryWords <- PR.asks @SiteGenConfig SGC.sgcMaxSummaryWords
     let pd' = processPandocAST vws pd
     content <- PE.fromEither (encodeUtf8 <$> pandocToContentTextEither pd')

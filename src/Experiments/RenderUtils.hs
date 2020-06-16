@@ -1,3 +1,18 @@
+{-# LANGUAGE DataKinds            #-}
+{-# LANGUAGE ExtendedDefaultRules #-}
+{-# LANGUAGE FlexibleContexts     #-}
+{-# LANGUAGE GADTs                #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE PolyKinds            #-}
+{-# LANGUAGE RankNTypes           #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE TypeApplications     #-}
+{-# LANGUAGE TypeFamilies         #-}
+{-# LANGUAGE TypeOperators        #-}
+
+{-# OPTIONS_GHC -fplugin=Polysemy.Plugin #-}
+
+
 module Experiments.RenderUtils
     ( renderSourceContext
     )
@@ -19,43 +34,42 @@ module Experiments.RenderUtils
 -- that what this is?
 --
 
-import TextShow
+import           TextShow
 
-import           Data.Text                (Text)
-import qualified Data.Text                as T
+import           Data.Text              (Text)
+import qualified Data.Text              as T
 
-import           Colog.Core               (logStringStderr)
-import           Colog.Polysemy           (Log, runLogAction)
-import qualified Colog.Polysemy           as CP
-import           Polysemy                 (Embed, Member, Members, Sem, embed,
-                                           embedToFinal, interpret, makeSem,
-                                           run, runFinal)
-import           Polysemy.Error           (Error)
-import qualified Polysemy.Error           as PE
-import           Polysemy.Reader          (Reader)
-import qualified Polysemy.Reader          as PR
-import           Polysemy.State           (State)
-import qualified Polysemy.State           as PS
-import           Polysemy.Writer          (Writer)
-import qualified Polysemy.Writer          as PW
+import           Colog.Core             (logStringStderr)
+import           Colog.Polysemy         (Log, runLogAction)
+import qualified Colog.Polysemy         as CP
+import           Polysemy               (Embed, Member, Members, Sem, embed,
+                                         embedToFinal, interpret, makeSem, run,
+                                         runFinal)
+import           Polysemy.Error         (Error)
+import qualified Polysemy.Error         as PE
+import           Polysemy.Reader        (Reader)
+import qualified Polysemy.Reader        as PR
+import           Polysemy.State         (State)
+import qualified Polysemy.State         as PS
+import           Polysemy.Writer        (Writer)
+import qualified Polysemy.Writer        as PW
 
-import           Effect.ByteStringStore   (ByteStringStore)
-import qualified Effect.ByteStringStore   as EB
-import           Effect.File              (File, FileException)
-import qualified Effect.File              as EF
-import           Effect.Ginger        (GingerException(..))
+import           Effect.ByteStringStore (ByteStringStore)
+import qualified Effect.ByteStringStore as EB
+import           Effect.File            (File, FileException)
+import qualified Effect.File            as EF
+import           Effect.Ginger          (GingerException (..))
 
-import           Lib.SiteGenConfig        (SiteGenConfig)
+import           Lib.SiteGenConfig      (SiteGenConfig)
 
-import Lib.Header (SourcePageContext)
-import Lib.SourceClass (SourceContext)
-import qualified Lib.SourceClass as SC
-import Lib.ResolvingTemplates as RT
-import           Lib.Errors               (SiteGenError)
-import           Lib.SiteGenState         (SiteGenReader, SiteGenState)
+import           Lib.Errors             (SiteGenError)
+import           Lib.Header             (SourceContext)
+import qualified Lib.Header             as H
+import           Lib.ResolvingTemplates as RT
+import           Lib.SiteGenState       (SiteGenReader, SiteGenState)
 
-import Lib.Context   (makeContextFor)
-import Lib.Ginger    (renderTemplate, parseToTemplate)
+import           Lib.Context            (makeContextFor)
+import           Lib.Ginger             (parseToTemplate, renderTemplate)
 
 
 renderSourceContext
@@ -73,9 +87,9 @@ renderSourceContext
     -> Sem r ()
 renderSourceContext sc = do
     CP.log @String $ "renderSourceContext for route: "
-                  ++ SC.scRoute sc
+                  ++ H.scRoute sc
                   ++ ", file: "
-                  ++ show (SC.scRelFilePath sc)
+                  ++ show (H.scRelFilePath sc)
     -- find the template
     tplt <- parseToTemplate =<< RT.resolveTemplatePath sc
 
