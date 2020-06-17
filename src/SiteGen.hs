@@ -188,7 +188,7 @@ runSiteGenSem args = do
     CP.log @String $ "SPCs are:\n" ++ intercalate "\n" (map show spcs)
     let files = map H.spcRelFilePath spcs
     CP.log @String $ "Files are: " ++ intercalate ", " files
-    let dr = RU.checkDuplicateRoutes spcs
+    let dr = RU.checkDuplicateRoutesSPC spcs
     CP.log @String $ "Duplicate routes: " ++ intercalate ", " (map show dr)
     let mr = RU.findMissingIndexRoutes spcs
     CP.log @String $ "Missing routes: Len (" ++ show (length mr) ++ ") = " ++ intercalate ", " mr

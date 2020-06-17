@@ -2,17 +2,22 @@
 
 module Lib.RouteUtils
     ( checkDuplicateRoutes
+    , checkDuplicateRoutesSPC
     , ensureIndexRoutesIn
     , indexRouteFor
     , isIndexRoute
     , findMissingIndexRoutes
     , addVPCIndexPages
+    , makeFileNameFrom
+    , makeFileNoExtNameFrom
     , RouteError(..)
     ) where
 
 import           Data.Default.Class (Default, def)
+import           Data.Function      (on)
 import qualified Data.List          as L
 import qualified Data.List.Split    as LS
+import           Data.Maybe         (fromMaybe)
 import           Data.Ord           (comparing)
 import qualified Data.Text          as T
 
@@ -20,35 +25,72 @@ import qualified System.FilePath    as F
 
 import           Lib.Errors         (SiteGenError (..))
 import           Lib.Header         (SourceContext (..), SourcePageContext (..),
-                                     VirtualPageContext (..))
+                                     VirtualPageContext (..), scIndexPage,
+                                     scRelFilePath, scRoute)
 
 
-data RouteError = DuplicateRouteError SourcePageContext T.Text
+data RouteError = DuplicateRouteError SourceContext T.Text
                   deriving (Eq, Show)
 
--- | check for duplicate routes in [SourcePageContext]
--- If duplicate then throw an error against the 2nd SPC with details of
--- the error
-checkDuplicateRoutes :: [SourcePageContext] -> [RouteError]
-checkDuplicateRoutes spcs =
-    let pairs = map (\spc -> (spcRoute spc, spc)) spcs
-        sPairs = L.sortOn fst pairs
-        gPairs = L.groupBy comp sPairs
-        ePairs = L.filter ((>1).length) gPairs     -- [[p1,p2],[..],..]
-     in concatMap makeError' ePairs
-  where
-    comp :: Eq a => (a,b) -> (a,b) -> Bool
-    comp (x1,_) (x2,_) = x1 == x2
+
+-- | checks for duplicate routes in the SPCs, then generate any missing index
+-- pages and finally check for inconsistent indexes (i.e. where an output
+-- filename can't be generated due to index pages.
+validateRoutesInSPCs
+    :: Bool                                -- whether we are generating "indexPages"
+    -> String                              -- The final extension ".html"
+    -> [SourcePageContext]
+    -> Either [RouteError] [SourceContext]
+validateRoutesInSPCs doIndexFileNames ext spcs =
+    let errors = checkDuplicateRoutesSPC spcs
+     in if not (null errors)
+          then Left errors
+          else let spcs' = ensureIndexRoutesIn spcs
+                   scs = addVPCIndexPages spcs'
+                   ferrors = checkDuplicateFiles doIndexFileNames ext scs
+                in if not (null ferrors)
+                     then Left errors
+                     else Right scs
 
 
-makeError' :: [(String, SourcePageContext)] -> [RouteError]
+
+-- | check for duplicate routes in [SourceContext]
+checkDuplicateRoutes :: [SourceContext] -> [RouteError]
+checkDuplicateRoutes = checkDuplicateUsing scRoute
+
+
+checkDuplicateRoutesSPC :: [SourcePageContext] -> [RouteError]
+checkDuplicateRoutesSPC = checkDuplicateRoutes . map SPC
+
+
+-- | check for duplicate files in [SourceContext]
+checkDuplicateFiles :: Bool -> String -> [SourceContext] -> [RouteError]
+checkDuplicateFiles doIndexFiles ext = checkDuplicateUsing (makeFileNameFrom doIndexFiles ext)
+
+
+-- | helper to find duplicates and generate error lists if there are
+-- duplicates.  The function takes something from the SourceContext and that is
+-- the thing that is checked for duplicates.
+checkDuplicateUsing :: (Ord a, Eq a, Show a) => (SourceContext -> a) -> [SourceContext] -> [RouteError]
+checkDuplicateUsing f scs = concatMap makeError' $ checkForDuplicates $ fmapToFst f scs
+
+
+checkForDuplicates :: (Ord a, Eq a) => [(a, b)] -> [[(a, b)]]
+checkForDuplicates ps = L.filter ((>1).length) $ L.groupBy ((==) `on` fst) $ L.sortOn fst ps
+
+
+fmapToFst :: Functor f => (a -> b) -> f a -> f (b, a)
+fmapToFst f = fmap (\x -> (f x, x))
+
+
+makeError' :: Show a => [(a, SourceContext)] -> [RouteError]
 makeError' pairs =
     let route = fst $ head pairs
-        fileNames = map (spcRelFilePath . snd) pairs
+        fileNames = map (fromMaybe "<virtual>" . scRelFilePath . snd) pairs
         spcs = map snd pairs
      in map (go route fileNames) spcs
   where
-      go :: String -> [FilePath] -> SourcePageContext -> RouteError
+      go :: Show a => a -> [FilePath] -> SourceContext -> RouteError
       go r fps spc = DuplicateRouteError spc (T.pack ("Pages share same route: "
                                              <> show r
                                              <> ", filenames: "
@@ -112,3 +154,24 @@ makeVPCForIndex route = def { vpcRoute = route
                             , vpcTemplate = "index"
                             , vpcIndexPage = True
                             }
+
+
+-- | make an filename from the source page SourceContext.
+makeFileNoExtNameFrom :: Bool -> SourceContext -> FilePath
+makeFileNoExtNameFrom doIndexPage sc =
+    let route = "./" <> routeToFileName (scRoute sc)
+        isIndex = scIndexPage sc
+     in case (isIndex, doIndexPage) of
+         (False, False) -> route
+         (False, True)  -> route <> "/index"
+         (True, _)      -> route <> "index"
+
+
+routeToFileName :: String -> FilePath
+routeToFileName ""  = ""
+routeToFileName "/" = ""
+routeToFileName x   = x
+
+
+makeFileNameFrom :: Bool -> String -> SourceContext -> FilePath
+makeFileNameFrom doIndexPage ext sc = makeFileNoExtNameFrom doIndexPage sc <> ext

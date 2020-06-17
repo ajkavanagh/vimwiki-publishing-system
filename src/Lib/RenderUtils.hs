@@ -60,13 +60,14 @@ import           Effect.File            (File, FileException)
 import qualified Effect.File            as EF
 import           Effect.Ginger          (GingerException (..))
 
-import           Lib.SiteGenConfig      (SiteGenConfig)
+import           Lib.SiteGenConfig      (SiteGenConfig, sgcIndexFiles)
 
 import           Lib.Errors             (SiteGenError)
 import           Lib.Header             (SourceContext)
 import qualified Lib.Header             as H
 import           Lib.ResolvingTemplates as RT
 import           Lib.SiteGenState       (SiteGenReader, SiteGenState)
+import           Lib.RouteUtils         (makeFileNameFrom)
 
 import           Lib.Context            (makeContextFor)
 import           Lib.Ginger             (parseToTemplate, renderTemplate)
@@ -122,9 +123,37 @@ writeOutputFile
     -> Text
     -> Sem r ()
 writeOutputFile sc txt = do
+    doIndexFiles <- PR.asks @SiteGenConfig sgcIndexFiles
+    CP.log @String $ " --> " <> makeFileNameFrom doIndexFiles ".html" sc
     CP.log @String "The output was"
     CP.log @String (T.unpack txt)
     -- need to construct the relative filename
     -- Need to check that the base output directory exists
     -- Need to test and create any intermediate directories
     -- Then write the file.
+
+
+{- 
+    Work out where files go.
+
+    Firstly: No index-files
+
+    Route:                File Name
+    ------                ---------
+    /                     index.html
+    hello                 hello.html
+    hello/                hello/index.html
+    hello/there           hello/there.html
+ 
+    Secondly: With index-files
+   
+    Route:                File Name
+    ------                ---------
+    /                     index.html
+    hello                 hello/index.html
+    hello/                hello/index.html  -- clash!
+    hello/there           hello/there/index.html
+
+    So duplicate routes have to check for two routes where "thing" and "thing/"
+    both exist as otherwise there will be an error!
+-}

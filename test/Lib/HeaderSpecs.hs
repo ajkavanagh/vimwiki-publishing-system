@@ -177,6 +177,7 @@ defaultSCG = SiteGenConfig
     , sgcIndexPageName="index"
     , sgcTemplatesDir="templates/"
     , sgcTemplateExt=".html.j2"
+    , sgcOutputFileExt=".html"
     , sgcStaticDir="static/"
     , sgcGenerateTags=True
     , sgcGenerateCategories=True
@@ -283,7 +284,7 @@ maybeDecodeHeaderSpecs = -- do
                                                  , spcHeaderLen=39}))
 
         it "Should be 'Done.\\n' when dropping 39 chars from minimalHeader" $
-            (BS.drop 39 minimalHeader) `shouldBe` "Done.\n"
+            BS.drop 39 minimalHeader `shouldBe` "Done.\n"
 
         it "Should return the full SourcePageContext from a full config" $
             runMaybeDecodeHeader defaultSCG defaultHC fullHeader

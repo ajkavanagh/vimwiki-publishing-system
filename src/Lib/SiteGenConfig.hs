@@ -71,6 +71,7 @@ data RawSiteGenConfig = RawSiteGenConfig
     , _indexPageName      :: !String
     , _templatesDir       :: !FilePath
     , _templateExt        :: !String
+    , _outputFileExt      :: !String
     , _staticDir          :: !FilePath
     , _generateTags       :: !Bool
     , _generateCategories :: !Bool
@@ -88,7 +89,8 @@ instance Y.FromJSON RawSiteGenConfig where
         <*> v .:? "extension"           .!= ".md"              -- the extension for source files
         <*> v .:? "index-page-name"     .!= "index"            -- The 'start' page for the site.
         <*> v .:? "templates-dir"       .!= "./templates"      -- directory to find templates
-        <*> v .:? "template-ext"        .!= ".html"            -- the extension used for templates
+        <*> v .:? "template-ext"        .!= ".html.j2"         -- the extension used for templates
+        <*> v .:? "output-file-ext"     .!= ".html"            -- the extension used for the output files
         <*> v .:? "static-dir"          .!= "./static"         -- where the static files currently live
         <*> v .:? "generate-tags"       .!= False              -- should sitegen generate a tags page
         <*> v .:? "generate-categories" .!= False              -- should sitegen generate categories
@@ -122,6 +124,7 @@ data SiteGenConfig = SiteGenConfig
     , sgcIndexPageName      :: !String
     , sgcTemplatesDir       :: !FilePath
     , sgcTemplateExt        :: !String
+    , sgcOutputFileExt      :: !String
     , sgcStaticDir          :: !FilePath
     , sgcGenerateTags       :: !Bool
     , sgcGenerateCategories :: !Bool
@@ -164,7 +167,7 @@ makeSiteGenConfigFromRaw configPath rawConfig forceDrafts = do
     staticDir_ <- resolvePath (_staticDir rawConfig) root "statics dir"
     if any isNothing [source_, outputDir_, templatesDir_, staticDir_]
       then throw $ ConfigException "One or more directories didn't exist"
-      else pure $ SiteGenConfig
+      else pure SiteGenConfig
           { sgcSiteYaml=configPath
           , sgcSiteId=_siteId rawConfig
           , sgcSource=fromJust source_
@@ -173,6 +176,7 @@ makeSiteGenConfigFromRaw configPath rawConfig forceDrafts = do
           , sgcIndexPageName=_indexPageName rawConfig
           , sgcTemplatesDir=fromJust templatesDir_
           , sgcTemplateExt=_templateExt rawConfig
+          , sgcOutputFileExt=_outputFileExt rawConfig
           , sgcStaticDir=fromJust staticDir_
           , sgcGenerateTags=_generateTags rawConfig
           , sgcGenerateCategories=_generateCategories rawConfig

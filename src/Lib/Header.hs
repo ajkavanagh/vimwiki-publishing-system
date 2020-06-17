@@ -29,6 +29,7 @@ module Lib.Header
     , scVimWikiLinkPath
     , scAbsFilePath
     , scRelFilePath
+    , scIndexPage
     ) where
 
 -- header.hs -- extract the header (maybe) from a File
@@ -108,7 +109,7 @@ maxHeaderSize = 100 * 20
 -- stuff out.
 data SourceContext = SPC SourcePageContext
                    | VPC VirtualPageContext
-                   deriving Show
+                   deriving (Eq, Show)
 
 
 
@@ -130,6 +131,11 @@ scAbsFilePath (VPC _)   = Nothing
 scRelFilePath     :: SourceContext -> Maybe String
 scRelFilePath (SPC spc) = Just $ spcRelFilePath spc
 scRelFilePath (VPC _)   = Nothing
+
+
+scIndexPage       :: SourceContext -> Bool
+scIndexPage (SPC spc) = spcIndexPage spc
+scIndexPage (VPC vpc) = vpcIndexPage vpc
 
 
 data RawPageHeader = RawPageHeader
@@ -251,7 +257,7 @@ data VirtualPageContext = VirtualPageContext
     , vpcUpdated         :: !(Maybe UTCTime)
     , vpcIndexPage       :: !Bool
     , vpcPublish         :: !Bool
-    } deriving Show
+    } deriving (Eq, Show)
 
 
 -- we can't derive generically, as there's no default for Bool
