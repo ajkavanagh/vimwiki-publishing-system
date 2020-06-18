@@ -36,8 +36,16 @@ module Lib.RenderUtils
 
 import           TextShow
 
+import           System.FilePath        (joinPath, normalise, splitDirectories,
+                                         takeDirectory, (</>))
+
+import           Control.Monad          (forM_, unless)
+
+import qualified Data.HashSet           as HashSet
+import qualified Data.List              as L
 import           Data.Text              (Text)
 import qualified Data.Text              as T
+import           Data.Text.Encoding     (encodeUtf8)
 
 import           Colog.Core             (logStringStderr)
 import           Colog.Polysemy         (Log, runLogAction)
@@ -60,17 +68,16 @@ import           Effect.File            (File, FileException)
 import qualified Effect.File            as EF
 import           Effect.Ginger          (GingerException (..))
 
-import           Lib.SiteGenConfig      (SiteGenConfig, sgcIndexFiles)
-
+import           Lib.Context            (makeContextFor)
 import           Lib.Errors             (SiteGenError)
+import           Lib.Ginger             (parseToTemplate, renderTemplate)
 import           Lib.Header             (SourceContext)
 import qualified Lib.Header             as H
 import           Lib.ResolvingTemplates as RT
-import           Lib.SiteGenState       (SiteGenReader, SiteGenState)
 import           Lib.RouteUtils         (makeFileNameFrom)
-
-import           Lib.Context            (makeContextFor)
-import           Lib.Ginger             (parseToTemplate, renderTemplate)
+import           Lib.SiteGenConfig      (SiteGenConfig (..))
+import           Lib.SiteGenState       (FileMemo (..), SiteGenReader (..),
+                                         SiteGenState (..), recordMemo)
 
 
 renderSourceContext
@@ -123,37 +130,71 @@ writeOutputFile
     -> Text
     -> Sem r ()
 writeOutputFile sc txt = do
-    doIndexFiles <- PR.asks @SiteGenConfig sgcIndexFiles
-    CP.log @String $ " --> " <> makeFileNameFrom doIndexFiles ".html" sc
+    sgc <- PR.ask @SiteGenConfig
+    -- need to construct the relative filename
+    let doIndexFiles = sgcIndexFiles sgc
+        ext = sgcOutputFileExt sgc
+        dir = sgcOutputDir sgc
+        relFileName = makeFileNameFrom doIndexFiles ext sc
+        absFileName = normalise (dir </> relFileName)
+    CP.log @String $ " --> " <> relFileName
+    CP.log @String $ " --> " <> absFileName
     CP.log @String "The output was"
     CP.log @String (T.unpack txt)
-    -- need to construct the relative filename
     -- Need to check that the base output directory exists
     -- Need to test and create any intermediate directories
+    ensureDirectoriesExistFor dir relFileName
     -- Then write the file.
+    writeAndMemo dir relFileName txt
 
 
-{- 
-    Work out where files go.
+-- | ensure that the directories exist for the file we are about to write.  If
+-- they don't then create them.  If we can't then try to create them; any errors
+-- will cause a File Exception.  The function also makes a note of all the
+-- intermediate directories in the memoFiles state (in SiteGenState)
+ensureDirectoriesExistFor
+    :: ( Member File r
+       , Member (State SiteGenState) r
+       , Member (Log String) r
+       , Member (Error FileException) r
+       )
+    => FilePath     -- The base directory; we've already checked, but doing again does no harm
+    -> FilePath     -- the whole additional path including the file
+    -> Sem r ()     -- this function is run for it's side-effect.
+ensureDirectoriesExistFor base relFile = do
+    let dir = takeDirectory (normalise relFile)
+        paths = tail (L.inits (splitDirectories dir))
+    -- ensure the directories all exist
+    forM_ paths $ \pathList -> do
+        let path = normalise (joinPath pathList)
+            dir' = normalise (base </> path)
+        exists <- EF.doesDirectoryExist dir'
+        unless exists $ do
+            CP.log $ "Directory " <> dir' <> " doesn't exist, creating"
+            EF.createDirectory dir'
+            -- as the directory create worked (no exception), create the memo
+            -- for it
+            recordMemo $ DirMemo path
 
-    Firstly: No index-files
 
-    Route:                File Name
-    ------                ---------
-    /                     index.html
-    hello                 hello.html
-    hello/                hello/index.html
-    hello/there           hello/there.html
- 
-    Secondly: With index-files
-   
-    Route:                File Name
-    ------                ---------
-    /                     index.html
-    hello                 hello/index.html
-    hello/                hello/index.html  -- clash!
-    hello/there           hello/there/index.html
-
-    So duplicate routes have to check for two routes where "thing" and "thing/"
-    both exist as otherwise there will be an error!
--}
+-- | write the file and memo it, so we know what was written.
+writeAndMemo
+    :: ( Member File r
+       , Member (State SiteGenState) r
+       , Member (Reader SiteGenConfig) r
+       , Member (Error SiteGenError) r
+       , Member (Error FileException) r
+       , Member (Log String) r
+       )
+    => FilePath
+    -> FilePath
+    -> Text
+    -> Sem r ()
+writeAndMemo dir relFile txt = do
+    let fullpath = normalise (dir </> relFile)
+        nFile = normalise relFile
+    CP.log $ "Writing output to " <> nFile
+    {-CP.log $ "Writing output to " <> fullpath-}
+    EF.writeFile fullpath (encodeUtf8 txt)
+    -- if the above passed, the memo the file
+    recordMemo $ FileMemo nFile

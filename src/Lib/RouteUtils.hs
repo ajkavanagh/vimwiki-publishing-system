@@ -4,7 +4,7 @@ module Lib.RouteUtils
     ( checkDuplicateRoutes
     , checkDuplicateRoutesSPC
     , ensureIndexRoutesIn
-    , indexRouteFor
+    , indexRoutesFor
     , isIndexRoute
     , findMissingIndexRoutes
     , addVPCIndexPages
@@ -102,7 +102,7 @@ makeError' pairs =
 ensureIndexRoutesIn :: [SourcePageContext] -> [SourcePageContext]
 ensureIndexRoutesIn spcs = go <$> spcs
   where go spc = let r = spcRoute spc
-                  in if spcIndexPage spc && isIndexRoute r
+                  in if spcIndexPage spc || isIndexRoute r
                        then spc { spcRoute=r <> "/" }
                        else spc
 
@@ -113,7 +113,7 @@ ensureIndexRoutesIn spcs = go <$> spcs
 -- e.g. thing/one route needs a thing/ page.
 findMissingIndexRoutes :: [SourcePageContext] -> [String]
 findMissingIndexRoutes spcs =
-    let allRoutes = L.nub $ L.sort $ fmap (indexRouteFor . spcRoute) spcs
+    let allRoutes = L.nub $ L.sort $ concatMap (indexRoutesFor . spcRoute) spcs
         actualRoutes = spcRoute <$> filter spcIndexPage spcs
      in allRoutes L.\\ actualRoutes
 
@@ -123,17 +123,14 @@ isIndexRoute "" = False
 isIndexRoute s  = last s == '/'
 
 
--- | compute the index route for a route.  if it ends in the path separator,
--- then it is an index route; otherwise take the last part off, and then that is
--- a route.
-indexRouteFor :: String -> String
-indexRouteFor "" = "/"
-indexRouteFor s
-  | last s == '/' = s
-  | otherwise =
-      case LS.splitOn "/" s of
-          [] -> "/"
-          xs -> L.intercalate "/" (L.init xs)  <> "/"
+-- | compute the index routes for a route.  i.e. if we have some/thing then we
+-- need to generate the index routes "some/" and "/"
+indexRoutesFor :: String -> [String]
+indexRoutesFor s =
+    let parts = filter (not . null) $ LS.splitOn "/" s
+     in case parts of
+         [] -> ["/"]
+         xs -> "/" : map (<> "/") (L.init parts)
 
 
 -- | ensure that we have a set of VirtualPageContext records for each missing
@@ -155,6 +152,31 @@ makeVPCForIndex route = def { vpcRoute = route
                             , vpcIndexPage = True
                             }
 
+
+{-
+    Work out where files go.
+
+    Firstly: No index-files
+
+    Route:                File Name
+    ------                ---------
+    /                     index.html
+    hello                 hello.html
+    hello/                hello/index.html
+    hello/there           hello/there.html
+
+    Secondly: With index-files
+
+    Route:                File Name
+    ------                ---------
+    /                     index.html
+    hello                 hello/index.html
+    hello/                hello/index.html  -- clash!
+    hello/there           hello/there/index.html
+
+    So duplicate routes have to check for two routes where "thing" and "thing/"
+    both exist as otherwise there will be an error!
+-}
 
 -- | make an filename from the source page SourceContext.
 makeFileNoExtNameFrom :: Bool -> SourceContext -> FilePath

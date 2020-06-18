@@ -79,6 +79,7 @@ data File m a where
     ReadFile :: FilePath -> Maybe Int -> Maybe Int -> File m ByteString
     WriteFile :: FilePath -> ByteString -> File m ()
     DeleteFile :: FilePath -> File m ()
+    DoesFileExist :: FilePath -> File m Bool
 
     -- List files in Directories
     SourceDirectoryFilter :: FilePath -> (FilePath -> Bool) -> File m [FilePath]
@@ -87,7 +88,10 @@ data File m a where
     -- Directory support
     MakeAbsolute :: FilePath -> File m FilePath
     DoesDirectoryExist :: FilePath -> File m Bool
-    DoesFileExist :: FilePath -> File m Bool
+    CreateDirectory :: FilePath -> File m ()
+    CreateDirectoryIfMissing :: Bool -> FilePath -> File m ()
+    RemoveDirectory :: FilePath -> File m ()
+    RemoveDirectoryRecursive :: FilePath -> File m ()
 
     -- Temporary Dirctory/File Support
     GetCanonicalTemporaryDirectory :: File m FilePath
@@ -132,6 +136,10 @@ fileToIO = interpret $ \case
     DeleteFile fp ->
         throwIfException fp =<< embed (tryIOError $ SD.removeFile fp)
 
+    --DoesFileExist :: FilePath -> File m Bool
+    DoesFileExist fp ->
+        throwIfException fp =<< embed ( tryIOError $ SD.doesFileExist fp)
+
     -- The next two functions use conduit and return a list of files.
     -- Conduit is used as it's convenient to list the files without using up
     -- lots of filehandles, plus we can run the filter in the stream.
@@ -171,21 +179,27 @@ fileToIO = interpret $ \case
 
     -- MakeAbsolute :: FilePath -> File m FilePath
     MakeAbsolute fp ->
-        throwIfException fp =<< embed
-             ( tryIOError
-             $ SD.makeAbsolute fp)
+        throwIfException fp =<< embed ( tryIOError $ SD.makeAbsolute fp)
 
     --DoesDirectoryExist :: FilePath -> File m Bool
     DoesDirectoryExist fp ->
-        throwIfException fp =<< embed
-             ( tryIOError
-             $ SD.doesDirectoryExist fp)
+        throwIfException fp =<< embed ( tryIOError $ SD.doesDirectoryExist fp)
 
-    --DoesFileExist :: FilePath -> File m Bool
-    DoesFileExist fp ->
-        throwIfException fp =<< embed
-             ( tryIOError
-             $ SD.doesFileExist fp)
+    -- CreateDirectory :: FilePath -> File m ()
+    CreateDirectory fp ->
+        throwIfException fp =<< embed (tryIOError $ SD.createDirectory fp)
+
+    -- CreateDirectoryIfMissing :: Bool -> FilePath -> File m ()
+    CreateDirectoryIfMissing b fp ->
+        throwIfException fp =<< embed (tryIOError $ SD.createDirectoryIfMissing b fp)
+
+    -- RemoveDirectory :: FilePath -> File m ()
+    RemoveDirectory fp ->
+        throwIfException fp =<< embed (tryIOError $ SD.removeDirectory fp)
+
+    -- RemoveDirectoryRecursive :: FilePath -> File m ()
+    RemoveDirectoryRecursive fp ->
+        throwIfException fp =<< embed (tryIOError $ SD.removeDirectoryRecursive fp)
 
     -- Temporary Dirctory/File Support
     -- GetCanonicalTemporaryDirectory :: File m FilePath

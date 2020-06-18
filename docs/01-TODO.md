@@ -47,7 +47,7 @@
     we walk the processed Pandoc text elements and find the this item.  Note
     it only looks for the first one.  All the others are stripped.
 [x] Work out from the `SourceContext` where to put an output file.
-[ ] Write output files, after we've worked out what the output filename is.
+[x] Write output files, after we've worked out what the output filename is.
 [ ] Complete Ginger context variables for Index and Content pages.
 [ ] Copy the static files across
 [ ] enable cleaning of output directories based on what is written and

@@ -1,3 +1,4 @@
+example-site/html/*
 dist
 dist-*
 cabal-dev

@@ -1,4 +1,4 @@
 site: home
 template-ext: .html.j2
-index-files: true
+index-files: false
 
