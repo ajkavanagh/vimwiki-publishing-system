@@ -172,9 +172,9 @@ ensureDirectoriesExistFor base relFile = do
         unless exists $ do
             CP.log $ "Directory " <> dir' <> " doesn't exist, creating"
             EF.createDirectory dir'
-            -- as the directory create worked (no exception), create the memo
-            -- for it
-            recordMemo $ DirMemo path
+        -- as the directory create worked (no exception), or alreadly exists,
+        -- create the memo for it.
+        recordMemo $ DirMemo path
 
 
 -- | write the file and memo it, so we know what was written.
