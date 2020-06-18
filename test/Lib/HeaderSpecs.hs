@@ -179,6 +179,7 @@ defaultSCG = SiteGenConfig
     , sgcTemplateExt=".html.j2"
     , sgcOutputFileExt=".html"
     , sgcStaticDir="static/"
+    , sgcCopyStaticFiles=False
     , sgcGenerateTags=True
     , sgcGenerateCategories=True
     , sgcPublishDrafts=True

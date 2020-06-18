@@ -41,8 +41,8 @@ import           Data.List          (intercalate)
 import           Data.Maybe         (fromJust, isJust)
 
 import           Conduit            (MonadResource, filterC, runConduit,
-                                     runResourceT, sinkList,
-                                     sourceDirectoryDeep, sourceDirectory)
+                                     runResourceT, sinkList)
+import qualified Conduit            as C
 import           Data.Conduit       (ConduitT, (.|))
 
 import           Polysemy           (Embed, Member, Members, Sem, embed,
@@ -80,8 +80,12 @@ data File m a where
     WriteFile :: FilePath -> ByteString -> File m ()
     DeleteFile :: FilePath -> File m ()
     DoesFileExist :: FilePath -> File m Bool
+    CopyFile :: FilePath -> FilePath -> File m ()
+    CopyFileWithMetadata :: FilePath -> FilePath -> File m ()
 
     -- List files in Directories
+    SourceDirectory:: FilePath -> File m [FilePath]
+    SourceDirectoryDeep:: Bool -> FilePath -> File m [FilePath]
     SourceDirectoryFilter :: FilePath -> (FilePath -> Bool) -> File m [FilePath]
     SourceDirectoryDeepFilter :: Bool -> FilePath -> (FilePath -> Bool) -> File m [FilePath]
 
@@ -140,9 +144,33 @@ fileToIO = interpret $ \case
     DoesFileExist fp ->
         throwIfException fp =<< embed ( tryIOError $ SD.doesFileExist fp)
 
+
+    --CopyFile :: FilePath -> FilePath -> File m ()
+    CopyFile fromFp toFp ->
+        throwIfException toFp =<< embed (tryIOError $ SD.copyFile fromFp toFp)
+
+    --CopyFileWithMetadata :: FilePath -> FilePath -> File m ()
+    CopyFileWithMetadata fromFp toFp ->
+        throwIfException toFp =<< embed (tryIOError $ SD.copyFileWithMetadata fromFp toFp)
+
     -- The next two functions use conduit and return a list of files.
     -- Conduit is used as it's convenient to list the files without using up
     -- lots of filehandles, plus we can run the filter in the stream.
+
+    -- SourceDirectory:: FilePath -> File m [FilePath]
+    SourceDirectory dir -> throwIfException dir =<< embed
+        ( tryIOError
+        $ runResourceT
+        $ runConduit
+        $ C.sourceDirectory dir .| sinkList)
+
+    -- SourceDirectoryDeep:: Bool -> FilePath -> File m [FilePath]
+    SourceDirectoryDeep flag dir ->
+        throwIfException dir =<< embed
+             ( tryIOError
+             $ runResourceT
+             $ runConduit
+             $ C.sourceDirectoryDeep flag dir .| sinkList)
 
     -- Do a shallow traverse into the file system at FilePath point.
     -- It returns everything, files, directories, symlinks, etc.
@@ -156,7 +184,7 @@ fileToIO = interpret $ \case
              ( tryIOError
              $ runResourceT
              $ runConduit
-             $ sourceDirectory dir
+             $ C.sourceDirectory dir
                 .| filterC filterFunc
                 .| sinkList)
 
@@ -167,13 +195,12 @@ fileToIO = interpret $ \case
     -- -> Bool                - whether to follow symlinks (True = follow)
     -- -> (FilePath -> Bool)  - a filter to apply to each filepath
     -- -> File m [FilePath]   - and return a list of FilePath types
-
     SourceDirectoryDeepFilter flag dir filterFunc ->
         throwIfException dir =<< embed
              ( tryIOError
              $ runResourceT
              $ runConduit
-             $ sourceDirectoryDeep flag dir
+             $ C.sourceDirectoryDeep flag dir
                 .| filterC filterFunc
                 .| sinkList)
 

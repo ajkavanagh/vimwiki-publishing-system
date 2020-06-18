@@ -52,7 +52,7 @@ import           Lib.Errors                (SiteGenError, mapSiteGenError)
 import qualified Lib.Files                 as F
 import qualified Lib.Header                as H
 import qualified Lib.RouteUtils            as RU
-import           Lib.SiteGenConfig         (ConfigException, SiteGenConfig)
+import           Lib.SiteGenConfig         (ConfigException, SiteGenConfig (..))
 import qualified Lib.SiteGenConfig         as SGC
 import           Lib.SiteGenState          (SiteGenReader, SiteGenState,
                                             emptySiteGenState,
@@ -205,6 +205,8 @@ runSiteGenSem args = do
         $ runState @BSHMStore HashMap.empty
         $ bsStoreAsHash
         $ runState @SiteGenState emptySiteGenState
-        $ forM_ scs renderSourceContext
+        $ do
+            forM_ scs renderSourceContext
+            when (sgcCopyStaticFiles sgc) F.copyStaticFiles
 
     pure ()

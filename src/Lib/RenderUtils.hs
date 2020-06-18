@@ -70,6 +70,8 @@ import           Effect.Ginger          (GingerException (..))
 
 import           Lib.Context            (makeContextFor)
 import           Lib.Errors             (SiteGenError)
+import           Lib.Files              (ensureDirectoriesExistFor,
+                                         writeAndMemo)
 import           Lib.Ginger             (parseToTemplate, renderTemplate)
 import           Lib.Header             (SourceContext)
 import qualified Lib.Header             as H
@@ -146,55 +148,3 @@ writeOutputFile sc txt = do
     ensureDirectoriesExistFor dir relFileName
     -- Then write the file.
     writeAndMemo dir relFileName txt
-
-
--- | ensure that the directories exist for the file we are about to write.  If
--- they don't then create them.  If we can't then try to create them; any errors
--- will cause a File Exception.  The function also makes a note of all the
--- intermediate directories in the memoFiles state (in SiteGenState)
-ensureDirectoriesExistFor
-    :: ( Member File r
-       , Member (State SiteGenState) r
-       , Member (Log String) r
-       , Member (Error FileException) r
-       )
-    => FilePath     -- The base directory; we've already checked, but doing again does no harm
-    -> FilePath     -- the whole additional path including the file
-    -> Sem r ()     -- this function is run for it's side-effect.
-ensureDirectoriesExistFor base relFile = do
-    let dir = takeDirectory (normalise relFile)
-        paths = tail (L.inits (splitDirectories dir))
-    -- ensure the directories all exist
-    forM_ paths $ \pathList -> do
-        let path = normalise (joinPath pathList)
-            dir' = normalise (base </> path)
-        exists <- EF.doesDirectoryExist dir'
-        unless exists $ do
-            CP.log $ "Directory " <> dir' <> " doesn't exist, creating"
-            EF.createDirectory dir'
-        -- as the directory create worked (no exception), or alreadly exists,
-        -- create the memo for it.
-        recordMemo $ DirMemo path
-
-
--- | write the file and memo it, so we know what was written.
-writeAndMemo
-    :: ( Member File r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Error FileException) r
-       , Member (Log String) r
-       )
-    => FilePath
-    -> FilePath
-    -> Text
-    -> Sem r ()
-writeAndMemo dir relFile txt = do
-    let fullpath = normalise (dir </> relFile)
-        nFile = normalise relFile
-    CP.log $ "Writing output to " <> nFile
-    {-CP.log $ "Writing output to " <> fullpath-}
-    EF.writeFile fullpath (encodeUtf8 txt)
-    -- if the above passed, the memo the file
-    recordMemo $ FileMemo nFile

@@ -73,6 +73,7 @@ data RawSiteGenConfig = RawSiteGenConfig
     , _templateExt        :: !String
     , _outputFileExt      :: !String
     , _staticDir          :: !FilePath
+    , _copyStaticFiles    :: !Bool
     , _generateTags       :: !Bool
     , _generateCategories :: !Bool
     , _publishDrafts      :: !Bool
@@ -92,6 +93,7 @@ instance Y.FromJSON RawSiteGenConfig where
         <*> v .:? "template-ext"        .!= ".html.j2"         -- the extension used for templates
         <*> v .:? "output-file-ext"     .!= ".html"            -- the extension used for the output files
         <*> v .:? "static-dir"          .!= "./static"         -- where the static files currently live
+        <*> v .:? "copy-static-files"   .!= True               -- By default we do copy static files as that should be normal
         <*> v .:? "generate-tags"       .!= False              -- should sitegen generate a tags page
         <*> v .:? "generate-categories" .!= False              -- should sitegen generate categories
         <*> v .:? "publish-drafts"      .!= False              -- should we publish drafs?
@@ -126,6 +128,7 @@ data SiteGenConfig = SiteGenConfig
     , sgcTemplateExt        :: !String
     , sgcOutputFileExt      :: !String
     , sgcStaticDir          :: !FilePath
+    , sgcCopyStaticFiles    :: !Bool
     , sgcGenerateTags       :: !Bool
     , sgcGenerateCategories :: !Bool
     , sgcPublishDrafts      :: !Bool
@@ -178,6 +181,7 @@ makeSiteGenConfigFromRaw configPath rawConfig forceDrafts = do
           , sgcTemplateExt=_templateExt rawConfig
           , sgcOutputFileExt=_outputFileExt rawConfig
           , sgcStaticDir=fromJust staticDir_
+          , sgcCopyStaticFiles=_copyStaticFiles rawConfig
           , sgcGenerateTags=_generateTags rawConfig
           , sgcGenerateCategories=_generateCategories rawConfig
           , sgcPublishDrafts=_publishDrafts rawConfig || forceDrafts

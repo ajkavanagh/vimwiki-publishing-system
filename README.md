@@ -38,7 +38,7 @@ requests!
 
   - [x] Write output files, after we've worked out what the output filename is.
   - [ ] Complete Ginger context variables for Index and Content pages.
-  - [ ] Copy the static files across
+  - [x] Copy the static files across
   - [ ] enable cleaning of output directories based on what is written and
 	copied.
   - [ ] Generate category `VirtualPageContext` pages for categories that don't
