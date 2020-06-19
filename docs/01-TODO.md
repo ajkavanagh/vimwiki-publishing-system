@@ -12,7 +12,7 @@
 [x] Ensure that internal links and routes are always lower case.
 [x] check for duplicate routes
 [x] Render the file
-[ ] ... and write it
+[x] ... and write it
 [x] switch site-page to index-page in heades
 [x] Rename existing RouteContext to HeaderContext to reflect that it's just
       used internally to build the SourcePageHeader
@@ -72,23 +72,20 @@
 [ ] Ensure that index files don't need to be reprocessed if none of the
     dependent files have changed.
 [ ] Generate a sitemap.xml file for the site as needed.
+[ ] Cache a template once it has been resolved -> this might be a bit complex,
+    but it's probably possible to cache the resolved template name to
+    a `Template SourcePos` thing and then just return them when they next need
+    to be resolved.
+[ ] implement functions for:
+    - [ ] absURL
+    - [ ] urlize (which might be the same as urlencode)
+    - [ ] enumerate(list) to provide [(n, item)]
+    - [ ] markdownify -- convert a Markdown string into html for inclusion
+[ ] Top level keys
+    - [ ] Title
+    - [ ] Site
+    - [ ] Data
 
 
-## Try just rendering the index.html file
-
-Hard code the paths, etc, so we can try the whole rendering pipeline:
-
-  `src/index.md` -> `SourcePageContext` -> "/index.html" route -> `RenderContext` ->
-  rendered `index.html`.
-
-* [x] Write a minimal test1.md  -- this is the site index in the example-site
-* [x] Write a minimal index.html.j2
-* [ ] Add a wrapper (HMTL) header/footer/sidebar block structure
-* [x] Write the `SourcePageContext` definition.
-* [x] Build the `SourcePageContext` from the test1.md file
-  * [x] This should reference that it's an index file and needs the index
-        template.
-  * [x] It also contains the *route*
-* [x] Render the `index/index.html` file using Ginger.
-  * [x] Workout how to map variables into the template; need to get them into
-        `GVal` things.
+I really like the idea of using the top level values as Initial caps, and
+functions as lowercased.

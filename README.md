@@ -61,6 +61,7 @@ requests!
   - [ ] Ensure that index files don't need to be reprocessed if none of the
         dependent files have changed.
   - [ ] Generate a sitemap.xml file for the site as needed.
+  - [ ] Generate an RSS feed for the site to describe what's new/published, etc.
 
 
 # The Site generator
