@@ -185,6 +185,7 @@ defaultSCG = SiteGenConfig
     , sgcPublishDrafts=True
     , sgcIndexFiles=True
     , sgcMaxSummaryWords=70
+    , sgcParams=Nothing
     }
 
 
@@ -216,6 +217,7 @@ defaultSPC = SourcePageContext
     , spcPublish=False
     , spcSiteId="site1"
     , spcHeaderLen=0 -- the length of the headerblock; i.e. what to drop to get to the content.
+    , spcParams=Nothing
     }
 
 
@@ -266,6 +268,7 @@ fullHeaderSPC = SourcePageContext
     , spcPublish=True
     , spcSiteId="default"
     , spcHeaderLen=0 -- the length of the headerblock; i.e. what to drop to get to the content.
+    , spcParams=Nothing
     }
 
 

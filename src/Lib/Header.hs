@@ -150,6 +150,7 @@ data RawPageHeader = RawPageHeader
     , _authors   :: ![String]
     , _publish   :: !Bool
     , _siteId    :: !(Maybe String)
+    , _params    :: !(Maybe Y.Object)
     } deriving (Show)
 
 
@@ -166,6 +167,7 @@ instance Y.FromJSON RawPageHeader where
         <*> v .:? "authors" .!= []
         <*> v .:? "publish" .!= False
         <*> v .:? "site"
+        <*> v .:? "params"
     parseJSON _ = error "Can't parse RawPageHeader from YAML/JSON"
 
 
@@ -186,6 +188,7 @@ data SourcePageContext = SourcePageContext
     , spcPublish         :: !Bool
     , spcSiteId          :: !String
     , spcHeaderLen       :: !Int   -- the length of the headerblock; i.e. what to drop to get to the content.
+    , spcParams          :: !(Maybe Y.Object)
     } deriving (Show, Eq)
 
 
@@ -207,6 +210,7 @@ instance Default SourcePageContext where
         , spcPublish=False
         , spcSiteId=def
         , spcHeaderLen=def
+        , spcParams=def
         }
 
 
@@ -332,6 +336,7 @@ makeSourcePageContextFromRawPageHeader rph len = do
         , spcPublish         = _publish rph
         , spcSiteId          = pick (_siteId rph) (S.sgcSiteId sgc)
         , spcHeaderLen       = len
+        , spcParams          = _params rph
         }
 
 

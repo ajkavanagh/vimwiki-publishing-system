@@ -79,6 +79,7 @@ data RawSiteGenConfig = RawSiteGenConfig
     , _publishDrafts      :: !Bool
     , _indexFiles         :: !Bool
     , _maxSummaryWords    :: !Int
+    , _params             :: !(Maybe Y.Object)
     } deriving (Show)
 
 
@@ -99,6 +100,7 @@ instance Y.FromJSON RawSiteGenConfig where
         <*> v .:? "publish-drafts"      .!= False              -- should we publish drafs?
         <*> v .:? "index-files"         .!= True               -- should index files be generated?
         <*> v .:? "max-summary-words"   .!= 70                 -- Number of words to grab for summary
+        <*> v .:? "params"                                     -- grab any defined parameters
     parseJSON _ = error "Can't parse SitegenConfig from YAML/JSON"
 
 
@@ -134,6 +136,7 @@ data SiteGenConfig = SiteGenConfig
     , sgcPublishDrafts      :: !Bool
     , sgcIndexFiles         :: !Bool
     , sgcMaxSummaryWords    :: !Int
+    , sgcParams             :: !(Maybe Y.Object)
     } deriving (Show)
 
 
@@ -187,6 +190,7 @@ makeSiteGenConfigFromRaw configPath rawConfig forceDrafts = do
           , sgcPublishDrafts=_publishDrafts rawConfig || forceDrafts
           , sgcIndexFiles=_indexFiles rawConfig
           , sgcMaxSummaryWords = _maxSummaryWords rawConfig
+          , sgcParams = _params rawConfig
           }
 
 
