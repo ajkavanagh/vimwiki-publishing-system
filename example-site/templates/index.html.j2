@@ -1,25 +1,53 @@
-<!DOCTYPE html>
-<html>
-    <head>
-        <title>{{ title }}</title>
-    </head>
-    {# This is a comment. Comments are removed from the output. #}
-    <body>
-        <menu id="nav-main">
-        {% for item in navigation %}
-            <li><a href="{{ item.url }}">{{ item.label }}</a></li>
-        {% endfor %}
-        </menu>
-        <div class="layout-content-main">
-            <h1>{{ title }}</h1>
-            {{ body }}
-            <h2>{{ sitegen.siteYaml }}</h2>
-            <p>getValue no params: {{ getValue }}</p>
-            <p>getValue text: {{ getValue("hello") }}</p>
-            <p>getValue misapplied: {{ getvalue("did this work") }}</p>
-            <p>getValue with object: {{ getValue(body) }}</p>
-            <p>getValue with complex object: {{getValue(sitegen.extension) }}</p>
-            <p>Function at end of chain: {{ thing.func("there") }}
-        </div>
-    </body>
-</html>
+{% include "base" %}
+
+{% block main %}
+<div class="content container">
+  <div class="posts">
+    {#{% set paginator = Paginate (where .Data.Pages "Type" "post") %}#}
+    {#{{ range $paginator.Pages }}#}
+    {% for page in Pages -%}
+    <div class="post">
+      <h1 class="post-title">
+        <a href="{{ page.Permalink }}">{% if page.Draft -%}DRAFT - {% endif -%}{{ page.Title }}</a>
+      </h1>
+      <span class="post-date">{{ page.Date.Format("Jan 2, 2006") }}{% if not(page.Site.Params.hideReadingTime) -%} &middot; {{ page.ReadingTime }} minute read{% endif -%}{% if Site.DisqusShortname -%} &middot; <a href="{{ Permalink }}#disqus_thread">Comments</a>{% endif -%}
+
+      {% if page.Params.categories -%}
+      <br/>
+      Categories:&nbsp;
+      {% for category in page.Params.categories -%}<a class="label" href="{{ "/categories/" | absURL }}{{ category.url | urlize }}">{{ category.name }}</a>{% endfor -%}
+      {% endif %}
+
+      {% if page.Params.tags -%}
+      <br/>
+      Tags:&nbsp;
+      {% for tag in  page.Params.tags -%}<a class="label" href="{{ "/tags/" | absURL }}{{ tag.url | urlize }}">{{ tag.name }}</a>{% endfor -%}
+      {% endif -%}</span>
+
+      {% if not(page.Site.Params.truncate) -%}
+        {{ page.Content }}
+      {% else -%}
+        {% if page.Description -%}
+        <p><em>{{ page.Description }}</em></p>
+        {% endif -%}
+        {{ page.Summary }}
+        {% if page.Truncated -%}<a href="{{ Permalink }}">Read On &rarr;</a>{% endif -%}
+      {% endif -%}
+    </div>
+    {% endfor -%}
+    {#{{ template "_internal/pagination.html" . }}#}
+  </div>
+</div>
+
+{% if Site.DisqusShortname -%}
+<script type="text/javascript">
+var disqus_shortname = {{ Site.DisqusShortname }};
+(function () {
+    var s = document.createElement('script'); s.async = true;
+    s.type = 'text/javascript';
+    s.src = '//' + disqus_shortname + '.disqus.com/count.js';
+    (document.getElementsByTagName('HEAD')[0] || document.getElementsByTagName('BODY')[0]).appendChild(s);
+}());
+</script>
+{% endif %}
+{% endblock %}

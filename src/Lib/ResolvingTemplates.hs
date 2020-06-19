@@ -13,7 +13,8 @@
 module Lib.ResolvingTemplates where
 
 import           System.FilePath   (FilePath, isRelative, joinPath,
-                                    pathSeparator, splitPath, takeDirectory,
+                                    makeRelative, normalise, pathSeparator,
+                                    splitPath, takeDirectory, takeFileName,
                                     (<.>), (</>))
 
 import           Control.Monad     (forM)
@@ -39,6 +40,7 @@ import qualified Colog.Polysemy    as CP
 
 import           Data.Function     ((&))
 import           Data.List         (dropWhile, inits, intercalate)
+import           Data.List.Split   (splitOn)
 
 import           Lib.Errors        (SiteGenError (..), mapSiteGenError)
 import           Lib.Files         (filePathToMaybeSourcePageContext)
@@ -66,40 +68,14 @@ import           Lib.SiteGenState  (SiteGenReader, makeSiteGenReader)
 
 -}
 
--- | attempt to resolve the template.  If no template is found to find the
--- default template, as defined in the SiteGenConfig
-resolveTemplatePathSPC
-    :: Members '[ Reader SiteGenReader
-                , Reader SiteGenConfig
-                , File
-                , Error SiteGenError
-                , Log String
-                ] r
-    => SourcePageContext
-    -> Sem r FilePath
-resolveTemplatePathSPC spc = do
-    sgc <- PR.ask @SiteGenConfig
-    let tBaseName = spcTemplate spc
-        hasPath = pathSeparator `elem` tBaseName
-        tFileName = tBaseName <.> sgcTemplateExt sgc
-        sPath = spcRelFilePath spc
-        dir = takeDirectory sPath
-        tPath = sgcTemplatesDir sgc
-        tryPaths = map (tPath </>) $ case (isRelative tFileName, hasPath) of
-            (True, True) -> [ tFileName, "_defaults" </> tFileName ]
-            (True, False) -> [ dir </> tFileName
-                             , "_defaults" </> dir </> tFileName
-                             , "_defaults" </> tFileName ]
-            (False, _) -> [ tFileName]
-    CP.log $ intercalate "\n" tryPaths
-    exists <- forM tryPaths EF.doesFileExist
-    let pairs = dropWhile (not.snd) $ zip tryPaths exists
-    if null pairs
-      then throw $ SourcePageContextError spc "Couldn't resolve a template"
-      else pure $ fst $ head pairs
 
-
-resolveTemplatePath
+-- | resolve the template name for an SC
+-- This looks at the template name and the route of the page and resolves the
+-- template to that.  e.g. a route of thing/hello with a template "default" will
+-- result in "thing/default".  This is so that the resolveTemplatePath will
+-- attempt to find "thing/default.<ext>", then "_defaults/thing/default.<ext>"
+-- and finally "_defaults/default.<ext>".
+resolveTemplateNameForSC
     :: Members '[ Reader SiteGenReader
                 , Reader SiteGenConfig
                 , File
@@ -107,37 +83,65 @@ resolveTemplatePath
                 , Log String
                 ] r
     => H.SourceContext
-    -> Sem r FilePath
-resolveTemplatePath sc = do
+    -> Sem r String
+resolveTemplateNameForSC sc = do
     sgc <- PR.ask @SiteGenConfig
     let tBaseName = case sc of
             (H.SPC spc) -> spcTemplate spc
             (H.VPC vpc) -> vpcTemplate vpc
-        hasPath = pathSeparator `elem` tBaseName
+        hasPath = '/' `elem` tBaseName
         tFileName = tBaseName <.> sgcTemplateExt sgc
-        sPath = case sc of
-            (H.SPC spc) -> spcRelFilePath spc
-            (H.VPC vpc) -> vpcRoute vpc
-        dir = takeDirectory sPath
-        tPath = sgcTemplatesDir sgc
-        tryPaths = map (tPath </>) $ case (isRelative tFileName, hasPath) of
-            (True, True) -> [ tFileName, "_defaults" </> tFileName ]
-            (True, False) -> [ dir </> tFileName
-                             , "_defaults" </> dir </> tFileName
-                             , "_defaults" </> tFileName ]
-            (False, _) -> [ tFileName]
-    CP.log $ intercalate "\n" tryPaths
+        sPath = H.scRoute sc
+        sHasPath = '/' `elem` sPath
+        dir = intercalate "/" $ init $ splitOn "/" sPath
+        tName = case (hasPath, sHasPath) of
+            (True, _)      -> tFileName
+            (False, True)  -> dir </> tFileName
+            (False, False) -> tFileName
+    CP.log $ " >> resolveTemplateNameforSC: template: "
+          <> show tBaseName <> ", route: " <> show sPath <> " -> " <> show tName
+    pure tName
+
+
+-- | resolve the actual path using the tPath and tDir.  If tDir is a
+-- subdirectory of tPAth, remove it, and then check it directly, and then with
+-- the _defaults in front of it. If we can't resolve it return Nothing
+resolveTemplatePath
+    :: Members '[ File
+                , Log String
+                ] r
+    => FilePath
+    -> FilePath
+    -> Sem r (Maybe FilePath)
+resolveTemplatePath tDir tPath = do
+    CP.log $ "resolveTemplatePath for: " <> tPath <> " at " <> tDir
+    let relPath = if isRelative tPath then tPath else makeRelative tDir tPath
+        fileName = takeFileName relPath
+        hasPath = pathSeparator `elem` relPath
+        tryPaths = map (normalise . (tDir </>))
+            $ if hasPath
+                -- try actual, then with _defaults, and then _defaults/fileName
+                then [relPath, "_defaults" </> relPath, "_defaults" </> fileName]
+                else [relPath, "_defaults" </> relPath]
+    {-CP.log "Trying paths:"-}
+    {-CP.log $ intercalate "\n" tryPaths-}
     exists <- forM tryPaths EF.doesFileExist
     let pairs = dropWhile (not.snd) $ zip tryPaths exists
     if null pairs
-      then throw $ SourceContextError sc "Couldn't resolve a template"
-      else pure $ fst $ head pairs
+      then do
+          CP.log "Couldn't find a file"
+          pure Nothing
+      else do
+          let rFileName = fst $ head pairs
+          CP.log $ "Using " <> show rFileName
+          pure $ Just rFileName
+
 
 
 -- now some test code to see if it works
 
 
-testResolveTemplatePath
+testResolveTemplatePathForSC
     :: Members '[ File
                 , Error SiteGenError
                 , Error FileException
@@ -145,7 +149,7 @@ testResolveTemplatePath
                 , Log String
                 ] r
     => Sem r FilePath
-testResolveTemplatePath = do
+testResolveTemplatePathForSC = do
     sgc <- getSiteGenConfig "./example-site/site.yaml" False
     let file = "./example-site/src/posts/test_post.md"
     fp <- EF.makeAbsolute file
@@ -155,7 +159,9 @@ testResolveTemplatePath = do
             Nothing -> throw $ EF.FileException file "Not a sitegen file"
             (Just spc) -> do
                 let sgr = makeSiteGenReader [H.SPC spc]
-                PR.runReader @SiteGenReader sgr $ PR.runReader @SiteGenConfig sgc $ resolveTemplatePathSPC spc
+                PR.runReader @SiteGenReader sgr
+                    $ PR.runReader @SiteGenConfig sgc
+                    $ resolveTemplateNameForSC (H.SPC spc)
 
 
 -- Run the Sem r monad to IO
@@ -168,4 +174,4 @@ runTest x = x & EF.fileToIO
               & runFinal @IO
 
 
-testRP = testResolveTemplatePath & runTest
+testRP = testResolveTemplatePathForSC & runTest

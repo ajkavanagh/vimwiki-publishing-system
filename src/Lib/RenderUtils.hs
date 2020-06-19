@@ -100,8 +100,10 @@ renderSourceContext sc = do
                   ++ H.scRoute sc
                   ++ ", file: "
                   ++ show (H.scRelFilePath sc)
+
     -- find the template
-    tplt <- parseToTemplate =<< RT.resolveTemplatePath sc
+    tName <- resolveTemplateNameForSC sc
+    tplt <- parseToTemplate tName
 
     -- build a Ginger context  -- this contains functions for content()
     -- summary(), toc(), etc.
@@ -117,7 +119,6 @@ renderSourceContext sc = do
     -- might include creating directories, etc. and making a note that we've
     -- written the file.
     writeOutputFile sc out
-
 
 
 writeOutputFile
@@ -141,8 +142,8 @@ writeOutputFile sc txt = do
         absFileName = normalise (dir </> relFileName)
     CP.log @String $ " --> " <> relFileName
     CP.log @String $ " --> " <> absFileName
-    CP.log @String "The output was"
-    CP.log @String (T.unpack txt)
+    {-CP.log @String "The output was"-}
+    {-CP.log @String (T.unpack txt)-}
     -- Need to check that the base output directory exists
     -- Need to test and create any intermediate directories
     ensureDirectoriesExistFor dir relFileName

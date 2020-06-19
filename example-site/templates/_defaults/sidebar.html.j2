@@ -1,0 +1,52 @@
+<div class="sidebar">
+  <div class="container sidebar-sticky">
+    <div class="sidebar-about">
+      {% if Site.Title -%}<h1>{{ Site.Title }}</h1>{% endif -%}
+      {% if Site.Params.tagline -%}<p class="lead">{{ Site.Params.tagline | markdownify }}</p>{% endif -%}
+      {% if Site.Params.gravatarHash %}
+        <img src="https://www.gravatar.com/avatar/{{ Site.Params.gravatarHash }}?s=200"
+             alt="gravatar" title="{{ Site.Author.name }}">
+      {% endif %}
+      <h1>{{ Site.Author.name }}</h1>
+    </div>
+
+    <ul class="sidebar-nav">
+      <li class="sidebar-nav-item"><a href="{{ "/" | absURL }}">{% if Site.Params.home -%}{{ Site.Params.home }}{% else -%}Blog{% endif -%}</a></li>
+      {% for menu in Site.Menus.main.ByWeight -%}
+      <li class="sidebar-nav-item">{{ menu.Pre }}<a href="{{ menu.URL | absURL }}">{{ menu.Name }}</a></li>
+      {% endfor -%}
+    </ul>
+
+    <ul class="sidebar-nav">
+      <li class="sidebar-nav-item">
+      {% if Site.Params.github %}<a href="{{ Site.Params.github }}" target="_blank"><i class="fa fa-github-square fa-2x"></i></a>{% endif %}
+      {% if Site.Params.bitbucket %}<a href="{{ Site.Params.bitbucket }}" target="_blank"><i class="fa fa-bitbucket-square fa-2x"></i></a>{% endif %}
+      {% if Site.Params.stackOverflow %}<a href="{{ Site.Params.stackOverflow }}" target="_blank"><i class="fa fa-stack-overflow fa-2x"></i></a>{% endif %}
+      {% if Site.Params.linkedin %}<a href="{{ Site.Params.linkedin }}" target="_blank"><i class="fa fa-linkedin-square fa-2x"></i></a>{% endif %}
+      {% if Site.Params.googleplus %}<a href="{{ Site.Params.googleplus }}" target="_blank"><i class="fa fa-google-plus-square fa-2x"></i></a>{% endif %}
+      {% if Site.Params.facebook %}<a href="{{ Site.Params.facebook }}" target="_blank"><i class="fa fa-facebook-square fa-2x"></i></a>{% endif %}
+      {% if Site.Params.twitter %}<a href="{{ Site.Params.twitter }}" target="_blank"><i class="fa fa-twitter-square fa-2x"></i></a>{% endif %}
+      {% if Site.Params.youtube %}<a href="{{ Site.Params.youtube }}" target="_blank"><i class="fa fa-youtube-square fa-2x"></i></a>{% endif %}
+      {% if Site.Params.rss %}<a href="{{ "/indexSite.Params.rssxml" | absURL }}" type="application/rss+xml"><i class="fa fa-rss-square fa-2x"></i></a>{% endif %}
+      </li>
+    </ul>
+
+    {% if Site.Params.flattr %}
+    <p><script id='flattr'>
+      (function(id){
+        var s = document.getElementById(id);
+        var f = document.createElement('iframe');
+        f.src = '//api.flattr.com/button/view/?uid={{ Site.Params.flattr }}&button=compact&url={{ "/" | absURL }}&title={{ Site.Title }}';
+        f.title = 'Flattr';
+        f.height = 20;
+        f.width = 110;
+        f.style.borderWidth = 0;
+        s.parentNode.insertBefore(f, s);
+      })('flattr');
+    </script></p>
+    {% endif %}
+
+    <p>Copyright &copy; {{ Site.Params.copyright }} <a href="{{ "/license/" | absURL }}">License</a><br/>
+       Powered by <a href="http://github.com/ajkavanagh/vimwiki-publishing-system">VPS</a> and <a href="https://github.com/ajkavanagh/hyde-m">Hyde-M</a></p>
+  </div>
+</div>
