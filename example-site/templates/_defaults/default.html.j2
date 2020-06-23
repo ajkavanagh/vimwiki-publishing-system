@@ -1,9 +1,11 @@
-{% include "base" -%}
-{% block main -%}
+{% extends "base" %}
+{% block main %}
+<!-- this is the _defaults/default.html.j2 template-->
 <div class="content container">
   <div class="post">
-    <h1 class="post-title">{{ Title }}</h1>
-    {{ Content }}
+    <h1 class="post-title">{{ Page.Title }}</h1>
+    {# content() is a function that returns HTML and needs to be put it raw. #}
+    {{ Page.content() | raw }}
   </div>
 </div>
-{% endblock -%}
+{% endblock %}

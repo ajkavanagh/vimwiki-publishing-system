@@ -6,7 +6,7 @@ module Lib.RouteUtils
     , ensureIndexRoutesIn
     , indexRoutesFor
     , isIndexRoute
-    , findMissingIndexRoutes
+    , findMissingIndexRoutesSPC
     , addVPCIndexPages
     , makeFileNameFrom
     , makeFileNoExtNameFrom
@@ -102,7 +102,7 @@ makeError' pairs =
 ensureIndexRoutesIn :: [SourcePageContext] -> [SourcePageContext]
 ensureIndexRoutesIn spcs = go <$> spcs
   where go spc = let r = spcRoute spc
-                  in if spcIndexPage spc || isIndexRoute r
+                  in if spcIndexPage spc && not (isIndexRoute r)
                        then spc { spcRoute=r <> "/" }
                        else spc
 
@@ -111,8 +111,8 @@ ensureIndexRoutesIn spcs = go <$> spcs
 -- We are looking for routes that have a 'directories' in them for which no
 -- index page exists at that point.
 -- e.g. thing/one route needs a thing/ page.
-findMissingIndexRoutes :: [SourcePageContext] -> [String]
-findMissingIndexRoutes spcs =
+findMissingIndexRoutesSPC :: [SourcePageContext] -> [String]
+findMissingIndexRoutesSPC spcs =
     let allRoutes = L.nub $ L.sort $ concatMap (indexRoutesFor . spcRoute) spcs
         actualRoutes = spcRoute <$> filter spcIndexPage spcs
      in allRoutes L.\\ actualRoutes
@@ -130,7 +130,7 @@ indexRoutesFor s =
     let parts = filter (not . null) $ LS.splitOn "/" s
      in case parts of
          [] -> ["/"]
-         xs -> "/" : map (<> "/") (L.init parts)
+         xs -> "/" : map (\p -> "/" <> p <> "/") (L.init parts)
 
 
 -- | ensure that we have a set of VirtualPageContext records for each missing
@@ -139,7 +139,7 @@ indexRoutesFor s =
 -- paper over the cracks in most places.
 addVPCIndexPages :: [SourcePageContext] -> [SourceContext]
 addVPCIndexPages spcs =
-    let missingIndexes = findMissingIndexRoutes spcs
+    let missingIndexes = findMissingIndexRoutesSPC spcs
         vpcs = map makeVPCForIndex missingIndexes
      in map SPC spcs ++ map VPC vpcs
 
@@ -153,6 +153,23 @@ makeVPCForIndex route = def { vpcRoute = route
                             }
 
 
+-- | pagesForSC
+-- Works out which pages go with an SC.  If it's an index route, then look for
+-- sub-pages (i.e. pages with exactly one additional part)
+-- It it's not an index route, then find the associated pages at the same route
+-- level.  Note that an index page has to say it's an index page, not just by
+-- the route.
+pagesForSC :: SourceContext -> [SourceContext]
+pagesForSC sc =
+    let route = scRoute sc
+     in undefined
+    -- detemine if this is an index or not
+    -- get the base route (i.e. this/ if it's an index or / below it)
+    -- find all the pages that are in this new route (i.e. start with this/ or /
+    -- and end no futehr down).
+    -- return those pages
+
+
 {-
     Work out where files go.
 
@@ -161,18 +178,18 @@ makeVPCForIndex route = def { vpcRoute = route
     Route:                File Name
     ------                ---------
     /                     index.html
-    hello                 hello.html
-    hello/                hello/index.html
-    hello/there           hello/there.html
+    /hello                hello.html
+    /hello/               hello/index.html
+    /hello/there          hello/there.html
 
     Secondly: With index-files
 
     Route:                File Name
     ------                ---------
     /                     index.html
-    hello                 hello/index.html
-    hello/                hello/index.html  -- clash!
-    hello/there           hello/there/index.html
+    /hello                hello/index.html
+    /hello/               hello/index.html  -- clash!
+    /hello/there          hello/there/index.html
 
     So duplicate routes have to check for two routes where "thing" and "thing/"
     both exist as otherwise there will be an error!

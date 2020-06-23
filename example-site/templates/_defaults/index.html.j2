@@ -1,4 +1,4 @@
-{% include "base" -%}
+{% extends "base" %}
 {% block main %}
 <div class="content container">
   <h1>
@@ -7,7 +7,6 @@
     {{ Title -}}
   </h1>
   <ul class="posts">
-  {#{{ range .Data.Pages }}#}
   {% for page in  Data.Pages -%}
     <li>
       {% if page.Draft -%}<span><em>Draft</em> - <span>{% endif -%}
@@ -24,4 +23,4 @@
   {% endfor -%}
   </ul>
 </div>
-{% endblock -%}
+{% endblock %}

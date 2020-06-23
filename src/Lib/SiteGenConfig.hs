@@ -23,6 +23,8 @@ import           Data.Yaml        ((.:), (.:?), (.!=))
 import           Data.Text        (Text)
 import qualified Data.Text        as T
 
+import qualified Network.URI            as NU
+
 -- For Polysemy logging of things going on.
 import           Colog.Polysemy   (Log)
 import qualified Colog.Polysemy   as CP
@@ -65,6 +67,7 @@ generate-categories: true  # should sitegen generate categories
 
 data RawSiteGenConfig = RawSiteGenConfig
     { _siteId             :: !String
+    , _siteUrl            :: !(Maybe String)
     , _source             :: !FilePath
     , _outputDir          :: !FilePath
     , _extension          :: !String
@@ -86,6 +89,7 @@ data RawSiteGenConfig = RawSiteGenConfig
 instance Y.FromJSON RawSiteGenConfig where
     parseJSON (Y.Object v) = RawSiteGenConfig
         <$> v .:? "site"                .!= "default"          -- site: <site-identifier>
+        <*> v .:? "siteURL"                                    -- http(s)://some.domain/
         <*> v .:? "source"              .!= "./src"            -- the directory (relative to the site.yaml) to start
         <*> v .:? "output-dir"          .!= "./html"           -- where to place output files
         <*> v .:? "extension"           .!= ".md"              -- the extension for source files
@@ -121,6 +125,7 @@ readConfig fp = do
 
 data SiteGenConfig = SiteGenConfig
     { sgcSiteYaml           :: !FilePath
+    , sgcSiteUrl            :: !(Maybe NU.URI)
     , sgcSiteId             :: !String
     , sgcSource             :: !FilePath
     , sgcOutputDir          :: !FilePath
@@ -175,6 +180,7 @@ makeSiteGenConfigFromRaw configPath rawConfig forceDrafts = do
       then throw $ ConfigException "One or more directories didn't exist"
       else pure SiteGenConfig
           { sgcSiteYaml=configPath
+          , sgcSiteUrl=NU.parseAbsoluteURI =<< _siteUrl rawConfig
           , sgcSiteId=_siteId rawConfig
           , sgcSource=fromJust source_
           , sgcOutputDir=fromJust outputDir_

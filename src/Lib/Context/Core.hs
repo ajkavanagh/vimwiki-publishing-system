@@ -28,6 +28,7 @@ import qualified Data.HashMap.Strict  as HashMap
 import           Data.Text            (Text)
 import qualified Data.Text            as T
 import qualified Data.List            as L
+import           Data.Maybe           (isNothing)
 
 import           Colog.Core           (logStringStderr)
 import           Colog.Polysemy       (Log, runLogAction)
@@ -123,3 +124,21 @@ contextLookup ctxt key =
             TG.liftRun $ CP.log @String $ "contextLookup for key: " ++ T.unpack key ++ " was not resolved!"
             pure def
         Just f -> f
+
+
+tryExtractIntArg :: Monad m => [(Maybe Text, TG.GVal m)] -> Maybe Int
+tryExtractIntArg [] = Nothing
+tryExtractIntArg xs =
+    let xs' = filter (isNothing . fst) xs
+     in case xs' of
+         []        -> Nothing
+         ((_,v):_) -> TG.toInt v
+
+
+tryExtractStringArg :: Monad m => [(Maybe Text, TG.GVal m)] -> Maybe Text
+tryExtractStringArg [] = Nothing
+tryExtractStringArg xs =
+    let xs' = filter (isNothing . fst) xs
+     in case xs' of
+         []        -> Nothing
+         ((_,v):_) -> TG.fromGVal v

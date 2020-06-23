@@ -170,6 +170,7 @@ runMaybeDecodeHeader sgc rc txt =
 defaultSCG :: SiteGenConfig
 defaultSCG = SiteGenConfig
     { sgcSiteYaml="a/file/path"
+    , sgcSiteUrl=Nothing
     , sgcSiteId="site1"
     , sgcSource="src/"
     , sgcOutputDir="html/"

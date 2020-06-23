@@ -77,8 +77,15 @@ flipSpaces = map go
       go x   = x
 
 
+ensureStartSlash :: String -> String
+ensureStartSlash "" = "/"
+ensureStartSlash ('.':xs) = ensureStartSlash xs
+ensureStartSlash xs@('/':_) = xs
+ensureStartSlash xs = '/':xs
+
+
 fixRoute :: String -> String
-fixRoute = flipSpaces . flipUnderscores . strToLower
+fixRoute = ensureStartSlash . flipSpaces . flipUnderscores . strToLower
 
 validateWithTests :: a -> [a -> IO Bool] -> IO Bool
 validateWithTests a = foldM ander True

@@ -1,30 +1,30 @@
-{% include "base" %}
-
+{% extends "base" %}
 {% block main %}
 <div class="content container">
   <div class="posts">
     {#{% set paginator = Paginate (where .Data.Pages "Type" "post") %}#}
+    {% set paginator = paginate(Pages.pageSelect("type", "post")) %}
     {#{{ range $paginator.Pages }}#}
-    {% for page in Pages -%}
+    {% for page in paginator.Pages -%}
     <div class="post">
       <h1 class="post-title">
         <a href="{{ page.Permalink }}">{% if page.Draft -%}DRAFT - {% endif -%}{{ page.Title }}</a>
       </h1>
-      <span class="post-date">{{ page.Date.Format("Jan 2, 2006") }}{% if not(page.Site.Params.hideReadingTime) -%} &middot; {{ page.ReadingTime }} minute read{% endif -%}{% if Site.DisqusShortname -%} &middot; <a href="{{ Permalink }}#disqus_thread">Comments</a>{% endif -%}
+      <span class="post-date">{{ dataformat(page.Date, "%h %-d, %Y") }}{% if not(page.Site.Params.hideReadingTime) -%} &middot; {{ page.ReadingTime }} minute read{% endif -%}{% if Site.DisqusShortname -%} &middot; <a href="{{ page.Permalink }}#disqus_thread">Comments</a>{% endif -%}
 
-      {% if page.Params.categories -%}
+      {% if page.categories -%}
       <br/>
       Categories:&nbsp;
-      {% for category in page.Params.categories -%}<a class="label" href="{{ "/categories/" | absURL }}{{ category.url | urlize }}">{{ category.name }}</a>{% endfor -%}
+      {% for category in page.categories -%}<a class="label" href="{{ "/categories/" | absURL }}{{ category.url | urlize }}">{{ category.name }}</a>{% endfor -%}
       {% endif %}
 
-      {% if page.Params.tags -%}
+      {% if page.tags -%}
       <br/>
       Tags:&nbsp;
-      {% for tag in  page.Params.tags -%}<a class="label" href="{{ "/tags/" | absURL }}{{ tag.url | urlize }}">{{ tag.name }}</a>{% endfor -%}
+      {% for tag in  page.tags -%}<a class="label" href="{{ "/tags/" | absURL }}{{ tag.url | urlize }}">{{ tag.name }}</a>{% endfor -%}
       {% endif -%}</span>
 
-      {% if not(page.Site.Params.truncate) -%}
+      {% if not(Site.Params.truncate) -%}
         {{ page.Content }}
       {% else -%}
         {% if page.Description -%}
@@ -35,7 +35,8 @@
       {% endif -%}
     </div>
     {% endfor -%}
-    {#{{ template "_internal/pagination.html" . }}#}
+    {# 'pagination.html' will use the variables from paginator object #}
+    {% include "pagination.html" . %}
   </div>
 </div>
 

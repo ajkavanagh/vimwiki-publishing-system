@@ -8,7 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
 
   {% block title -%}
-  <title>{{ Title }} &middot; {{ Site.Author.name }}</title>
+  <title>{{ Site.Params.title }} &middot; {{ Site.Params.author }}</title>
   {% endblock -%}
 
   {% block css -%}
@@ -28,12 +28,12 @@
   <link href="{{ "/favicon.png" | absURL }}" rel="icon" />
 
   <!-- RSS -->
-  {% set siteTitle = Site.Title -%}
+  {% set siteTitle = Site.Params.title -%}
   {% set authorName = Site.Author.name -%}
-  {% if RSSLink -%}<link href="{{ RSSLink }}" rel="alternate" type="application/rss+xml" title="{{ siteTitle }} &middot; {{ authorName }}" />{% endif -%}
+  {% if Data.RSSLink -%}<link href="{{ Data.RSSLink }}" rel="alternate" type="application/rss+xml" title="{{ siteTitle }} &middot; {{ authorName }}" />{% endif -%}
 
-  <meta name="description" content="{% if Description -%}{{ Description }}{% else -%}{{ Site.Params.defaultDescription }}{% endif -%}" />
-  <meta name="keywords" content="{% if Keywords -%}{% for index, element in enumerate(Keywords) -%}{% if index > 0 -%},{% endif -%}{{ element }}{% endfor -%}{% else %}{{ Site.Params.defaultKeywords }}{% endif -%}" />
+  <meta name="description" content="{% if Page.Params.description -%}{{ Page.Params.description }}{% else -%}{{ Site.Params.defaultDescription }}{% endif -%}" />
+  <meta name="keywords" content="{% if Page.Params.keywords -%}{% for index, element in enumerate(Page.Params.keywords) -%}{% if index > 0 -%},{% endif -%}{{ element }}{% endfor -%}{% else %}{{ Site.Params.defaultKeywords }}{% endif -%}" />
 </head>
 
 <body {% if Site.Params.scheme -%} class="{{ Site.Params.scheme }}"{% endif -%}>

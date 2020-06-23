@@ -39,6 +39,7 @@ import           Lib.Context.Core            (Context, RunSem, RunSemGVal,
 import           Lib.Context.DynamicContexts (pageFunctionsContext)
 import           Lib.Context.PageContexts    (pageHeaderContextFor)
 import           Lib.Context.SiteGenConfig   (siteGenConfigContext)
+import           Lib.Context.Functions       (functionsContext)
 import           Lib.Errors                  (SiteGenError)
 import           Lib.Header                  (SourceContext)
 import           Lib.SiteGenConfig           (SiteGenConfig)
@@ -58,6 +59,8 @@ makeContextFor
     -> Sem r (Context (RunSem (Writer Text : r)))
 makeContextFor sc = pure $ mergeContexts [ pageHeaderContextFor sc
                                          , siteGenConfigContext
-                                         , pageFunctionsContext sc ]
+                                         , pageFunctionsContext sc
+                                         , functionsContext
+                                         ]
 
 

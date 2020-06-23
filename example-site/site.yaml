@@ -1,4 +1,5 @@
 site: home
 template-ext: .html.j2
+siteURL: http://example.com
 index-files: false
 

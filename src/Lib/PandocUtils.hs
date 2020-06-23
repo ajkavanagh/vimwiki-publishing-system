@@ -625,6 +625,7 @@ queryHeaders (TP.Header level attr lst) =
       _title = T.concat $ map toStr lst
       (ident,_,_) = attr
       _link  = T.pack $ "#" <> ident
+queryHeaders _ = DList.empty
 
 -- now persist and parse TocItem to a Yaml item for storage
 instance Y.FromJSON TocItem where

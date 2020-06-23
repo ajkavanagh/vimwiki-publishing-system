@@ -39,7 +39,7 @@ import Lib.Context.Core (RunSem, RunSemGVal, Context, contextFromList)
 siteGenConfigContext
     :: Member (Reader S.SiteGenConfig) r
     => Context (RunSem r)
-siteGenConfigContext = contextFromList [("siteGenConfig", siteGenMGValM)]
+siteGenConfigContext = contextFromList [("Site", siteGenMGValM)]
 
 
 siteGenMGValM
@@ -62,4 +62,5 @@ siteGenMGValM = do
         , "publishDrafts"      ~> S.sgcPublishDrafts sgc
         , "indexFiles"         ~> S.sgcIndexFiles sgc
         , "maxSummaryWords"    ~> S.sgcMaxSummaryWords sgc
+        , "Params"             ~> S.sgcParams sgc
         ]

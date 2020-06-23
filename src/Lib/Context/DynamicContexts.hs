@@ -26,6 +26,7 @@ import           Text.Ginger            ((~>))
 import qualified Text.Ginger            as TG
 
 import           Colog.Polysemy         (Log)
+import qualified Colog.Polysemy         as CP
 import           Polysemy               (Member, Sem)
 import           Polysemy.Error         (Error)
 import           Polysemy.Reader        (Reader)
@@ -36,7 +37,7 @@ import           Effect.ByteStringStore (ByteStringStore)
 import           Effect.File            (File)
 
 import           Lib.Context.Core       (Context, RunSem, RunSemGVal,
-                                         contextFromList)
+                                         contextFromList, tryExtractIntArg)
 import           Lib.Errors             (SiteGenError)
 import qualified Lib.Header             as H
 import           Lib.Pandoc             (scContentM, scSummaryM, scTocM)
@@ -116,6 +117,7 @@ contentDynamic
     => H.SourceContext
     -> TG.Function (RunSem r)
 contentDynamic sc _ = do           -- content ignores the args
+    TG.liftRun $ CP.log "Dynamic content was asked for"
     txt <- TG.liftRun $ scContentM sc
     pure $ TG.toGVal txt
 
@@ -157,12 +159,3 @@ tocDynamic sc args = do
     let mLevels = tryExtractIntArg args
     txt <- TG.liftRun $ scTocM sc mLevels
     pure $ TG.toGVal txt
-
-
-tryExtractIntArg :: Monad m => [(Maybe Text, TG.GVal m)] -> Maybe Int
-tryExtractIntArg [] = Nothing
-tryExtractIntArg xs =
-    let xs' = filter (isNothing . fst) xs
-     in case xs' of
-         []        -> Nothing
-         ((_,v):_) -> TG.toInt v

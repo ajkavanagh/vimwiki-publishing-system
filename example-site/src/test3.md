@@ -1,6 +1,8 @@
 --- sitegen
 random: sample
 ---
-# A file with an invalid header block
+# A file with an almost empty header
 
-So it should just print a warning
+It should work, the 'random' is just some extra which is ignored.
+
+A link to [[test1]]

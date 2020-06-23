@@ -87,12 +87,14 @@ data SitegenArgs = SitegenArgs
 
 
 -- debug helper to create a SitegenArgs from some values
-makeSitegenArgs :: String -> Bool -> Bool -> SitegenArgs
-makeSitegenArgs s f1 f2 = SitegenArgs { siteConfigArg=s
-                                      , draftsArg=f1
-                                      , cleanArg=f2
-                                      , extraArgs=[]
-                                      }
+makeSitegenArgs :: String -> Bool -> Bool -> FilePath -> SitegenArgs
+makeSitegenArgs s f1 f2 fp =
+    let extra = [fp | not (null fp)]
+     in SitegenArgs { siteConfigArg=s
+                    , draftsArg=f1
+                    , cleanArg=f2
+                    , extraArgs=extra
+                    }
 
 
 sitegenArgsOptions :: Parser SitegenArgs
@@ -157,8 +159,8 @@ runSiteGen args = do
             exitWith (ExitFailure 1)
 
 
-runSiteGenHelper s = do
-    let args = makeSitegenArgs s True True
+runSiteGenHelper s fp = do
+    let args = makeSitegenArgs s True True fp
     runSiteGen args
 
 
@@ -188,17 +190,22 @@ runSiteGenSem args = do
     CP.log @String $ "SPCs are:\n" ++ intercalate "\n" (map show spcs)
     let files = map H.spcRelFilePath spcs
     CP.log @String $ "Files are: " ++ intercalate ", " files
+    CP.log @String $ "Routes are: " ++ intercalate ", " (map (show . H.spcRoute) spcs)
     let dr = RU.checkDuplicateRoutesSPC spcs
     CP.log @String $ "Duplicate routes: " ++ intercalate ", " (map show dr)
-    let mr = RU.findMissingIndexRoutes spcs
+    let mr = RU.findMissingIndexRoutesSPC spcs
     CP.log @String $ "Missing routes: Len (" ++ show (length mr) ++ ") = " ++ intercalate ", " mr
     let spcs' = RU.ensureIndexRoutesIn spcs
         scs = RU.addVPCIndexPages spcs'
     CP.log @String $ "Final route set: " ++ intercalate ", " (map H.scRoute scs)
-    CP.log @String $ "Final SourceContext set:\n" ++ intercalate "\n" (map show scs)
+    {-CP.log @String $ "Final SourceContext set:\n" ++ intercalate "\n" (map show scs)-}
     -- Create the SiteGenState and Reader
     let sgr = makeSiteGenReader scs
 
+    let scs' = if not (null (extraArgs args))
+             then let fp' = head $ extraArgs args
+                   in map H.SPC $ filter ((==fp').H.spcRelFilePath) spcs
+             else scs
     -- now just call the rendering function to render all of these files
     runReader @SiteGenConfig sgc
         $ runReader @SiteGenReader sgr
@@ -206,7 +213,9 @@ runSiteGenSem args = do
         $ bsStoreAsHash
         $ runState @SiteGenState emptySiteGenState
         $ do
-            forM_ scs renderSourceContext
+            forM_ scs' renderSourceContext
             when (sgcCopyStaticFiles sgc) F.copyStaticFiles
+
+    CP.log @String $ "Extra: " ++ show (extraArgs args)
 
     pure ()
