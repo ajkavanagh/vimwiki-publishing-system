@@ -111,6 +111,10 @@ mergeContexts = Context . HashMap.unions . L.reverse . map unContext
 -- lookup the context value in the Context m hashmap.  The HashMap is in the
 -- (Sem r) monad, but this function can run in the (Run p m h) monad which can
 -- be built in to the renderer.  @Run p (Sem r) h@ is a @RunSemGval r@.
+-- TODO: Add caching of the lookup function so that the result returned is
+-- provided after the first generation of the key.  i.e. we only need the
+-- dynamic lookup function to actually run once per invocation, not every time
+-- it runs.  Perhaps add a wrapper for a memoised context?
 contextLookup
     :: forall r.
        ( Member (Log String) r
@@ -123,7 +127,9 @@ contextLookup ctxt key =
         Nothing -> do
             TG.liftRun $ CP.log @String $ "contextLookup for key: " ++ T.unpack key ++ " was not resolved!"
             pure def
-        Just f -> f
+        Just f -> do
+            TG.liftRun $ CP.log @String $ "contextLookup for key: " ++ T.unpack key ++ " resolved"
+            f
 
 
 tryExtractIntArg :: Monad m => [(Maybe Text, TG.GVal m)] -> Maybe Int

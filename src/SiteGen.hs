@@ -56,7 +56,9 @@ import           Lib.SiteGenConfig         (ConfigException, SiteGenConfig (..))
 import qualified Lib.SiteGenConfig         as SGC
 import           Lib.SiteGenState          (SiteGenReader, SiteGenState,
                                             emptySiteGenState,
-                                            makeSiteGenReader)
+                                            makeSiteGenReader
+                                            , nextSCToRender
+                                            , addToRenderList )
 import           Lib.Utils                 (isDebug, isMarkDownFile,
                                             isMarkDownStr, printIfDoesntExist,
                                             strToLower, validateFileExists,
@@ -207,13 +209,23 @@ runSiteGenSem args = do
                    in map H.SPC $ filter ((==fp').H.spcRelFilePath) spcs
              else scs
     -- now just call the rendering function to render all of these files
+    -- Note that they are put into the renderList with addToRenderList and taken
+    -- out with nextSCToRender.  This means that rendering can add to the list
+    -- (e.g. pagination or other dynamic tasks that might generate additional
+    -- pages)
     runReader @SiteGenConfig sgc
         $ runReader @SiteGenReader sgr
         $ runState @BSHMStore HashMap.empty
         $ bsStoreAsHash
         $ runState @SiteGenState emptySiteGenState
         $ do
-            forM_ scs' renderSourceContext
+            addToRenderList scs'
+            let go = do
+                mSc <- nextSCToRender
+                case mSc of
+                    Just sc -> renderSourceContext sc >> go   -- render the file and loop
+                    Nothing -> pure ()
+            go
             when (sgcCopyStaticFiles sgc) F.copyStaticFiles
 
     CP.log @String $ "Extra: " ++ show (extraArgs args)

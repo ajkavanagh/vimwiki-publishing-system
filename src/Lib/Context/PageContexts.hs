@@ -93,7 +93,7 @@ sourcePageContextM
     => H.SourcePageContext
     -> RunSemGVal r
 sourcePageContextM spc = do
-    TG.liftRun $ CP.log @String "Building sourcePageContextM"
+    TG.liftRun $ CP.log @String $ "Building sourcePageContextM for " ++ show (H.spcRoute spc)
     pure $ TG.dict
         [ "Route"           ~> H.spcRoute spc
         , "AbsFilePath"     ~> H.spcAbsFilePath spc
@@ -124,6 +124,7 @@ sourcePageContextM spc = do
 -- and then by alpha.  So if we have / and /thing and /thing/after then /thing
 -- will be in Pages, but /thing/after won't be.  Obviously, every route has to
 -- start with /, but then they all should.
+-- TODO: finish this after we've worked out pagination.
 pagesContextM
     :: ( Member File r
        , Member ByteStringStore r
@@ -143,20 +144,21 @@ pagesContextM sc = do
 
 
 virtualPageContextFor :: Monad m => H.VirtualPageContext -> Context m
-virtualPageContextFor vpc = contextFromList [("header", virtualPageContextM vpc)]
+virtualPageContextFor vpc = contextFromList [("Page", virtualPageContextM vpc)]
 
 
 virtualPageContextM :: Monad m => H.VirtualPageContext -> m (TG.GVal m)
 virtualPageContextM vpc =
     pure $ TG.dict
-        [ "route"           ~> H.vpcRoute vpc
-        , "vimWikiLinkPath" ~> H.vpcVimWikiLinkPath vpc
-        , "title"           ~> H.vpcTitle vpc
-        , "template"        ~> H.vpcTemplate vpc
-        , "date"            ~> (tempToLocalTimeHelper <$> H.vpcDate vpc)
-        , "updated"         ~> (tempToLocalTimeHelper <$> H.vpcUpdated vpc)
-        , "indexPage"       ~> H.vpcIndexPage vpc
-        , "publish"         ~> H.vpcPublish vpc
+        [ "Route"           ~> H.vpcRoute vpc
+        , "VimWikiLinkPath" ~> H.vpcVimWikiLinkPath vpc
+        , "Title"           ~> H.vpcTitle vpc
+        , "Template"        ~> H.vpcTemplate vpc
+        , "Date"            ~> (tempToLocalTimeHelper <$> H.vpcDate vpc)
+        , "Updated"         ~> (tempToLocalTimeHelper <$> H.vpcUpdated vpc)
+        , "IndexPage"       ~> H.vpcIndexPage vpc
+        , "Publish"         ~> H.vpcPublish vpc
+        , "Draft"           ~> not (H.vpcPublish vpc)
         ]
 
 

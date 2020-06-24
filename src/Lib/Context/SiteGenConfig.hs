@@ -24,6 +24,8 @@ module Lib.Context.SiteGenConfig where
 import           Text.Ginger          ((~>))
 import qualified Text.Ginger          as TG
 
+import           Colog.Polysemy         (Log)
+import qualified Colog.Polysemy         as CP
 import           Polysemy             (Member)
 import           Polysemy.Reader      (Reader)
 import qualified Polysemy.Reader      as PR
@@ -37,15 +39,20 @@ import Lib.Context.Core (RunSem, RunSemGVal, Context, contextFromList)
 
 
 siteGenConfigContext
-    :: Member (Reader S.SiteGenConfig) r
+    :: ( Member (Reader S.SiteGenConfig) r
+       , Member (Log String) r
+       )
     => Context (RunSem r)
 siteGenConfigContext = contextFromList [("Site", siteGenMGValM)]
 
 
 siteGenMGValM
-    :: Member (Reader S.SiteGenConfig) r
+    :: ( Member (Reader S.SiteGenConfig) r
+       , Member (Log String) r
+       )
     => RunSemGVal r
 siteGenMGValM = do
+    TG.liftRun $ CP.log @String "Building the siteGenMGValM value"
     sgc <- TG.liftRun $ PR.ask @S.SiteGenConfig
     pure $ TG.dict
         [ "siteYaml"           ~> S.sgcSiteYaml sgc

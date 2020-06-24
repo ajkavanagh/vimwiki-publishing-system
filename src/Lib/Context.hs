@@ -22,6 +22,7 @@ module Lib.Context where
 import           Data.Text                   (Text)
 
 import           Colog.Polysemy              (Log)
+import qualified Colog.Polysemy              as CP
 import           Polysemy                    (Member, Sem)
 import           Polysemy.Error              (Error)
 import           Polysemy.Reader             (Reader)
@@ -42,6 +43,7 @@ import           Lib.Context.SiteGenConfig   (siteGenConfigContext)
 import           Lib.Context.Functions       (functionsContext)
 import           Lib.Errors                  (SiteGenError)
 import           Lib.Header                  (SourceContext)
+import qualified Lib.Header                  as H
 import           Lib.SiteGenConfig           (SiteGenConfig)
 import           Lib.SiteGenState            (SiteGenReader, SiteGenState)
 
@@ -57,10 +59,17 @@ makeContextFor
        )
     => SourceContext
     -> Sem r (Context (RunSem (Writer Text : r)))
-makeContextFor sc = pure $ mergeContexts [ pageHeaderContextFor sc
-                                         , siteGenConfigContext
-                                         , pageFunctionsContext sc
-                                         , functionsContext
-                                         ]
+{-makeContextFor sc = pure $ mergeContexts [ pageHeaderContextFor sc-}
+                                         {-, siteGenConfigContext-}
+                                         {-, pageFunctionsContext sc-}
+                                         {-, functionsContext-}
+                                         {-]-}
+makeContextFor sc = do
+    CP.log @String $ "makeContextFor: " <> show (H.scRoute sc)
+    pure $ mergeContexts [ pageHeaderContextFor sc
+                         , siteGenConfigContext
+                         , pageFunctionsContext sc
+                         , functionsContext
+                         ]
 
 
