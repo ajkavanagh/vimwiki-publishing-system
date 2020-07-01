@@ -36,13 +36,13 @@ import           Polysemy.Writer        (Writer)
 import           Effect.ByteStringStore (ByteStringStore)
 import           Effect.File            (File)
 
-import           Lib.Context.Core       (Context, RunSem, RunSemGVal,
-                                         contextFromList, tryExtractIntArg)
+import           Lib.Context.Core       (contextFromList, tryExtractIntArg)
 import           Lib.Errors             (SiteGenError)
 import qualified Lib.Header             as H
 import           Lib.Pandoc             (scContentM, scSummaryM, scTocM)
 import           Lib.SiteGenConfig      (SiteGenConfig)
 import           Lib.SiteGenState       (SiteGenReader, SiteGenState)
+import           Types.Context          (Context, RunSem, RunSemGVal)
 
 
 -- Basically, this module provides the 'content', 'summary' and 'toc' html

@@ -21,17 +21,18 @@
 module Lib.Context.SiteGenConfig where
 
 
-import           Text.Ginger          ((~>))
-import qualified Text.Ginger          as TG
+import           Text.Ginger       ((~>))
+import qualified Text.Ginger       as TG
 
-import           Colog.Polysemy         (Log)
-import qualified Colog.Polysemy         as CP
-import           Polysemy             (Member)
-import           Polysemy.Reader      (Reader)
-import qualified Polysemy.Reader      as PR
+import           Colog.Polysemy    (Log)
+import qualified Colog.Polysemy    as CP
+import           Polysemy          (Member)
+import           Polysemy.Reader   (Reader)
+import qualified Polysemy.Reader   as PR
 
-import qualified Lib.SiteGenConfig    as S
-import Lib.Context.Core (RunSem, RunSemGVal, Context, contextFromList)
+import           Lib.Context.Core  (contextFromList)
+import qualified Lib.SiteGenConfig as S
+import           Types.Context     (Context, RunSem, RunSemGVal)
 
 -- provide the @Context m@ for the SiteGenConfig record
 -- This assumes that a Sem r Reader for SiteGenConfig exists

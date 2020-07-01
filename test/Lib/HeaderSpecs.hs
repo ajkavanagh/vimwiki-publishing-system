@@ -203,7 +203,7 @@ defaultHC = HeaderContext
 
 defaultSPC :: SourcePageContext
 defaultSPC = SourcePageContext
-    { spcRoute="auto/slug"
+    { spcRoute="/auto/slug"
     , spcRelFilePath="some-name.md"
     , spcAbsFilePath="/some-name.md"
     , spcVimWikiLinkPath="some-name"
@@ -254,7 +254,7 @@ site: default
 
 fullHeaderSPC :: SourcePageContext
 fullHeaderSPC = SourcePageContext
-    { spcRoute="the/route"
+    { spcRoute="/the/route"
     , spcRelFilePath="some-name.md"
     , spcAbsFilePath="/some-name.md"
     , spcVimWikiLinkPath="some-name"

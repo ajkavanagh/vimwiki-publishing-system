@@ -35,8 +35,8 @@ import           Effect.Ginger               (GingerException (..))
 
 import           Experiments.Ginger          (parseToTemplate)
 
-import           Lib.Context.Core            (Context, RunSem, RunSemGVal,
-                                              mergeContexts)
+import           Types.Context               (Context, RunSem, RunSemGVal)
+import           Lib.Context.Core            (mergeContexts)
 import           Lib.Context.DynamicContexts (pageFunctionsContext)
 import           Lib.Context.PageContexts    (pageHeaderContextFor)
 import           Lib.Context.SiteGenConfig   (siteGenConfigContext)
@@ -59,11 +59,6 @@ makeContextFor
        )
     => SourceContext
     -> Sem r (Context (RunSem (Writer Text : r)))
-{-makeContextFor sc = pure $ mergeContexts [ pageHeaderContextFor sc-}
-                                         {-, siteGenConfigContext-}
-                                         {-, pageFunctionsContext sc-}
-                                         {-, functionsContext-}
-                                         {-]-}
 makeContextFor sc = do
     CP.log @String $ "makeContextFor: " <> show (H.scRoute sc)
     pure $ mergeContexts [ pageHeaderContextFor sc

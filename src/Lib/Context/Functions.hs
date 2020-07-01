@@ -6,6 +6,7 @@
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
+{-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 
@@ -30,7 +31,7 @@ import qualified Text.Ginger            as TG
 import qualified Network.URI            as NU
 
 import           Colog.Polysemy         (Log)
-import qualified Colog.Polysemy   as CP
+import qualified Colog.Polysemy         as CP
 import           Polysemy               (Member, Sem)
 import           Polysemy.Error         (Error)
 import           Polysemy.Reader        (Reader)
@@ -41,13 +42,13 @@ import           Polysemy.Writer        (Writer)
 import           Effect.ByteStringStore (ByteStringStore)
 import           Effect.File            (File)
 
-import           Lib.Context.Core       (Context, RunSem, RunSemGVal,
-                                         contextFromList, tryExtractStringArg)
+import           Lib.Context.Core       (contextFromList, tryExtractStringArg)
 import           Lib.Errors             (SiteGenError)
 import qualified Lib.Header             as H
 import           Lib.Pandoc             (scContentM, scSummaryM, scTocM)
 import           Lib.SiteGenConfig      (SiteGenConfig (..))
 import           Lib.SiteGenState       (SiteGenReader, SiteGenState)
+import           Types.Context          (Context, RunSem, RunSemGVal)
 
 
 functionsContext
@@ -76,7 +77,7 @@ absURL
        )
     => TG.Function (RunSem r)
 absURL args = do
-    mSiteUri <- TG.liftRun $ PR.asks @SiteGenConfig sgcSiteUrl
+    mSiteUri <- TG.liftRun (PR.asks @SiteGenConfig sgcSiteUrl)
     let mArg = NU.parseURIReference =<< unpack <$> tryExtractStringArg args -- try to get the relative URI
     case mSiteUri of
         -- if there wasn't a site url, just return the parsed version of the

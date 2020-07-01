@@ -10,6 +10,7 @@ module Lib.RouteUtils
     , addVPCIndexPages
     , makeFileNameFrom
     , makeFileNoExtNameFrom
+    , sameLevelRoutesAs
     , RouteError(..)
     ) where
 
@@ -81,6 +82,10 @@ checkForDuplicates ps = L.filter ((>1).length) $ L.groupBy ((==) `on` fst) $ L.s
 
 fmapToFst :: Functor f => (a -> b) -> f a -> f (b, a)
 fmapToFst f = fmap (\x -> (f x, x))
+
+
+fmapOnFst :: Functor f => (a -> b) -> f (a, c) -> f (b, c)
+fmapOnFst f = fmap (\(x,y) -> (f x, y))
 
 
 makeError' :: Show a => [(a, SourceContext)] -> [RouteError]
@@ -214,3 +219,23 @@ routeToFileName x   = x
 
 makeFileNameFrom :: Bool -> String -> SourceContext -> FilePath
 makeFileNameFrom doIndexPage ext sc = makeFileNoExtNameFrom doIndexPage sc <> ext
+
+
+-- | work out routes at the same level.  i.e. for the paging functions.
+-- If the route is an index (i.e. ends in /) then search the routes at the level
+-- down, otherwise it's the routes at the same level.
+-- We work with a function that does an a->String, so that we can work with
+-- string (pass id) and also other objects that contain a route.
+-- Note DOES return the route if it's not an index at the same level.
+sameLevelRoutesAs :: (a -> String) -> String -> [a] -> [a]
+sameLevelRoutesAs _ "" _ = error "Don't pass empty String to sameLevelRoutesAs!"
+sameLevelRoutesAs f route as =
+    let route' = if last route == '/'
+                   then route
+                   else L.intercalate "/" (init $ LS.splitOn "/" route) <> "/"
+        lenRoute = length (LS.splitOn "/" route')
+        routePairs = fmapToFst f as
+        possiblePairs = filter ((route' `L.isPrefixOf`).fst) routePairs
+        lenRoutes = fmapOnFst (length. LS.splitOn "/") possiblePairs
+        matched = filter ((==lenRoute).fst) lenRoutes
+     in map snd matched

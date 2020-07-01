@@ -43,7 +43,8 @@ import           Polysemy.State      (State)
 import qualified Polysemy.State      as PS
 
 import           Lib.Errors          (SiteGenError)
-import           Lib.Header          (SourcePageContext (..), SourceContext (..))
+import           Lib.Header          (SourceContext (..),
+                                      SourcePageContext (..))
 import qualified Lib.Header          as H
 import           Lib.SiteGenConfig   (SiteGenConfig)
 
@@ -65,6 +66,7 @@ instance Default SiteGenState where
         , siteGenErrors=DList.empty
         , memoFiles=HashSet.empty
         , siteRenderList=def
+        , sitePagerSet=HashMap.empty
         }
 
 

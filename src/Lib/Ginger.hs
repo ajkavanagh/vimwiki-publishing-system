@@ -7,7 +7,6 @@
 {-# LANGUAGE PolyKinds            #-}
 {-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
-{-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeApplications     #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeOperators        #-}
@@ -52,10 +51,10 @@ import           Effect.File            (File, FileException)
 import qualified Effect.File            as EF
 import           Effect.Ginger          (GingerException (..))
 
-import           Lib.Context.Core       (Context, RunSem, RunSemGVal,
-                                         contextLookup)
+import           Lib.Context.Core       (contextLookup)
 import           Lib.ResolvingTemplates (resolveTemplatePath)
 import           Lib.SiteGenConfig      (SiteGenConfig (..))
+import           Types.Context          (Context, RunSem, RunSemGVal)
 
 
 parseToTemplate

@@ -25,10 +25,10 @@ import           Data.Function        ((&))
 import           Data.Hashable        (Hashable)
 import           Data.HashMap.Strict  (HashMap)
 import qualified Data.HashMap.Strict  as HashMap
-import           Data.Text            (Text)
-import qualified Data.Text            as T
 import qualified Data.List            as L
 import           Data.Maybe           (isNothing)
+import           Data.Text            (Text)
+import qualified Data.Text            as T
 
 import           Colog.Core           (logStringStderr)
 import           Colog.Polysemy       (Log, runLogAction)
@@ -54,6 +54,8 @@ import qualified Effect.File          as EF
 
 import           Effect.Ginger        (GingerException (..))
 
+import           Types.Context
+
 import qualified Lib.SiteGenConfig    as S
 
 import           Experiments.Ginger   (parseToTemplate)
@@ -66,15 +68,6 @@ import           Experiments.Ginger   (parseToTemplate)
 --
 -- We use this so that we can run late parsing and processing of the Pandoc
 -- markdown such that it is used when needed, rather than doing it all up front.
-
--- This is the type that Ginger runs for Sem r when doing context lookups.
-type RunSem r = TG.Run TG.SourcePos (Sem r) Html
-type RunSemGVal r = TG.Run TG.SourcePos (Sem r) Html (GVal (TG.Run TG.SourcePos (Sem r) Html))
-
--- The @Context m@ is basically a HashMap of Text to a function that will run
--- in the Ginger @Run@ monad, that returns a @GVal m@ where @m@ is going to be
--- the @Sem r@ monad, but that it's self will be wrapped inside the @Run@ monad.
-newtype Context m = Context { unContext :: Monad m => HashMap.HashMap Text (m (GVal m)) }
 
 emptyContext :: Monad m => Context m
 emptyContext = Context HashMap.empty

@@ -220,11 +220,10 @@ runSiteGenSem args = do
         $ runState @SiteGenState emptySiteGenState
         $ do
             addToRenderList scs'
-            let go = do
-                mSc <- nextSCToRender
-                case mSc of
-                    Just sc -> renderSourceContext sc >> go   -- render the file and loop
-                    Nothing -> pure ()
+            let go = do mSc <- nextSCToRender
+                        case mSc of
+                            Just sc -> renderSourceContext sc >> go   -- render the file and loop
+                            Nothing -> pure ()
             go
             when (sgcCopyStaticFiles sgc) F.copyStaticFiles
 
