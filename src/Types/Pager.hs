@@ -23,6 +23,7 @@ type RouteToPager = HashMap.HashMap String Pager
 -- | allow paging of an item type.
 data Pager = Pager
     { pagerRoute         :: !String   -- The route of this page.
+    , pagerRoutes        :: ![String] -- List of routes that make up the whole set
     , pagerMaxSize       :: !Int      -- The maximum number of pages per Pager
     , pagerItemsThisPage :: !Int      -- Number of items in the pager
     , pagerTotalItems    :: !Int      -- the total number of items being paged
@@ -69,7 +70,7 @@ makePagerList route numItems pageSize =
                   + (if numItems `rem` pageSize /=0 then 1 else 0)
      in case routeToPagerRoutes route numPagers of
         [] -> []
-        xs -> zipWith (makePager pageSize numItems numPagers) xs [1..]
+        xs -> zipWith (makePager pageSize numItems numPagers xs) xs [1..]
 
 
 -- | use to take a pager and put it in a HashMap using fromList
@@ -77,11 +78,12 @@ pagerListToTuples :: [Pager] -> [(String, Pager)]
 pagerListToTuples = map (\p -> (pagerRoute p, p))
 
 
-makePager :: Int -> Int -> Int -> String -> Int -> Pager
-makePager pageSize numItems nPages route thisPageNum =
+makePager :: Int -> Int -> Int -> [String] -> String -> Int -> Pager
+makePager pageSize numItems nPages routes route thisPageNum =
     let base = (thisPageNum-1)*pageSize
         size = minimum [pageSize, numItems - base]
      in Pager { pagerRoute=route
+              , pagerRoutes=routes
               , pagerMaxSize=pageSize
               , pagerItemsThisPage=size
               , pagerTotalItems=numItems

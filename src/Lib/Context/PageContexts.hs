@@ -59,6 +59,7 @@ import           Lib.RouteUtils              (sameLevelRoutesAs)
 import           Lib.SiteGenConfig           (SiteGenConfig)
 import           Lib.SiteGenState            (SiteGenReader (..),
                                               SiteGenState (..))
+import           Types.SiteGenState          (Route)
 import           Types.Context               (Context, ContextObject (..),
                                               ContextObjectTypes (..), RunSem,
                                               RunSemGVal,
@@ -81,12 +82,14 @@ pageHeaderContextFor
        )
     => H.SourceContext
     -> Context (RunSem r)
-pageHeaderContextFor sc =
+pageHeaderContextFor sc = do
+    let route = H.scRoute sc
     contextFromList
         $  [("Page", pageSourceContextM sc)
            ,("paginate", pure $ TG.fromFunction $ paginateF sc)
+           ,("selectPages", pure $ TG.fromFunction $ selectPagesF sc)
            ]
-        ++ [("Pages", pagesContextM sc) | H.scIndexPage sc]
+        ++ [("Pages", pagesContextM route [route]) | H.scIndexPage sc]
 
 
 pageSourceContextM
@@ -170,13 +173,14 @@ pagesContextM
        , Member (Error SiteGenError) r
        , Member (Log String) r
        )
-    => H.SourceContext
+    => Route         -- ^ the route with which to find associated pages
+    -> [Route]       -- ^ a set of routes to exclude from the set of pages
     -> RunSemGVal r
-pagesContextM sc = do
+pagesContextM route excludes = do
     scs <- TG.liftRun $ PR.asks @SiteGenReader siteSourceContexts
-    let route = H.scRoute sc
-        pages = sameLevelRoutesAs H.scRoute route scs
-    pagesM <- mapM pageSourceContextM pages
+    let pages = sameLevelRoutesAs H.scRoute route scs
+        pages' = filter (\p -> H.scRoute p `notElem` excludes) pages
+    pagesM <- mapM pageSourceContextM pages'
     pure $ TG.list pagesM
 
 
@@ -318,6 +322,7 @@ pagerToGValM pager items = do
     pure $ TG.dict
             [ gValContextObjectTypeDictItemFor PagerObjectType
             , "Route" ~> pagerRoute pager
+            , "Routes" ~> pagerRoutes pager
             , "MaxSize" ~> maxSize
             , "ItemsThisPage" ~> num
             , "TotalItems" ~> pagerTotalItems pager
@@ -339,3 +344,45 @@ extractListAndOptionalSize args =
         Just a -> case TG.asList a of
             Nothing -> ([], Nothing)
             Just ls -> (ls, TG.toInt =<< HashMap.lookup "size" keyArgs)
+
+---
+
+-- | Select pages using a route.  If the route is missing, use the SourceContext
+-- provided.
+-- selectPages(Str, include_self=Optional[Bool]) -> List[Pages]
+selectPagesF
+    :: ( Member File r
+       , Member ByteStringStore r
+       , Member (State SiteGenState) r
+       , Member (Reader SiteGenReader) r
+       , Member (Reader SiteGenConfig) r
+       , Member (Error SiteGenError) r
+       , Member (Log String) r
+       )
+    => H.SourceContext     -- ^ the SourceContext is needed for the route
+    -> TG.Function (RunSem r)
+selectPagesF sc args = do
+    pagerSet <- TG.liftRun $ PS.gets @SiteGenState sitePagerSet
+    let routeSc = H.scRoute sc
+        (argRoute, argIncSelf) = extractRouteAndOptionalIncludeArgs args
+        route = fromMaybe routeSc argRoute
+        mPagerSet = HashMap.lookup routeSc pagerSet
+    let excludesp = maybe [] pagerRoutes mPagerSet
+        excludes = if argIncSelf
+                     then filter (/=routeSc) excludesp
+                     else routeSc : excludesp
+    pagesContextM route excludes
+
+
+-- | extract a route and include_self=Bool
+extractRouteAndOptionalIncludeArgs
+    :: [(Maybe Text, TG.GVal m)]     -- ^ the args provided by Ginger
+    -> (Maybe Route, Bool)           -- ^ A list of Items and optional size (int)
+extractRouteAndOptionalIncludeArgs args =
+    let (itemsHash, _, keyArgs, _) = TF.extractArgs ["route"] args
+        route = T.unpack . TG.asText <$> HashMap.lookup "route" itemsHash
+        includeSelf = maybe False TG.toBoolean (HashMap.lookup "include_self" keyArgs)
+     in case route of
+         Nothing -> (Nothing, includeSelf)
+         Just "" -> (Nothing, includeSelf)
+         Just s  -> (Just s, includeSelf)

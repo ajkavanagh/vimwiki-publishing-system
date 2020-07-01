@@ -2,14 +2,15 @@
 {% block main %}
 <div class="content container">
     {{ content() | raw }}
+    <p>This is the page at '{{ Page.Route }}'</p>
     <p>Pages</>
     {{ Pages }}
   <div class="posts">
     {#{% set paginator = Paginate (where .Data.Pages "Type" "post") %}#}
-    {% set paginator = paginate(selectPages(Pages.Route, size=2)) %}
+    {% set paginator = paginate(selectPages(), size=5) %}
     {#{{ range $paginator.Pages }}#}
     {% for page in paginator.Items -%}
-        </p>Page is {{ page }}</p>
+        </p>Page is {{ page.Route }}</p>
     <div class="post">
       <h1 class="post-title">
         <a href="{{ page.Permalink }}">{% if page.Draft -%}DRAFT - {% endif -%}{{ page.Title }}</a>
