@@ -25,3 +25,20 @@ include the current route (if wanted).  Note that `Pages` *is*
 
 Convert the first argument to its inverse. If there isn't an argument, then
 this function defaults to `True`.
+
+
+## `getlocale() -> Str`
+
+This function is called by Ginger when the builtine `dateformat()` is called.
+From https://ginger.tobiasdammers.nl/guide/syntax/filters/:
+
+`dateformat(date, format, tz=null, locale=null)`
+
+...
+
+`locale` is the name of a locale; in order to resolve it, the `getlocale`
+function is called. `getlocale` does not come with Ginger, you have to define
+it yourself and add it to the Ginger execution context. This is because we want
+to keep Ginger agnostic of the chosen host monad, and any method of using the
+OS’s locale system would involve IO somehow. If `getlocale` is not defined,
+date uses a “default locale” (roughly equivalent to the “C locale”).

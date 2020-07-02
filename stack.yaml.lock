@@ -5,9 +5,6 @@
 
 packages:
 - completed:
-    cabal-file:
-      size: 5878
-      sha256: d9cfa7942940c7c6d07d1f26ae70c4f1170f9bd6c331bdbe586e810fafc25f17
     name: polysemy
     version: 1.2.3.0
     git: https://github.com/polysemy-research/polysemy.git
@@ -20,9 +17,6 @@ packages:
     commit: d7d3a938f4c1374161949c2d0aeee542e895e821
 - completed:
     subdir: polysemy-plugin
-    cabal-file:
-      size: 2826
-      sha256: 7e360f6d815b178889a8fc9cdc27b31da054b4bae88a00f9057bb561fa31eae9
     name: polysemy-plugin
     version: 0.2.3.0
     git: https://github.com/polysemy-research/polysemy.git
@@ -36,9 +30,6 @@ packages:
     commit: d7d3a938f4c1374161949c2d0aeee542e895e821
 - completed:
     subdir: co-log
-    cabal-file:
-      size: 4421
-      sha256: aec995c0bf6f585722578860a0aafdcf9e70bd7702bab60034c6d299d723220b
     name: co-log
     version: 0.3.0.0
     git: https://github.com/kowainik/co-log.git
@@ -52,9 +43,6 @@ packages:
     commit: 947f9fb0a0b8bfdfad21255157cec53b48382c89
 - completed:
     subdir: co-log-core
-    cabal-file:
-      size: 3149
-      sha256: bd4dddd996841d16a335f04dddfb495de7bd8b6b6fca954f971d7b321c87bbee
     name: co-log-core
     version: 0.2.0.0
     git: https://github.com/kowainik/co-log.git
@@ -68,9 +56,6 @@ packages:
     commit: 947f9fb0a0b8bfdfad21255157cec53b48382c89
 - completed:
     subdir: co-log-polysemy
-    cabal-file:
-      size: 3442
-      sha256: a4f0c2c4e3e6dc230b1479e775ce3a0d81f78511737193581af6e63ab7d3122c
     name: co-log-polysemy
     version: 0.0.0.0
     git: https://github.com/kowainik/co-log.git
@@ -82,6 +67,17 @@ packages:
     subdir: co-log-polysemy
     git: https://github.com/kowainik/co-log.git
     commit: 947f9fb0a0b8bfdfad21255157cec53b48382c89
+- completed:
+    name: system-locale
+    version: 0.3.0.0
+    git: https://github.com/cocreature/system-locale.git
+    pantry-tree:
+      size: 647
+      sha256: d560c617a99a77bdf1ebf80dbc8f81b48a809d11237db84522ab73a8bcd0401e
+    commit: ab5712bed6133037e15a9429b444c4bae34b4e5e
+  original:
+    git: https://github.com/cocreature/system-locale.git
+    commit: ab5712bed6133037e15a9429b444c4bae34b4e5e
 snapshots:
 - completed:
     size: 524804

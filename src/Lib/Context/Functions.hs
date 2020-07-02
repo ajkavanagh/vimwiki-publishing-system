@@ -22,6 +22,7 @@ module Lib.Context.Functions where
 
 import           System.FilePath.Posix  (normalise, (</>))
 
+import           Data.Default           (def)
 import           Data.Maybe             (isNothing)
 import           Data.Text              (Text, unpack)
 
@@ -63,8 +64,9 @@ functionsContext
        )
     => Context (RunSem r)
 functionsContext = contextFromList
-    [ ("absURL",  pure $ TG.fromFunction absURLF)
-    , ("not",     pure $ TG.fromFunction notF)
+    [ ("absURL",    pure $ TG.fromFunction absURLF)
+    , ("not",       pure $ TG.fromFunction notF)
+    , ("getlocale", pure $ TG.fromFunction getLocaleF)
     ]
 
 
@@ -113,3 +115,32 @@ notF
        )
     => TG.Function (RunSem r)
 notF args = pure $ TG.toGVal $ not $ extractBoolArg args
+
+
+-- | getLocaleF is needed by the Ginger builtin 'getlocale', but the app has to
+-- supply it.  This function is the
+-- "modified-for-this-app-but-copied-from-Sprinkles" function from:
+-- src/Web/Sprinkles/TemplateContext.hs (https://github.com/tdammers/sprinkles)
+getLocaleF -- :: forall p h. (LogLevel -> Text -> IO ()) -> Ginger.Function (Ginger.Run p IO h)
+    :: ( Member File r
+       , Member ByteStringStore r
+       , Member (State SiteGenState) r
+       , Member (Reader SiteGenReader) r
+       , Member (Reader SiteGenConfig) r
+       , Member (Error SiteGenError) r
+       , Member (Log String) r
+       )
+    => TG.Function (RunSem r)
+getLocaleF args =
+    case TG.extractArgsDefL [("category", "LC_TIME"), ("locale", "")] args of
+        Right [gCat, gName] ->
+            case (TG.asText gCat, unpack . TG.asText $ gName) of
+                -- TODO: disable until we've upgraded Polysemy and can add the
+                -- Effect.Locale to the bundle that will be written for the
+                -- RunSem r
+                {-("LC_TIME", "") -> TG.toGVal <$> getLocale Nothing-}
+                {-("LC_TIME", localeName) -> TG.toGVal <$> getLocale (Just localeName)-}
+                (cat, localeName) -> return def -- valid call, but category not implemented
+        _ -> do
+            TG.liftRun $ CP.log @String $ "'getlocale' requirs a string category and name - invalid args"
+            pure def

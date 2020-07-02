@@ -27,36 +27,37 @@ library:
   dependencies:
     - aeson
     - bytestring
+    - co-log-core
+    - co-log-polysemy
     - conduit
     - data-default
     - data-default-class
     - directory
     - dlist
     - filepath
-    - ginger
     - generic-deriving
+    - ginger
     - hashable
     - network-uri
     - optparse-applicative
-    - parsec
-    - parser-combinators
     - pandoc
     - pandoc-types
+    - parsec
+    - parser-combinators
+    - polysemy
+    - polysemy-plugin
     - scientific
     - split
+    - system-locale
     - temporary
     - text
     - text-show
     - time
     - titlecase
-    - yaml
-    - polysemy
-    - polysemy-plugin
-    - co-log-core
-    - co-log-polysemy
     - unix
-    - utf8-string
     - unordered-containers
+    - utf8-string
+    - yaml
   default-extensions:
     - DataKinds
     - FlexibleContexts

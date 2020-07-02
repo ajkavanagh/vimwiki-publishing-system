@@ -58,6 +58,9 @@ extra-deps:
       - co-log
       - co-log-core
       - co-log-polysemy
+  # system-locale
+  - git: https://github.com/cocreature/system-locale.git
+    commit: ab5712bed6133037e15a9429b444c4bae34b4e5e
 
 # Override default flag values for local packages and extra-deps
 # flags: {}
