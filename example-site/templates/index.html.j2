@@ -15,7 +15,7 @@
       <h1 class="post-title">
         <a href="{{ page.Permalink }}">{% if page.Draft -%}DRAFT - {% endif -%}{{ page.Title }}</a>
       </h1>
-      <span class="post-date">{{ dataformat(page.Date, "%h %-d, %Y") }}{% if not(page.Site.Params.hideReadingTime) -%} &middot; {{ page.ReadingTime }} minute read{% endif -%}{% if Site.DisqusShortname -%} &middot; <a href="{{ page.Permalink }}#disqus_thread">Comments</a>{% endif -%}
+      <span class="post-date">{{ dateformat(page.Date, "%h %-d, %Y") }}{% if not(page.Site.Params.hideReadingTime) -%} &middot; {{ page.ReadingTime }} minute read{% endif -%}{% if Site.DisqusShortname -%} &middot; <a href="{{ page.Permalink }}#disqus_thread">Comments</a>{% endif -%}
 
       {% if page.categories -%}
       <br/>

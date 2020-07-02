@@ -20,3 +20,8 @@ it filters out the route (or Pager route) for the current page.  This means
 that it can be used to get a selection of pages for the current route, but also
 include the current route (if wanted).  Note that `Pages` *is*
 `selectPages(Page.Route, include_self=False)`
+
+## `not(Boolean) -> Boolean`
+
+Convert the first argument to its inverse. If there isn't an argument, then
+this function defaults to `True`.

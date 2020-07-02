@@ -42,7 +42,8 @@ import           Polysemy.Writer        (Writer)
 import           Effect.ByteStringStore (ByteStringStore)
 import           Effect.File            (File)
 
-import           Lib.Context.Core       (contextFromList, tryExtractStringArg)
+import           Lib.Context.Core       (contextFromList, extractBoolArg,
+                                         tryExtractStringArg)
 import           Lib.Errors             (SiteGenError)
 import qualified Lib.Header             as H
 import           Lib.Pandoc             (scContentM, scSummaryM, scTocM)
@@ -62,11 +63,12 @@ functionsContext
        )
     => Context (RunSem r)
 functionsContext = contextFromList
-    [ ("absURL",  pure $ TG.fromFunction absURL)
+    [ ("absURL",  pure $ TG.fromFunction absURLF)
+    , ("not",     pure $ TG.fromFunction notF)
     ]
 
 
-absURL
+absURLF
     :: ( Member File r
        , Member ByteStringStore r
        , Member (State SiteGenState) r
@@ -76,7 +78,7 @@ absURL
        , Member (Log String) r
        )
     => TG.Function (RunSem r)
-absURL args = do
+absURLF args = do
     mSiteUri <- TG.liftRun (PR.asks @SiteGenConfig sgcSiteUrl)
     let mArg = NU.parseURIReference =<< unpack <$> tryExtractStringArg args -- try to get the relative URI
     case mSiteUri of
@@ -98,3 +100,16 @@ absURL args = do
                               , NU.uriPath=normalise(NU.uriPath uri </> NU.uriPath arg)
                               , NU.uriQuery=NU.uriQuery arg
                               , NU.uriFragment=NU.uriFragment arg })
+
+
+notF
+    :: ( Member File r
+       , Member ByteStringStore r
+       , Member (State SiteGenState) r
+       , Member (Reader SiteGenReader) r
+       , Member (Reader SiteGenConfig) r
+       , Member (Error SiteGenError) r
+       , Member (Log String) r
+       )
+    => TG.Function (RunSem r)
+notF args = pure $ TG.toGVal $ not $ extractBoolArg args
