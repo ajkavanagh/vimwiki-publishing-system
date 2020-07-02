@@ -6,81 +6,63 @@
 packages:
 - completed:
     name: polysemy
-    version: 1.2.3.0
+    version: 1.3.0.0
     git: https://github.com/polysemy-research/polysemy.git
     pantry-tree:
-      size: 5673
-      sha256: d5d009f7ad411e9e9ad27879e76c991450d13d4db4101713a07c18d715d5b5aa
-    commit: d7d3a938f4c1374161949c2d0aeee542e895e821
+      size: 6356
+      sha256: 6b759a6304c5e3e838e8c1996666d4fc5eb00fcd767ce9da319d6136cb8d207b
+    commit: 3c731186cb5ebcfc9319586e0b691b985c6730e2
   original:
     git: https://github.com/polysemy-research/polysemy.git
-    commit: d7d3a938f4c1374161949c2d0aeee542e895e821
+    commit: 3c731186cb5ebcfc9319586e0b691b985c6730e2
 - completed:
     subdir: polysemy-plugin
     name: polysemy-plugin
-    version: 0.2.3.0
+    version: 0.2.5.0
     git: https://github.com/polysemy-research/polysemy.git
     pantry-tree:
       size: 1334
-      sha256: 69d4fcc591e078af82fc4f40b9f25267cbf296cc0c1e95517d0668342ad82eac
-    commit: d7d3a938f4c1374161949c2d0aeee542e895e821
+      sha256: 5a308d5bb6ab25989bfe747786f34954bb43c542d199bcd09fefafe603db9a26
+    commit: 3c731186cb5ebcfc9319586e0b691b985c6730e2
   original:
     subdir: polysemy-plugin
     git: https://github.com/polysemy-research/polysemy.git
-    commit: d7d3a938f4c1374161949c2d0aeee542e895e821
-- completed:
-    subdir: co-log
-    name: co-log
-    version: 0.3.0.0
-    git: https://github.com/kowainik/co-log.git
-    pantry-tree:
-      size: 1258
-      sha256: 33650b4f6997baa195a50e3443752bbbb75368c5ab3affad21ec8b787da1207d
-    commit: 947f9fb0a0b8bfdfad21255157cec53b48382c89
-  original:
-    subdir: co-log
-    git: https://github.com/kowainik/co-log.git
-    commit: 947f9fb0a0b8bfdfad21255157cec53b48382c89
-- completed:
-    subdir: co-log-core
-    name: co-log-core
-    version: 0.2.0.0
-    git: https://github.com/kowainik/co-log.git
-    pantry-tree:
-      size: 584
-      sha256: 36f51549a113d1ecd05d6045f2de53cb522222e57953677ba5330b4afb5d072b
-    commit: 947f9fb0a0b8bfdfad21255157cec53b48382c89
-  original:
-    subdir: co-log-core
-    git: https://github.com/kowainik/co-log.git
-    commit: 947f9fb0a0b8bfdfad21255157cec53b48382c89
-- completed:
-    subdir: co-log-polysemy
-    name: co-log-polysemy
-    version: 0.0.0.0
-    git: https://github.com/kowainik/co-log.git
-    pantry-tree:
-      size: 400
-      sha256: e13132d4ae74956ab85b87c7177de76ba8d5d61544d4193941962d9f73074148
-    commit: 947f9fb0a0b8bfdfad21255157cec53b48382c89
-  original:
-    subdir: co-log-polysemy
-    git: https://github.com/kowainik/co-log.git
-    commit: 947f9fb0a0b8bfdfad21255157cec53b48382c89
+    commit: 3c731186cb5ebcfc9319586e0b691b985c6730e2
 - completed:
     name: system-locale
     version: 0.3.0.0
-    git: https://github.com/cocreature/system-locale.git
+    git: https://github.com/ajkavanagh/system-locale.git
     pantry-tree:
       size: 647
-      sha256: d560c617a99a77bdf1ebf80dbc8f81b48a809d11237db84522ab73a8bcd0401e
-    commit: ab5712bed6133037e15a9429b444c4bae34b4e5e
+      sha256: 61d155d0b0b8128fb0a531a9c39767266c32946aa38524f3c007132ccbe5309a
+    commit: 7571b0ebf125338d47ed45fbc6c18b2ee3a22e81
   original:
-    git: https://github.com/cocreature/system-locale.git
-    commit: ab5712bed6133037e15a9429b444c4bae34b4e5e
+    git: https://github.com/ajkavanagh/system-locale.git
+    commit: 7571b0ebf125338d47ed45fbc6c18b2ee3a22e81
+- completed:
+    hackage: first-class-families-0.6.0.0@sha256:9d2a2a0092dfb8fd0e688b0b6bf71242fbc393c028b0b669d25ed387667490c2,1304
+    pantry-tree:
+      size: 847
+      sha256: 17e0b275b62a3269f0c05e3f802ec85a31b9e9498248419cfc26e5277f56164c
+  original:
+    hackage: first-class-families-0.6.0.0
+- completed:
+    hackage: ghc-tcplugins-extra-0.3.2@sha256:1bbfd4449c3669a31618ea0ebc5d00d980a53988daad3b6218bab5c8cdff268d,1687
+    pantry-tree:
+      size: 331
+      sha256: 4b16989344380c912e476dc232cc58264837b498e31a8bf16a17092ba6c1cfb9
+  original:
+    hackage: ghc-tcplugins-extra-0.3.2@sha256:1bbfd4449c3669a31618ea0ebc5d00d980a53988daad3b6218bab5c8cdff268d,1687
+- completed:
+    hackage: time-1.9.3@sha256:8f1b5448722a12a952248b356c9eb366e351226543d9086a2da71270522d5f45,5679
+    pantry-tree:
+      size: 6558
+      sha256: a1043c1719491764f0fa37a1fd70d9451080548a41632fee88d8e1b8db4942d6
+  original:
+    hackage: time-1.9.3
 snapshots:
 - completed:
-    size: 524804
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/14/16.yaml
-    sha256: 4d1519a4372d051d47a5eae2241cf3fb54e113d7475f89707ddb6ec06add2888
-  original: lts-14.16
+    size: 531696
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/16/3.yaml
+    sha256: 65e3a94c65ad07fa1913649e3f1e36c4af51bf528a5d9fd217bdc1b46d0477cc
+  original: lts-16.3

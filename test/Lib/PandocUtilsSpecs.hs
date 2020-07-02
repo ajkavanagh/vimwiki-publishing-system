@@ -90,7 +90,7 @@ simpleMap = HashMap.fromList
     ]
 
 --helpers for tests
-parse :: String -> TP.Pandoc
+parse :: Text -> TP.Pandoc
 parse = B.doc . B.para . B.text
 
 

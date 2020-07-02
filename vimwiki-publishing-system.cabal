@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 122e799833c0183d361cdabdd2d8397a56319bdd2be4acbc7b6813a47a36e700
+-- hash: 073b38bf2303e922a24ab05f740b32a42b9486e8dd76c7ca441b8d9304fd9c5a
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -75,6 +75,7 @@ library
     , dlist
     , filepath
     , generic-deriving
+    , ghc-tcplugins-extra >=0.3 && <0.4
     , ginger
     , hashable
     , network-uri
@@ -109,6 +110,7 @@ executable sitegen
   ghc-options: -threaded -rtsopts -with-rtsopts=-N -main-is VPS -O2 -flate-specialise -fspecialise-aggressively -fprint-potential-instances -fplugin=Polysemy.Plugin
   build-depends:
       base >=4.7 && <5
+    , ghc-tcplugins-extra >=0.3 && <0.4
     , polysemy
     , polysemy-plugin
     , vimwiki-publishing-system
@@ -132,6 +134,7 @@ test-suite vimwiki-publishing-system-test
     , co-log-polysemy
     , data-default
     , data-default-class
+    , ghc-tcplugins-extra >=0.3 && <0.4
     , hspec
     , pandoc
     , pandoc-types

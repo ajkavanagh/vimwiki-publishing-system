@@ -136,7 +136,6 @@ pandocMarkdownArgs = TP.def { TP.readerExtensions =
 -- aren't even wrapping the content in a div; that'll go in the Ginger template.
 pandocHtmlArgs ::  TP.WriterOptions
 pandocHtmlArgs = TP.def { TP.writerTemplate = Nothing
-                        , TP.writerVariables = []
                         , TP.writerTableOfContents = False
                         --, TP.writerHTMLMathMethod = TP.MathJax "some url"
                         , TP.writerSectionDivs = True
@@ -251,24 +250,25 @@ walkLinksInInlines' hmap ds xs =
 -- relative, parse it, pull out the relative bit, and match it against the
 -- relative link of the the SourcePageContext items.
 maybeRewriteLink :: SGS.VimWikiLinkToSC -> TP.Inline -> [TP.Inline]
-maybeRewriteLink hmap link@(TPD.Link attr desc (url, title))
+maybeRewriteLink hmap link@(TPD.Link attr desc (url, title)) =
+    let url' = T.unpack url
   -- it's a relative reference; they should ALL be within the site
-  | NU.isRelativeReference url =
-      -- can we parse it
-      case NU.parseRelativeReference url of
-          Nothing -> [link]   -- assume it's something else and leave it alone
-          Just uri -> case HashMap.lookup (strToLower $ NU.uriPath uri) hmap of
-              -- if we don't find it, then convert it to text
-              Nothing -> if null desc
-                           then B.toList $ B.text title
-                           else desc
-              -- otherwise re-write it to the route; note we need to add back in
-              -- any of the other bits of the url (query and fragment)
-              Just sc ->
-                  let newUri = show (uri {NU.uriPath=H.scRoute sc})
-                   in [TPD.Link attr desc (newUri, title)]
-  -- it was absolute or something else; thus we just ignore the link
-  | otherwise = [link]
+     in if NU.isRelativeReference url'
+          -- can we parse it
+          then case NU.parseRelativeReference url' of
+            Nothing -> [link]   -- assume it's something else and leave it alone
+            Just uri -> case HashMap.lookup (strToLower $ NU.uriPath uri) hmap of
+                -- if we don't find it, then convert it to text
+                Nothing -> if null desc
+                            then B.toList $ B.text title
+                            else desc
+                -- otherwise re-write it to the route; note we need to add back in
+                -- any of the other bits of the url (query and fragment)
+                Just sc ->
+                    let newUri = show (uri {NU.uriPath=H.scRoute sc})
+                    in [TPD.Link attr desc (T.pack newUri, title)]
+          -- it was absolute or something else; thus we just ignore the link
+          else [link]
 maybeRewriteLink _ _ = error "Must only pass a Link to this function"
 
 
@@ -350,7 +350,7 @@ processStrSequence xs = concatMap toInline $ parseToLinkPart $ T.concat $ map to
 
 
 toStr :: TP.Inline -> T.Text
-toStr (TPD.Str txt) = T.pack txt
+toStr (TPD.Str txt) = txt
 toStr TPD.Space     = " "
 toStr _             = ""
 
@@ -358,9 +358,9 @@ toStr _             = ""
 -- | convert LinkPart pieces back into a sequence of Inline elements.  Uses the
 -- Text.Pandoc.Builder 'text' function to convert text sequences.
 toInline :: LinkPart -> [TP.Inline]
-toInline (RegularText text) = B.toList $ B.text $ T.unpack text
+toInline (RegularText text) = B.toList $ B.text text
 toInline (Link link desc) =
-    [TP.Link TPD.nullAttr (B.toList $ B.text $ T.unpack desc) (T.unpack link, T.unpack desc)]
+    [TP.Link TPD.nullAttr (B.toList $ B.text desc) (link, desc)]
 
 
 -- | Parse a string and find any vimwiki style links as LinkPart
@@ -624,7 +624,7 @@ queryHeaders (TP.Header level attr lst) =
   where
       _title = T.concat $ map toStr lst
       (ident,_,_) = attr
-      _link  = T.pack $ "#" <> ident
+      _link  = "#" <> ident
 queryHeaders _ = DList.empty
 
 -- now persist and parse TocItem to a Yaml item for storage
@@ -743,12 +743,11 @@ tocBuildListItems (t1:t2:ts) = case tocLevel t1 `compare` tocLevel t2 of
 -- adds a class .tocLevelN to for the level
 tocItemToLink :: TocItem -> B.Inlines
 tocItemToLink TocItem {tocTitle=title, tocLink=link, tocLevel=level} =
-    B.linkWith ("", [".tocLevel" ++ show level], [])
-               (T.unpack link)
-               sTitle
-               (B.text sTitle)
-  where
-      sTitle = T.unpack title
+    B.linkWith ("", [T.pack $ ".tocLevel" ++ show level], [])
+               link
+               title
+               (B.text title)
+
 
 -- add a Plain text item that stands in for a missing heading
 tocMissingItem :: B.Blocks
