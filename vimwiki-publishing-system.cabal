@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 073b38bf2303e922a24ab05f740b32a42b9486e8dd76c7ca441b8d9304fd9c5a
+-- hash: f080784a66fdbb06e99e2edaa671f2e37c39034f257c30403dc6da94325c9d94
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -32,7 +32,6 @@ library
       Effect.Ginger
       Experiments.Context
       Experiments.Errors
-      Experiments.Ginger
       Experiments.SemConduit
       Lib.Context
       Lib.Context.Core

@@ -55,7 +55,7 @@ import           Lib.Errors           (GingerException (..))
 
 import qualified Lib.SiteGenConfig    as S
 
-import           Experiments.Ginger   (parseToTemplate)
+import           Lib.Ginger           (parseToTemplate)
 
 {-
    In English, I want a thing that can store bits of Text and when asked with that
