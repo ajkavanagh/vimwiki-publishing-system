@@ -66,6 +66,7 @@ import           Effect.ByteStringStore (ByteStringStore)
 import qualified Effect.ByteStringStore as EB
 import           Effect.File            (File, FileException)
 import qualified Effect.File            as EF
+import           Effect.Locale          (Locale)
 
 import           Lib.Context            (makeContextFor)
 import           Lib.Errors             (GingerException (..), SiteGenError)
@@ -83,6 +84,7 @@ import           Lib.SiteGenState       (FileMemo (..), SiteGenReader (..),
 
 renderSourceContext
     :: ( Member File r
+       , Member Locale r
        , Member ByteStringStore r
        , Member (State SiteGenState) r
        , Member (Reader SiteGenReader) r

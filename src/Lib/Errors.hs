@@ -3,9 +3,10 @@
 module Lib.Errors
     where
 
-import           Data.Text         (Text)
+import           Data.Text         (Text, pack)
 
 import           Effect.File       (FileException (..))
+import           Effect.Locale     (LocaleException (..))
 import           Lib.Header        (SourceContext, SourcePageContext)
 import           Lib.SiteGenConfig (ConfigException (..))
 
@@ -30,6 +31,7 @@ data SiteGenError
     = FileError FilePath Text       -- formed from FileException Filename error
     | GingerError Text            -- initially, this'll just be the text for the error
     | ConfigError Text Text       -- formed from Config Exception
+    | LocaleError Text Text       -- if we get a locale error
     | SourcePageContextError SourcePageContext Text
     | SourceContextError SourceContext Text
     | PageDecodeError Text
@@ -55,3 +57,8 @@ instance IsSiteGenError GingerException where
 
 instance IsSiteGenError ConfigException where
     mapSiteGenError (ConfigException txt) = ConfigError "" txt
+
+
+instance IsSiteGenError LocaleException where
+    mapSiteGenError (LocaleException arg txt) =
+        LocaleError (maybe "<none>" pack arg) txt

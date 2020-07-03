@@ -2,13 +2,13 @@
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE GADTs                #-}
---{-# LANGUAGE LambdaCase           #-}
+{-# LANGUAGE LambdaCase           #-}
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE PolyKinds            #-}
 {-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
 {-# LANGUAGE TemplateHaskell      #-}
---{-# LANGUAGE TypeApplications     #-}
+{-# LANGUAGE TypeApplications     #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeOperators        #-}
 
@@ -23,32 +23,32 @@
 module Effect.ByteStringStore
       where
 
-import Data.Text (Text)
-import qualified Data.Text as T
-import Data.ByteString (ByteString)
-import Data.HashMap.Strict (HashMap)
+import           Data.ByteString     (ByteString)
+import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
+import           Data.Text           (Text)
+import qualified Data.Text           as T
 
-import Control.Monad (forM_)
+import           Control.Monad       (forM_)
 
-import qualified System.FilePath as F
-import           System.FilePath    ((</>))
-import qualified System.Posix.Files as SPF
+import           System.FilePath     ((</>))
+import qualified System.FilePath     as F
+import qualified System.Posix.Files  as SPF
 
-import           Polysemy           (Embed, Member, Members, Sem, embed,
-                                     embedToFinal, interpret, makeSem, run,
-                                     runFinal)
-import           Polysemy.Error     (Error)
-import qualified Polysemy.Error     as PE
+import           Polysemy            (Embed, Member, Members, Sem, embed,
+                                      embedToFinal, interpret, makeSem, run,
+                                      runFinal)
+import           Polysemy.Error      (Error)
+import qualified Polysemy.Error      as PE
 import           Polysemy.Reader     (Reader)
 import qualified Polysemy.Reader     as PR
-import           Polysemy.State     (State)
-import qualified Polysemy.State     as PS
+import           Polysemy.State      (State)
+import qualified Polysemy.State      as PS
 
-import           Effect.File        (File, FileException)
-import qualified Effect.File as EF
+import           Effect.File         (File, FileException)
+import qualified Effect.File         as EF
 
-import qualified Lib.SiteGenConfig    as S
+import qualified Lib.SiteGenConfig   as S
 
 
 data ByteStringStore m a where
@@ -133,4 +133,4 @@ makeFileFromKey txt =
   where
     go '/' = '_'
     go '.' = '_'
-    go x = x
+    go x   = x

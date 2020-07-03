@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 33aa63f7f7b1a36142d6ea9866f6fca67a3fa1b807353afffd419357b813d3d7
+-- hash: c21dfb43ea0e48299850082c8c5c1d49334ecaaaf9b51e2471c4e8855cf6eec7
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -30,6 +30,7 @@ library
       Effect.ByteStringStore
       Effect.File
       Effect.Ginger
+      Effect.Locale
       Experiments.Errors
       Experiments.SemConduit
       Lib.Context

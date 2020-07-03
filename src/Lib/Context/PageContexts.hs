@@ -102,7 +102,7 @@ sourcePageContextM
     => H.SourcePageContext
     -> RunSemGVal r
 sourcePageContextM spc = do
-    TG.liftRun $ CP.log @String $ "Building sourcePageContextM for " ++ show (H.spcRoute spc)
+    -- TG.liftRun $ CP.log @String $ "Building sourcePageContextM for " ++ show (H.spcRoute spc)
     pure $ TG.toGVal spc
 
 

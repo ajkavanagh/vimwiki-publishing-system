@@ -43,6 +43,7 @@ import           Polysemy.Writer        (Writer)
 import           Effect.ByteStringStore (ByteStringStore)
 import           Effect.File            (File)
 import           Effect.Ginger          (GingerSemEffects)
+import           Effect.Locale          (getLocale)
 
 import           Lib.Context.Core       (contextFromList, extractBoolArg,
                                          tryExtractStringArg)
@@ -76,11 +77,12 @@ absURLF args = do
         -- authority and path, but adding in the path, query and fragment from
         -- the passed arg, but ONLY if the arg isn't absolute.
         Just uri -> case mArg of
-            Nothing -> pure $ TG.toGVal (Nothing :: Maybe String)
+            Nothing -> pure def
             Just arg ->
                 if NU.uriIsAbsolute arg
                     -- if the passed URI is absolute, just return it
                     then pure $ TG.toGVal (show arg)
+                    -- otherwise switch in the absolute address as needed
                     else pure $ TG.toGVal (show
                         $ arg { NU.uriScheme=NU.uriScheme uri
                               , NU.uriAuthority=NU.uriAuthority uri
@@ -90,7 +92,7 @@ absURLF args = do
 
 
 notF :: GingerSemEffects r => TG.Function (RunSem r)
-notF args = pure $ TG.toGVal $ not $ extractBoolArg args
+notF = pure . TG.toGVal . not . extractBoolArg
 
 
 -- | getLocaleF is needed by the Ginger builtin 'getlocale', but the app has to
@@ -102,11 +104,10 @@ getLocaleF args =
     case TG.extractArgsDefL [("category", "LC_TIME"), ("locale", "")] args of
         Right [gCat, gName] ->
             case (TG.asText gCat, unpack . TG.asText $ gName) of
-                -- TODO: disable until we've upgraded Polysemy and can add the
-                -- Effect.Locale to the bundle that will be written for the
-                -- RunSem r
-                {-("LC_TIME", "") -> TG.toGVal <$> getLocale Nothing-}
-                {-("LC_TIME", localeName) -> TG.toGVal <$> getLocale (Just localeName)-}
+                ("LC_TIME", localeName) -> do
+                    let mLocaleName = if null localeName then Nothing else Just localeName
+                    locale <- TG.liftRun $ getLocale mLocaleName
+                    pure $ TG.toGVal locale
                 (cat, localeName) -> return def -- valid call, but category not implemented
         _ -> do
             TG.liftRun $ CP.log @String "'getlocale' requirs a string category and name - invalid args"

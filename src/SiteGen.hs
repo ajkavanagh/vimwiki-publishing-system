@@ -45,6 +45,7 @@ import           Polysemy.State            (runState)
 import           Effect.ByteStringStore    (BSHMStore, bsStoreAsHash)
 import           Effect.File               (File, FileException, fileToIO)
 {-import           Effect.Ginger             (GingerException (..))-}
+import           Effect.Locale             (Locale, localeToIO, LocaleException)
 
 -- Local Libraries
 import           Lib.RenderUtils           (renderSourceContext)
@@ -145,10 +146,12 @@ runSiteGen :: SitegenArgs -> IO ()
 runSiteGen args = do
     res <- runSiteGenSem args
         & fileToIO
+        & localeToIO
         & mapError @ConfigException mapSiteGenError
         & mapError @FileException mapSiteGenError
         & mapError @GingerException mapSiteGenError
         & mapError @FileException mapSiteGenError
+        & mapError @LocaleException mapSiteGenError
         & errorToIOFinal @SiteGenError
         & runLogAction @IO logStringStderr
         & embedToFinal @IO
@@ -172,6 +175,7 @@ runSiteGenHelper s fp = do
 runSiteGenSem
     :: Members '[ Log String
                 , File
+                , Locale
                 , Error FileException
                 , Error ConfigException
                 , Error GingerException

@@ -54,8 +54,8 @@ import qualified Effect.File          as EF
 
 import           Types.Context
 
-import qualified Lib.SiteGenConfig    as S
 import           Lib.Errors           (GingerException (..))
+import qualified Lib.SiteGenConfig    as S
 
 ----
 
@@ -118,7 +118,7 @@ contextLookup ctxt key =
             TG.liftRun $ CP.log @String $ "contextLookup for key: " ++ T.unpack key ++ " was not resolved!"
             pure def
         Just f -> do
-            TG.liftRun $ CP.log @String $ "contextLookup for key: " ++ T.unpack key ++ " resolved"
+            -- TG.liftRun $ CP.log @String $ "contextLookup for key: " ++ T.unpack key ++ " resolved"
             f
 
 
