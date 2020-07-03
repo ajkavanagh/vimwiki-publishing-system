@@ -35,6 +35,7 @@ import           Polysemy.Writer        (Writer)
 
 import           Effect.ByteStringStore (ByteStringStore)
 import           Effect.File            (File)
+import           Effect.Ginger          (GingerSemEffects)
 
 import           Lib.Context.Core       (contextFromList, tryExtractIntArg)
 import           Lib.Errors             (SiteGenError)
@@ -53,14 +54,7 @@ import           Types.Context          (Context, RunSem, RunSemGVal)
 
 
 pageFunctionsContext
-    :: ( Member File r
-       , Member ByteStringStore r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenReader) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Log String) r
-       )
+    :: GingerSemEffects r
     => H.SourceContext
     -> Context (RunSem r)
 pageFunctionsContext sc = contextFromList
@@ -70,14 +64,7 @@ pageFunctionsContext sc = contextFromList
 
 
 pageFunctionsAsGValDict
-    :: ( Member File r
-       , Member ByteStringStore r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenReader) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Log String) r
-       )
+    :: GingerSemEffects r
     => H.SourceContext
     -> TG.GVal (RunSem r)
 pageFunctionsAsGValDict sc =
@@ -89,14 +76,7 @@ pageFunctionsAsGValDict sc =
 
 -- helper function to hook a function dynamically for the required thing.
 funcDynamicMGValM
-    :: ( Member File r
-       , Member ByteStringStore r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenReader) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Log String) r
-       )
+    :: GingerSemEffects r
     => (H.SourceContext -> TG.Function (RunSem r))
     -> H.SourceContext
     -> RunSemGVal r
@@ -106,14 +86,7 @@ funcDynamicMGValM f sc = pure $ TG.fromFunction $ f sc
 -- | fetch the content dynamically as a function call from the context.  i.e. it
 -- has to be called as "content()", probably with a "| raw" filter.
 contentDynamic
-    :: ( Member File r
-       , Member ByteStringStore r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenReader) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Log String) r
-       )
+    :: GingerSemEffects r
     => H.SourceContext
     -> TG.Function (RunSem r)
 contentDynamic sc _ = do           -- content ignores the args
@@ -126,14 +99,7 @@ contentDynamic sc _ = do           -- content ignores the args
 -- TODO: match the args for plain=True to select for plain summary rather than
 --       rich summary
 summaryDynamic
-    :: ( Member File r
-       , Member ByteStringStore r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenReader) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Log String) r
-       )
+    :: GingerSemEffects r
     => H.SourceContext
     -> TG.Function (RunSem r)
 summaryDynamic sc _ = do   -- summary ignores the args, and selects for Rich only
@@ -145,14 +111,7 @@ summaryDynamic sc _ = do   -- summary ignores the args, and selects for Rich onl
 -- The argument is the level as an Integer which determines how many levels to
 -- return in the HTML fragment.
 tocDynamic
-    :: ( Member File r
-       , Member ByteStringStore r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenReader) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Log String) r
-       )
+    :: GingerSemEffects r
     => H.SourceContext
     -> TG.Function (RunSem r)
 tocDynamic sc args = do

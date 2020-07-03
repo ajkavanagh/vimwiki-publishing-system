@@ -2,24 +2,22 @@
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# LANGUAGE FlexibleContexts     #-}
 {-# LANGUAGE GADTs                #-}
-{-# LANGUAGE LambdaCase           #-}
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE PolyKinds            #-}
 {-# LANGUAGE RankNTypes           #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
-{-# LANGUAGE TemplateHaskell      #-}
 {-# LANGUAGE TypeApplications     #-}
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeOperators        #-}
 
 
-{-# LANGUAGE AllowAmbiguousTypes  #-}  -- for the b below
+{-# LANGUAGE AllowAmbiguousTypes  #-}
 
 {-# OPTIONS_GHC -fplugin=Polysemy.Plugin #-}
 
 module Experiments.Ginger where
 
-import TextShow
+import           TextShow
 
 import qualified Data.ByteString.UTF8 as DBU
 import           Data.Function        ((&))
@@ -50,7 +48,7 @@ import           Text.Ginger.Html     (Html, htmlSource)
 import           Effect.File          (File, FileException)
 import qualified Effect.File          as EF
 
-import           Effect.Ginger        (GingerException (..))
+import           Lib.Errors           (GingerException (..))
 
 
 -- what we want to do is to try and render something into the
@@ -156,7 +154,7 @@ contextLookup'
     -> TG.Run TG.SourcePos (Sem r) Html (GVal (TG.Run TG.SourcePos (Sem r) Html))
 --contextLookup' mm k = pure $ TG.toGVal $ HashMap.lookup k mm
 contextLookup' mm k = do
-    TG.liftRun $ CP.log @String $ "The key asked for was " ++ (show k)
+    TG.liftRun $ CP.log @String $ "The key asked for was " ++ show k
     pure $ TG.toGVal $ HashMap.lookup k mm
 
 
@@ -208,7 +206,7 @@ renderTestData
        , Member File r
        , Member (Error FileException) r
        )
-    => Sem r (Text)
+    => Sem r Text
 renderTestData = do
     tpl <- parseToTemplate "./example-site/templates/index.html.j2"
     (o, _) <- PW.runWriterAssocR @Text $ PR.runReader testData $ renderTemplate tpl

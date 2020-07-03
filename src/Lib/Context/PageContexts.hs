@@ -16,6 +16,8 @@
 
 {-# LANGUAGE AllowAmbiguousTypes   #-}
 
+{-# LANGUAGE ConstraintKinds       #-}
+
 -- needed for the instance ToGVal m a instances that use the RunSem r monad
 {-# LANGUAGE UndecidableInstances  #-}
 
@@ -45,6 +47,7 @@ import           Polysemy.Writer             (Writer)
 
 import           Effect.ByteStringStore      (ByteStringStore)
 import           Effect.File                 (File)
+import           Effect.Ginger               (GingerSemEffects)
 
 import           Text.Ginger                 ((~>))
 import qualified Text.Ginger                 as TG
@@ -59,11 +62,11 @@ import           Lib.RouteUtils              (sameLevelRoutesAs)
 import           Lib.SiteGenConfig           (SiteGenConfig)
 import           Lib.SiteGenState            (SiteGenReader (..),
                                               SiteGenState (..))
-import           Types.SiteGenState          (Route)
 import           Types.Context               (Context, ContextObject (..),
                                               ContextObjectTypes (..), RunSem,
                                               RunSemGVal,
                                               gValContextObjectTypeDictItemFor)
+import           Types.SiteGenState          (Route)
 
 import           Types.Pager                 (Pager (..), makePagerList,
                                               pagerListToTuples)
@@ -71,15 +74,9 @@ import           Types.Pager                 (Pager (..), makePagerList,
 -- Provide contexts for the SourcePageContext and the VirtualPageContext records
 -- They will be provided under the key 'header'
 
+
 pageHeaderContextFor
-    :: ( Member File r
-       , Member ByteStringStore r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenReader) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Log String) r
-       )
+    :: GingerSemEffects r
     => H.SourceContext
     -> Context (RunSem r)
 pageHeaderContextFor sc = do
@@ -93,14 +90,7 @@ pageHeaderContextFor sc = do
 
 
 pageSourceContextM
-    :: ( Member File r
-       , Member ByteStringStore r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenReader) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Log String) r
-       )
+    :: GingerSemEffects r
     => H.SourceContext
     -> RunSemGVal r
 pageSourceContextM (H.SPC spc) = sourcePageContextM spc
@@ -108,14 +98,7 @@ pageSourceContextM (H.VPC vpc) = virtualPageContextM vpc
 
 
 sourcePageContextM
-    :: ( Member File r
-       , Member ByteStringStore r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenReader) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Log String) r
-       )
+    :: GingerSemEffects r
     => H.SourcePageContext
     -> RunSemGVal r
 sourcePageContextM spc = do
@@ -123,14 +106,7 @@ sourcePageContextM spc = do
     pure $ TG.toGVal spc
 
 
-instance ( Member File r
-         , Member ByteStringStore r
-         , Member (State SiteGenState) r
-         , Member (Reader SiteGenReader) r
-         , Member (Reader SiteGenConfig) r
-         , Member (Error SiteGenError) r
-         , Member (Log String) r
-         ) => TG.ToGVal (RunSem r) H.SourcePageContext where
+instance GingerSemEffects r => TG.ToGVal (RunSem r) H.SourcePageContext where
     toGVal spc =
         TG.dict
             [ gValContextObjectTypeDictItemFor SPCObjectType
@@ -165,14 +141,7 @@ instance ( Member File r
 -- start with /, but then they all should.
 -- TODO: finish this after we've worked out pagination.
 pagesContextM
-    :: ( Member File r
-       , Member ByteStringStore r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenReader) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Log String) r
-       )
+    :: GingerSemEffects r
     => Route         -- ^ the route with which to find associated pages
     -> [Route]       -- ^ a set of routes to exclude from the set of pages
     -> RunSemGVal r
@@ -205,14 +174,7 @@ instance TG.ToGVal m H.VirtualPageContext where
 
 
 -- convert a H.SourceContext into a GVal m
-instance ( Monad (RunSem r), Member File r
-         , Member ByteStringStore r
-         , Member (State SiteGenState) r
-         , Member (Reader SiteGenReader) r
-         , Member (Reader SiteGenConfig) r
-         , Member (Error SiteGenError) r
-         , Member (Log String) r
-         ) => TG.ToGVal (RunSem r) H.SourceContext where
+instance GingerSemEffects r => TG.ToGVal (RunSem r) H.SourceContext where
     toGVal (H.SPC v) = TG.toGVal v
     toGVal (H.VPC v) = TG.toGVal v
 
@@ -237,14 +199,7 @@ tempToLocalTimeHelper = utcToLocalTime utc
 -- function in template:
 -- paginate(List[str], size=Int) -> List[Page]
 paginateF
-    :: ( Member File r
-       , Member ByteStringStore r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenReader) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Log String) r
-       )
+    :: GingerSemEffects r
     => H.SourceContext     -- ^ the SourceContext is needed for the route
     -> TG.Function (RunSem r)
 paginateF sc args = do
@@ -255,7 +210,7 @@ paginateF sc args = do
     let (items, mSize) = extractListAndOptionalSize args
     if null items
         then do
-            TG.liftRun $ CP.log @String $ "No Items provided to paginate() ?"
+            TG.liftRun $ CP.log @String "No Items provided to paginate() ?"
             pure def
             -- determine if there is a pager already for the current route
         else case HashMap.lookup route pagerSet of
@@ -303,14 +258,7 @@ extractText t = case TG.asText t of
 
 
 pagerToGValM
-    :: ( Member File r
-       , Member ByteStringStore r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenReader) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Log String) r
-       )
+    :: GingerSemEffects r
     => Pager                     -- ^ the SourceContext is needed for the route
     -> [TG.GVal (RunSem r)]         -- ^ the list of items that will paged back
     -> RunSemGVal r
@@ -351,14 +299,7 @@ extractListAndOptionalSize args =
 -- provided.
 -- selectPages(Str, include_self=Optional[Bool]) -> List[Pages]
 selectPagesF
-    :: ( Member File r
-       , Member ByteStringStore r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenReader) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Log String) r
-       )
+    :: GingerSemEffects r
     => H.SourceContext     -- ^ the SourceContext is needed for the route
     -> TG.Function (RunSem r)
 selectPagesF sc args = do

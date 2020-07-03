@@ -42,6 +42,7 @@ import           Polysemy.Writer        (Writer)
 
 import           Effect.ByteStringStore (ByteStringStore)
 import           Effect.File            (File)
+import           Effect.Ginger          (GingerSemEffects)
 
 import           Lib.Context.Core       (contextFromList, extractBoolArg,
                                          tryExtractStringArg)
@@ -54,14 +55,7 @@ import           Types.Context          (Context, RunSem, RunSemGVal)
 
 
 functionsContext
-    :: ( Member File r
-       , Member ByteStringStore r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenReader) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Log String) r
-       )
+    :: GingerSemEffects r
     => Context (RunSem r)
 functionsContext = contextFromList
     [ ("absURL",    pure $ TG.fromFunction absURLF)
@@ -70,16 +64,7 @@ functionsContext = contextFromList
     ]
 
 
-absURLF
-    :: ( Member File r
-       , Member ByteStringStore r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenReader) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Log String) r
-       )
-    => TG.Function (RunSem r)
+absURLF :: GingerSemEffects r => TG.Function (RunSem r)
 absURLF args = do
     mSiteUri <- TG.liftRun (PR.asks @SiteGenConfig sgcSiteUrl)
     let mArg = NU.parseURIReference =<< unpack <$> tryExtractStringArg args -- try to get the relative URI
@@ -104,16 +89,7 @@ absURLF args = do
                               , NU.uriFragment=NU.uriFragment arg })
 
 
-notF
-    :: ( Member File r
-       , Member ByteStringStore r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenReader) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Log String) r
-       )
-    => TG.Function (RunSem r)
+notF :: GingerSemEffects r => TG.Function (RunSem r)
 notF args = pure $ TG.toGVal $ not $ extractBoolArg args
 
 
@@ -121,16 +97,7 @@ notF args = pure $ TG.toGVal $ not $ extractBoolArg args
 -- supply it.  This function is the
 -- "modified-for-this-app-but-copied-from-Sprinkles" function from:
 -- src/Web/Sprinkles/TemplateContext.hs (https://github.com/tdammers/sprinkles)
-getLocaleF -- :: forall p h. (LogLevel -> Text -> IO ()) -> Ginger.Function (Ginger.Run p IO h)
-    :: ( Member File r
-       , Member ByteStringStore r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenReader) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Log String) r
-       )
-    => TG.Function (RunSem r)
+getLocaleF :: GingerSemEffects r => TG.Function (RunSem r)
 getLocaleF args =
     case TG.extractArgsDefL [("category", "LC_TIME"), ("locale", "")] args of
         Right [gCat, gName] ->
@@ -142,5 +109,5 @@ getLocaleF args =
                 {-("LC_TIME", localeName) -> TG.toGVal <$> getLocale (Just localeName)-}
                 (cat, localeName) -> return def -- valid call, but category not implemented
         _ -> do
-            TG.liftRun $ CP.log @String $ "'getlocale' requirs a string category and name - invalid args"
+            TG.liftRun $ CP.log @String "'getlocale' requirs a string category and name - invalid args"
             pure def

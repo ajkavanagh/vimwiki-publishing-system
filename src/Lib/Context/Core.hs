@@ -52,11 +52,10 @@ import           Text.Ginger.Html     (Html, htmlSource)
 import           Effect.File          (File, FileException)
 import qualified Effect.File          as EF
 
-import           Effect.Ginger        (GingerException (..))
-
 import           Types.Context
 
 import qualified Lib.SiteGenConfig    as S
+import           Lib.Errors           (GingerException (..))
 
 import           Experiments.Ginger   (parseToTemplate)
 

@@ -31,32 +31,27 @@ import           Polysemy.Writer             (Writer)
 
 import           Effect.ByteStringStore      (ByteStringStore)
 import           Effect.File                 (File, FileException)
-import           Effect.Ginger               (GingerException (..))
+import           Effect.Ginger               (GingerSemEffects)
 
 import           Experiments.Ginger          (parseToTemplate)
 
-import           Types.Context               (Context, RunSem, RunSemGVal)
 import           Lib.Context.Core            (mergeContexts)
 import           Lib.Context.DynamicContexts (pageFunctionsContext)
+import           Lib.Context.Functions       (functionsContext)
 import           Lib.Context.PageContexts    (pageHeaderContextFor)
 import           Lib.Context.SiteGenConfig   (siteGenConfigContext)
-import           Lib.Context.Functions       (functionsContext)
-import           Lib.Errors                  (SiteGenError)
+import           Lib.Errors                  (GingerException (..),
+                                              SiteGenError)
 import           Lib.Header                  (SourceContext)
 import qualified Lib.Header                  as H
 import           Lib.SiteGenConfig           (SiteGenConfig)
 import           Lib.SiteGenState            (SiteGenReader, SiteGenState)
 
+import           Types.Context               (Context, RunSem, RunSemGVal)
+
 
 makeContextFor
-    :: ( Member File r
-       , Member ByteStringStore r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenReader) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Log String) r
-       )
+    :: GingerSemEffects r
     => SourceContext
     -> Sem r (Context (RunSem (Writer Text : r)))
 makeContextFor sc = do

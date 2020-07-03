@@ -6,7 +6,6 @@ module Lib.Errors
 import           Data.Text         (Text)
 
 import           Effect.File       (FileException (..))
-import           Effect.Ginger     (GingerException (..))
 import           Lib.Header        (SourceContext, SourcePageContext)
 import           Lib.SiteGenConfig (ConfigException (..))
 
@@ -17,6 +16,15 @@ import qualified Text.Pandoc.Error as TPE
                {-| PageDecodeError Text-}
                {-| PandocReadError TPE.PandocError-}
                {-| PandocWriteError TPE.PandocError-}
+
+newtype GingerException = GingerException Text
+
+instance Show GingerException where
+    show ex = "Ginger Exception issue: " ++ ss
+      where
+          ss = case ex of
+              (GingerException s)   -> show s
+
 
 data SiteGenError
     = FileError FilePath Text       -- formed from FileException Filename error

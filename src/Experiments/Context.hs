@@ -25,6 +25,7 @@ import           Data.Function        ((&))
 import           Data.Hashable        (Hashable)
 import           Data.HashMap.Strict  (HashMap)
 import qualified Data.HashMap.Strict  as HashMap
+import           Data.Maybe           (fromMaybe)
 import           Data.Text            (Text)
 import qualified Data.Text            as T
 
@@ -50,7 +51,7 @@ import           Text.Ginger.Html     (Html, htmlSource)
 import           Effect.File          (File, FileException)
 import qualified Effect.File          as EF
 
-import           Effect.Ginger        (GingerException (..))
+import           Lib.Errors           (GingerException (..))
 
 import qualified Lib.SiteGenConfig    as S
 
@@ -137,11 +138,9 @@ contextLookup
     -> RunSemGVal r
 contextLookup ctxt key = do
     TG.liftRun $ CP.log @String $ "The key asked for was " ++ show key
-    case resolveContext ctxt key of
-        Nothing -> do
-            TG.liftRun $ CP.log @String "key was not resolved!"
-            pure def
-        Just f' -> f'
+    fromMaybe (do TG.liftRun $ CP.log @String "key was not resolved!"
+                  pure def)
+              (resolveContext ctxt key)
 
 
 -- so we want to provide the SiteGenConfig structure as a (GVal m) under the

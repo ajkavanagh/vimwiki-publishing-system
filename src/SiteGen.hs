@@ -44,11 +44,11 @@ import           Polysemy.State            (runState)
 -- Application Effects
 import           Effect.ByteStringStore    (BSHMStore, bsStoreAsHash)
 import           Effect.File               (File, FileException, fileToIO)
-import           Effect.Ginger             (GingerException (..))
+{-import           Effect.Ginger             (GingerException (..))-}
 
 -- Local Libraries
 import           Lib.RenderUtils           (renderSourceContext)
-import           Lib.Errors                (SiteGenError, mapSiteGenError)
+import           Lib.Errors                (SiteGenError, mapSiteGenError, GingerException (..))
 import qualified Lib.Files                 as F
 import qualified Lib.Header                as H
 import qualified Lib.RouteUtils            as RU

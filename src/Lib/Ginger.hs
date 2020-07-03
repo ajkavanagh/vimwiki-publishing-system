@@ -49,9 +49,9 @@ import           Text.Ginger.Html       (Html, htmlSource)
 
 import           Effect.File            (File, FileException)
 import qualified Effect.File            as EF
-import           Effect.Ginger          (GingerException (..))
 
 import           Lib.Context.Core       (contextLookup)
+import           Lib.Errors             (GingerException (..))
 import           Lib.ResolvingTemplates (resolveTemplatePath)
 import           Lib.SiteGenConfig      (SiteGenConfig (..))
 import           Types.Context          (Context, RunSem, RunSemGVal)

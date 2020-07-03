@@ -30,6 +30,8 @@ import           Polysemy          (Member)
 import           Polysemy.Reader   (Reader)
 import qualified Polysemy.Reader   as PR
 
+import           Effect.Ginger     (GingerSemEffects)
+
 import           Lib.Context.Core  (contextFromList)
 import qualified Lib.SiteGenConfig as S
 import           Types.Context     (Context, RunSem, RunSemGVal)
@@ -39,19 +41,11 @@ import           Types.Context     (Context, RunSem, RunSemGVal)
 -- so that it can be used to generate the GVal m
 
 
-siteGenConfigContext
-    :: ( Member (Reader S.SiteGenConfig) r
-       , Member (Log String) r
-       )
-    => Context (RunSem r)
+siteGenConfigContext :: GingerSemEffects r => Context (RunSem r)
 siteGenConfigContext = contextFromList [("Site", siteGenMGValM)]
 
 
-siteGenMGValM
-    :: ( Member (Reader S.SiteGenConfig) r
-       , Member (Log String) r
-       )
-    => RunSemGVal r
+siteGenMGValM :: GingerSemEffects r => RunSemGVal r
 siteGenMGValM = do
     TG.liftRun $ CP.log @String "Building the siteGenMGValM value"
     sgc <- TG.liftRun $ PR.ask @S.SiteGenConfig

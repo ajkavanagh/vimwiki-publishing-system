@@ -2,12 +2,10 @@
 {-# LANGUAGE ExtendedDefaultRules  #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE LambdaCase            #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
-{-# LANGUAGE TemplateHaskell       #-}
 {-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
@@ -43,10 +41,10 @@ import qualified Polysemy.Reader      as PR
 import           Polysemy.Writer      (Writer)
 import qualified Polysemy.Writer      as PW
 
-import           Effect.File       (FileException(..))
-import           Effect.Ginger     (GingerException(..))
-import           Lib.SiteGenConfig (ConfigException(..))
-import           Lib.Errors        (mapSiteGenError)
+import           Effect.File          (FileException (..))
+
+import           Lib.Errors           (GingerException (..), mapSiteGenError)
+import           Lib.SiteGenConfig    (ConfigException (..))
 
 -- Experiment with throwing one type of error and catching another.
 

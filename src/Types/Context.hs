@@ -9,15 +9,12 @@ import           Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as HashMap
 import           Data.Text           (Text)
 
-import           Text.Ginger         (GVal, IncludeResolver, Source, SourceName,
-                                      SourcePos, Template, ToGVal, (~>))
+import           Text.Ginger         (FromGVal, GVal, Pair, Run, SourcePos,
+                                      ToGVal, asText, lookupKey, toGVal, (~>))
 import qualified Text.Ginger         as TG
-import           Text.Ginger.Html    (Html, htmlSource)
+import           Text.Ginger.Html    (Html)
 
-import           Polysemy            (Embed, Member, Members, Sem, embed,
-                                      embedToFinal, interpret, makeSem, run,
-                                      runFinal)
-
+import           Polysemy            (Sem)
 
 
 ----
@@ -30,9 +27,9 @@ import           Polysemy            (Embed, Member, Members, Sem, embed,
 -- markdown such that it is used when needed, rather than doing it all up front.
 
 -- This is the type that Ginger runs for Sem r when doing context lookups.
-type RunSem r = TG.Run TG.SourcePos (Sem r) Html
+type RunSem r = Run SourcePos (Sem r) Html
 type GValRunSem r = GVal (RunSem r)
-type RunSemGVal r = TG.Run TG.SourcePos (Sem r) Html (GValRunSem r)
+type RunSemGVal r = Run SourcePos (Sem r) Html (GValRunSem r)
 
 -- The @Context m@ is basically a HashMap of Text to a function that will run
 -- in the Ginger @Run@ monad, that returns a @GVal m@ where @m@ is going to be
@@ -58,16 +55,16 @@ data ContextObjectTypes = SPCObjectType
                         deriving (Show, Eq)
 
 
-instance TG.ToGVal m ContextObjectTypes where
-    toGVal SPCObjectType      = TG.toGVal ":spc:"
-    toGVal VPCObjectType      = TG.toGVal ":vpc:"
-    toGVal TagObjectType      = TG.toGVal ":tag:"
-    toGVal CategoryObjectType = TG.toGVal ":category:"
-    toGVal PagerObjectType    = TG.toGVal ":pager:"
+instance ToGVal m ContextObjectTypes where
+    toGVal SPCObjectType      = toGVal ":spc:"
+    toGVal VPCObjectType      = toGVal ":vpc:"
+    toGVal TagObjectType      = toGVal ":tag:"
+    toGVal CategoryObjectType = toGVal ":category:"
+    toGVal PagerObjectType    = toGVal ":pager:"
 
 
-instance TG.FromGVal m ContextObjectTypes where
-    fromGVal g = TG.lookupKey "_objectType_" g >>= \g' -> case TG.asText g' of
+instance FromGVal m ContextObjectTypes where
+    fromGVal g = lookupKey "_objectType_" g >>= \g' -> case asText g' of
             ""        -> Nothing
             ":spc:"   -> Just SPCObjectType
             ":vpc:"   -> Just VPCObjectType
@@ -76,5 +73,5 @@ instance TG.FromGVal m ContextObjectTypes where
             ":pager:" -> Just PagerObjectType
 
 
-gValContextObjectTypeDictItemFor :: ContextObjectTypes -> TG.Pair m
+gValContextObjectTypeDictItemFor :: ContextObjectTypes -> Pair m
 gValContextObjectTypeDictItemFor cot = "_objectType_" ~> cot

@@ -66,10 +66,9 @@ import           Effect.ByteStringStore (ByteStringStore)
 import qualified Effect.ByteStringStore as EB
 import           Effect.File            (File, FileException)
 import qualified Effect.File            as EF
-import           Effect.Ginger          (GingerException (..))
 
 import           Lib.Context            (makeContextFor)
-import           Lib.Errors             (SiteGenError)
+import           Lib.Errors             (GingerException (..), SiteGenError)
 import           Lib.Files              (ensureDirectoriesExistFor,
                                          writeAndMemo)
 import           Lib.Ginger             (parseToTemplate, renderTemplate)
@@ -100,7 +99,7 @@ renderSourceContext sc = do
                   ++ H.scRoute sc
                   ++ ", file: "
                   ++ show (H.scRelFilePath sc)
-
+    --
     -- find the template
     tName <- resolveTemplateNameForSC sc
     tplt <- parseToTemplate tName
