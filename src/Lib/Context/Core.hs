@@ -57,8 +57,6 @@ import           Types.Context
 import qualified Lib.SiteGenConfig    as S
 import           Lib.Errors           (GingerException (..))
 
-import           Experiments.Ginger   (parseToTemplate)
-
 ----
 
 -- The @Context m@ is the Ginger Context support type that is used to shuffle

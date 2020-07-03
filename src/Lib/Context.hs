@@ -33,8 +33,6 @@ import           Effect.ByteStringStore      (ByteStringStore)
 import           Effect.File                 (File, FileException)
 import           Effect.Ginger               (GingerSemEffects)
 
-import           Experiments.Ginger          (parseToTemplate)
-
 import           Lib.Context.Core            (mergeContexts)
 import           Lib.Context.DynamicContexts (pageFunctionsContext)
 import           Lib.Context.Functions       (functionsContext)
