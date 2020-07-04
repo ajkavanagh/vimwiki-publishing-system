@@ -28,6 +28,7 @@ library:
   dependencies:
     - aeson
     - bytestring
+    - co-log
     - co-log-core
     - co-log-polysemy
     - conduit

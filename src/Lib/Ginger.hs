@@ -15,38 +15,29 @@
 
 module Lib.Ginger where
 
-import           System.FilePath.Posix  (FilePath, isRelative, joinPath,
-                                         makeRelative, normalise, pathSeparator,
-                                         splitPath, takeDirectory, takeFileName,
-                                         (<.>), (</>))
+import           System.FilePath.Posix  (FilePath, (<.>))
 
 import qualified Data.ByteString.UTF8   as DBU
-import           Data.Function          ((&))
-import           Data.Maybe             (isNothing)
 import           Data.Text              (Text)
 import           Data.Text              as T
 
-import           Colog.Core             (logStringStderr)
-import           Colog.Polysemy         (Log, runLogAction)
+import           Colog.Polysemy         (Log)
 import qualified Colog.Polysemy         as CP
-import           Polysemy               (Embed, Member, Members, Sem, embed,
-                                         embedToFinal, interpret, makeSem, run,
-                                         runFinal)
+import           Polysemy               (Member, Members, Sem)
 import           Polysemy.Error         (Error)
 import qualified Polysemy.Error         as PE
 import           Polysemy.Reader        (Reader)
 import qualified Polysemy.Reader        as PR
-import           Polysemy.State         (State)
-import qualified Polysemy.State         as PS
 import           Polysemy.Writer        (Writer)
 import qualified Polysemy.Writer        as PW
 
-import           Text.Ginger            (GVal, IncludeResolver, Source,
-                                         SourceName, SourcePos, Template,
-                                         ToGVal)
+import           Text.Ginger            (IncludeResolver, SourceName, SourcePos,
+                                         Template)
 import qualified Text.Ginger            as TG
 import           Text.Ginger.Html       (Html, htmlSource)
 
+import           Effect.Cache           (Cache)
+import qualified Effect.Cache           as EC
 import           Effect.File            (File, FileException)
 import qualified Effect.File            as EF
 
@@ -57,20 +48,30 @@ import           Lib.SiteGenConfig      (SiteGenConfig (..))
 import           Types.Context          (Context, RunSem, RunSemGVal)
 
 
+-- | parseToTemplate takes a sourcename (filename basically) and resolves it to
+-- a Ginger parsed template.  This is then cached for quicker lookups when the
+-- template is nexted asked for.
 parseToTemplate
     :: Members '[ File
                 , Error FileException
                 , Error GingerException
                 , Reader SiteGenConfig
+                , Cache (Template SourcePos)
                 , Log String
                 ] r
     => SourceName
     -> Sem r (Template SourcePos)
 parseToTemplate source = do
-    res <- TG.parseGingerFile includeResolver source
-    case res of
-        Left parseError -> PE.throw $ GingerException (T.pack $ show parseError)
-        Right tpl       -> pure tpl
+    mTpl <- EC.fetch (T.pack source)
+    case mTpl of
+        Just tpl' -> pure tpl'
+        Nothing -> do
+            res <- TG.parseGingerFile includeResolver source
+            case res of
+                Left parseError -> PE.throw $ GingerException (T.pack $ show parseError)
+                Right tpl       -> do
+                    EC.store (T.pack source) tpl
+                    pure tpl
 
 
 includeResolver

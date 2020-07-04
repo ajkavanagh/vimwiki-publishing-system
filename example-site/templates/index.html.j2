@@ -3,19 +3,17 @@
 <div class="content container">
     {{ content() | raw }}
     <p>This is the page at '{{ Page.Route }}'</p>
-    <p>Pages</>
-    {{ Pages }}
   <div class="posts">
-    {#{% set paginator = Paginate (where .Data.Pages "Type" "post") %}#}
+    {# {% set paginator = Paginate (where .Data.Pages "Type" "post") %}#}
     {% set paginator = paginate(selectPages(), size=5) %}
-    {#{{ range $paginator.Pages }}#}
+    {# {{ range $paginator.Pages }}#}
     {% for page in paginator.Items -%}
         </p>Page is {{ page.Route }}</p>
     <div class="post">
       <h1 class="post-title">
         <a href="{{ page.Permalink }}">{% if page.Draft -%}DRAFT - {% endif -%}{{ page.Title }}</a>
       </h1>
-      <span class="post-date">{{ dateformat(page.Date, "%h %-d, %Y") }}{% if not(page.Site.Params.hideReadingTime) -%} &middot; {{ page.ReadingTime }} minute read{% endif -%}{% if Site.DisqusShortname -%} &middot; <a href="{{ page.Permalink }}#disqus_thread">Comments</a>{% endif -%}
+      <span class="post-date">{{ dateformat(page.Date, "%h %-d, %Y") }}{% if not(page.Site.Params.ReadingTime) -%} &middot; {{ page.ReadingTime }} minute read{% endif -%}{% if Site.DisqusShortname -%} &middot; <a href="{{ page.Permalink }}#disqus_thread">Comments</a>{% endif -%}
 
       {% if page.categories -%}
       <br/>
@@ -26,17 +24,17 @@
       {% if page.tags -%}
       <br/>
       Tags:&nbsp;
-      {% for tag in  page.tags -%}<a class="label" href="{{ "/tags/" | absURL }}{{ tag.url | urlize }}">{{ tag.name }}</a>{% endfor -%}
+      {% for tag in page.tags -%}<a class="label" href="{{ "/tags/" | absURL }}{{ tag.url | urlize }}">{{ tag.name }}</a>{% endfor -%}
       {% endif -%}</span>
 
-      {% if not(Site.Params.truncate) -%}
-        {{ page.Content }}
+      {% if Site.Params.dontTruncate -%}
+        {{ page.content() | raw }}
       {% else -%}
         {% if page.Description -%}
         <p><em>{{ page.Description }}</em></p>
         {% endif -%}
-        {{ page.Summary }}
-        {% if page.Truncated -%}<a href="{{ Permalink }}">Read On &rarr;</a>{% endif -%}
+        {{ page.summary() | raw }}
+        {% if page.Truncated -%}<a href="{{ page.Permalink }}">Read On &rarr;</a>{% endif -%}
       {% endif -%}
     </div>
     {% endfor -%}

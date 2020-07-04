@@ -36,36 +36,27 @@ module Lib.RenderUtils
 
 import           TextShow
 
-import           System.FilePath        (joinPath, normalise, splitDirectories,
-                                         takeDirectory, (</>))
+import           System.FilePath        (normalise, (</>))
 
-import           Control.Monad          (forM_, unless)
-
-import qualified Data.HashSet           as HashSet
-import qualified Data.List              as L
 import           Data.Text              (Text)
 import qualified Data.Text              as T
-import           Data.Text.Encoding     (encodeUtf8)
 
-import           Colog.Core             (logStringStderr)
-import           Colog.Polysemy         (Log, runLogAction)
+import           Colog.Polysemy         (Log)
 import qualified Colog.Polysemy         as CP
-import           Polysemy               (Embed, Member, Members, Sem, embed,
-                                         embedToFinal, interpret, makeSem, run,
-                                         runFinal)
+import           Polysemy               (Member, Members, Sem)
 import           Polysemy.Error         (Error)
 import qualified Polysemy.Error         as PE
 import           Polysemy.Reader        (Reader)
 import qualified Polysemy.Reader        as PR
 import           Polysemy.State         (State)
 import qualified Polysemy.State         as PS
-import           Polysemy.Writer        (Writer)
-import qualified Polysemy.Writer        as PW
+
+import           Text.Ginger            (SourcePos, Template)
 
 import           Effect.ByteStringStore (ByteStringStore)
 import qualified Effect.ByteStringStore as EB
+import           Effect.Cache           (Cache)
 import           Effect.File            (File, FileException)
-import qualified Effect.File            as EF
 import           Effect.Locale          (Locale)
 
 import           Lib.Context            (makeContextFor)
@@ -75,17 +66,17 @@ import           Lib.Files              (ensureDirectoriesExistFor,
 import           Lib.Ginger             (parseToTemplate, renderTemplate)
 import           Lib.Header             (SourceContext)
 import qualified Lib.Header             as H
-import           Lib.ResolvingTemplates as RT
+import           Lib.ResolvingTemplates (resolveTemplateNameForSC)
 import           Lib.RouteUtils         (makeFileNameFrom)
 import           Lib.SiteGenConfig      (SiteGenConfig (..))
-import           Lib.SiteGenState       (FileMemo (..), SiteGenReader (..),
-                                         SiteGenState (..), recordMemo)
+import           Lib.SiteGenState       (SiteGenReader (..), SiteGenState (..))
 
 
 renderSourceContext
     :: ( Member File r
        , Member Locale r
        , Member ByteStringStore r
+       , Member (Cache (Template SourcePos)) r
        , Member (State SiteGenState) r
        , Member (Reader SiteGenReader) r
        , Member (Reader SiteGenConfig) r

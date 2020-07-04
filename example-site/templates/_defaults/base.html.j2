@@ -32,7 +32,7 @@
   {% set authorName = Site.Author.name -%}
   {% if Data.RSSLink -%}<link href="{{ Data.RSSLink }}" rel="alternate" type="application/rss+xml" title="{{ siteTitle }} &middot; {{ authorName }}" />{% endif -%}
 
-  <meta name="description" content="{% if Page.Params.description -%}{{ Page.Params.description }}{% else -%}{{ Site.Params.defaultDescription }}{% endif -%}" />
+  <meta name="description" content="{% if Page.Description -%}{{ Page.Description }}{% else -%}{{ Site.Params.defaultDescription }}{% endif -%}" />
   <meta name="keywords" content="{% if Page.Params.keywords -%}{% for index, element in enumerate(Page.Params.keywords) -%}{% if index > 0 -%},{% endif -%}{{ element }}{% endfor -%}{% else %}{{ Site.Params.defaultKeywords }}{% endif -%}" />
 </head>
 

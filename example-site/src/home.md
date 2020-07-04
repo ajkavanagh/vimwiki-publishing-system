@@ -6,4 +6,4 @@ index-page: true
 
 # Home!
 
-This is the home page.
+This is the home page.  Welcome to the site!

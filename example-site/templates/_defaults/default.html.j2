@@ -1,6 +1,9 @@
 {% extends "base" %}
 {% block main %}
 <!-- this is the _defaults/default.html.j2 template-->
+<div class="toc">
+  {{ Page.toc() | raw }}
+</div>
 <div class="content container">
   <div class="post">
     <h1 class="post-title">{{ Page.Title }}</h1>

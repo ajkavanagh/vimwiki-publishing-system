@@ -39,13 +39,16 @@ import           Polysemy
 import           Polysemy.Error            (Error, errorToIOFinal, mapError)
 import qualified Polysemy.Error            as PE
 import           Polysemy.Reader           (runReader)
-import           Polysemy.State            (runState)
+import           Polysemy.State            (runState, evalState)
+
+import           Text.Ginger               (Template, SourcePos)
 
 -- Application Effects
 import           Effect.ByteStringStore    (BSHMStore, bsStoreAsHash)
 import           Effect.File               (File, FileException, fileToIO)
 {-import           Effect.Ginger             (GingerException (..))-}
 import           Effect.Locale             (Locale, localeToIO, LocaleException)
+import           Effect.Cache              (Cache, CacheStore, cacheInHash)
 
 -- Local Libraries
 import           Lib.RenderUtils           (renderSourceContext)
@@ -221,6 +224,8 @@ runSiteGenSem args = do
         $ runReader @SiteGenReader sgr
         $ runState @BSHMStore HashMap.empty
         $ bsStoreAsHash
+        $ evalState @(CacheStore (Template SourcePos)) HashMap.empty
+        $ cacheInHash @(Template SourcePos)
         $ runState @SiteGenState emptySiteGenState
         $ do
             addToRenderList scs'

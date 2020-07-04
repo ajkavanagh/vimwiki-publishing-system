@@ -110,6 +110,7 @@ instance GingerSemEffects r => TG.ToGVal (RunSem r) H.SourcePageContext where
     toGVal spc =
         TG.dict
             [ gValContextObjectTypeDictItemFor SPCObjectType
+            , "Permalink"       ~> H.spcRoute spc  -- the permalink is currently just the route
             , "Route"           ~> H.spcRoute spc
             , "AbsFilePath"     ~> H.spcAbsFilePath spc
             , "RelFilePath"     ~> H.spcRelFilePath spc
