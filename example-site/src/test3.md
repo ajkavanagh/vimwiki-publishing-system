@@ -3,7 +3,8 @@ random: sample
 ---
 # A file with an almost empty header
 
-It should work, the 'random' is just some extra which is ignored.
+It should work, the 'random' is just some extra which is ignored. And a bit
+more.
 
 A link to [[test1]]
 

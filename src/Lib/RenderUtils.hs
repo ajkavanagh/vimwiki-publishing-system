@@ -38,8 +38,11 @@ import           TextShow
 
 import           System.FilePath        (normalise, (</>))
 
+import           Control.Monad          (when)
+
 import           Data.Text              (Text)
 import qualified Data.Text              as T
+import           Data.Maybe             (isNothing)
 
 import           Colog.Polysemy         (Log)
 import qualified Colog.Polysemy         as CP
@@ -52,21 +55,20 @@ import           Polysemy.State         (State)
 import qualified Polysemy.State         as PS
 
 import           Text.Ginger            (SourcePos, Template)
+import           Text.Pandoc            (Pandoc)
 
-import           Effect.ByteStringStore (ByteStringStore)
-import qualified Effect.ByteStringStore as EB
 import           Effect.Cache           (Cache)
 import           Effect.File            (File, FileException)
 import           Effect.Locale          (Locale)
 
 import           Lib.Context            (makeContextFor)
-import           Lib.Errors             (GingerException (..), SiteGenError)
+import           Lib.Errors             (GingerException (..), SiteGenError (..))
 import           Lib.Files              (ensureDirectoriesExistFor,
                                          writeAndMemo)
 import           Lib.Ginger             (parseToTemplate, renderTemplate)
 import           Lib.Header             (SourceContext)
 import qualified Lib.Header             as H
-import           Lib.ResolvingTemplates (resolveTemplateNameForSC)
+import           Lib.ResolvingTemplates (resolveTemplateNameForSC, resolveTemplateNameRelative)
 import           Lib.RouteUtils         (makeFileNameFrom)
 import           Lib.SiteGenConfig      (SiteGenConfig (..))
 import           Lib.SiteGenState       (SiteGenReader (..), SiteGenState (..))
@@ -75,7 +77,7 @@ import           Lib.SiteGenState       (SiteGenReader (..), SiteGenState (..))
 renderSourceContext
     :: ( Member File r
        , Member Locale r
-       , Member ByteStringStore r
+       , Member (Cache Pandoc) r
        , Member (Cache (Template SourcePos)) r
        , Member (State SiteGenState) r
        , Member (Reader SiteGenReader) r
@@ -94,8 +96,8 @@ renderSourceContext sc = do
                   ++ show (H.scRelFilePath sc)
     --
     -- find the template
-    tName <- resolveTemplateNameForSC sc
-    tplt <- parseToTemplate tName
+    template <- resolveTemplateNameRelative (H.scTemplate sc)
+    tplt <- parseToTemplate template
 
     -- build a Ginger context  -- this contains functions for content()
     -- summary(), toc(), etc.

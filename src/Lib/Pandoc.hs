@@ -38,10 +38,13 @@ import           Polysemy.Reader        (Reader)
 import qualified Polysemy.Reader        as PR
 import           Polysemy.State         (State)
 
-import           Effect.ByteStringStore (ByteStringStore)
-import qualified Effect.ByteStringStore as EB
+import           Text.Pandoc            (Pandoc)
+import qualified Text.Pandoc            as TP
+
 import           Effect.File            (File)
 import qualified Effect.File            as EF
+import           Effect.Cache           (Cache)
+import qualified Effect.Cache           as EC
 
 import           Lib.Errors             (SiteGenError)
 import qualified Lib.Errors             as LE
@@ -51,17 +54,15 @@ import qualified Lib.SiteGenConfig      as SGC
 import           Types.SiteGenState     (SiteGenReader, SiteGenState,
                                          siteVimWikiLinkMap)
 
-import           Lib.PandocUtils        (extractTocItemsToByteString,
-                                         loadTocEither,
-                                         pandocToContentTextEither,
+import           Lib.PandocUtils        (pandocToContentTextEither,
                                          pandocToSummaryTextEither,
                                          parseMarkdown, processPandocAST,
-                                         renderTocItemsToHtml)
+                                         extractToc, renderTocItemsToHtml)
 
 
 scContentM
     :: ( Member File r
-       , Member ByteStringStore r
+       , Member (Cache Pandoc) r
        , Member (State SiteGenState) r
        , Member (Reader SiteGenReader) r
        , Member (Reader SiteGenConfig) r
@@ -76,7 +77,7 @@ scContentM (H.SPC spc) = fetchContentHtml spc
 
 scSummaryM
     :: ( Member File r
-       , Member ByteStringStore r
+       , Member (Cache Pandoc) r
        , Member (State SiteGenState) r
        , Member (Reader SiteGenReader) r
        , Member (Reader SiteGenConfig) r
@@ -92,7 +93,7 @@ scSummaryM (H.SPC spc) b = fetchSummaryHtml spc b
 
 scTocM
     :: ( Member File r
-       , Member ByteStringStore r
+       , Member (Cache Pandoc) r
        , Member (State SiteGenState) r
        , Member (Reader SiteGenReader) r
        , Member (Reader SiteGenConfig) r
@@ -106,18 +107,11 @@ scTocM (H.VPC _) _    = pure ""
 scTocM (H.SPC spc) mi = fetchTocHtml spc mi
 
 
-data ItemType = Content
-              | SummaryRich
-              | SummaryPlain
-              | Toc
-              deriving (Eq, Show)
-
-
--- parse a SourcePageContext content to pandoc and stash the content, summary
--- and toc elements
-processSPCToByteStringStore
+-- | process the SPC to a pandoc AST and cache it/return it.  If it already
+-- exists just return the cached version.
+cachedProcessSPCToPandocAST
     :: ( Member File r
-       , Member ByteStringStore r
+       , Member (Cache Pandoc) r
        , Member (State SiteGenState) r
        , Member (Reader SiteGenReader) r
        , Member (Reader SiteGenConfig) r
@@ -125,79 +119,25 @@ processSPCToByteStringStore
        , Member (Log String) r
        )
     => H.SourcePageContext
-    -> ItemType
-    -> Sem r ByteString
-processSPCToByteStringStore spc item = do
-    CP.log @String $ "Parsing and processing: " <> H.spcRelFilePath spc
-    bs <- EF.readFile (H.spcAbsFilePath spc) (Just $ H.spcHeaderLen spc) Nothing
-    pd <- PE.fromEither $ parseMarkdown bs
-    vws <- PR.asks @SiteGenReader siteVimWikiLinkMap
-    maxSummaryWords <- PR.asks @SiteGenConfig SGC.sgcMaxSummaryWords
-    let pd' = processPandocAST vws pd
-    content <- PE.fromEither (encodeUtf8 <$> pandocToContentTextEither pd')
-    (plain, rich) <- PE.fromEither (pairfmap encodeUtf8 <$> pandocToSummaryTextEither maxSummaryWords pd')
-    let toc = extractTocItemsToByteString pd'
-    -- now store the 4 parts in the ByteString store
-    let key = T.pack $ H.spcRoute spc
-    EB.store (key <> keySuffixFor Content) content
-    EB.store (key <> keySuffixFor SummaryPlain) plain
-    EB.store (key <> keySuffixFor SummaryRich) rich
-    EB.store (key <> keySuffixFor Toc) toc
-    CP.log @String $ "... completed: content, summary and toc for " <> H.spcRelFilePath spc
-    pure $ case item of
-        Content      -> content
-        SummaryPlain -> plain
-        SummaryRich  -> rich
-        Toc          -> toc
+    -> Sem r TP.Pandoc
+cachedProcessSPCToPandocAST spc = do
+    let key = T.pack (H.spcRoute spc) <> "-pandoc-ast"
+    EC.fetch key >>= \case
+        Just pd' -> pure pd'
+        Nothing -> do
+            CP.log @String $ "Parsing and processing: " <> H.spcRelFilePath spc
+            bs <- EF.readFile (H.spcAbsFilePath spc) (Just $ H.spcHeaderLen spc) Nothing
+            pd <- PE.fromEither $ parseMarkdown bs
+            vws <- PR.asks @SiteGenReader siteVimWikiLinkMap
+            let pd'' = processPandocAST vws pd
+            EC.store key pd''
+            pure pd''
 
-
-keySuffixFor :: ItemType -> Text
-keySuffixFor Content      = "-content"
-keySuffixFor SummaryPlain = "-summaryPlain"
-keySuffixFor SummaryRich  = "-summaryRich"
-keySuffixFor Toc          = "-toc"
-
-pairfmap :: (a -> b) -> (a,a) -> (b,b)
-pairfmap f (x,y) = (f x, f y)
-
-
--- | interface functions for fetching the dynamic content.  These are called via
--- the SourceClass class instance on the SourcePageContext.   We assume that
--- the required content is in the ByteStringStore, and if not, then we attempt
--- to process it above.  If band things happen then the Ginger file will not be
--- processed.
-
--- | generic helper to get the bytestring from the store, or process it into
--- existance and return it.
-fetchStoreOrProcessAsBSFor
-    :: ( Member File r
-       , Member ByteStringStore r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenReader) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Log String) r
-       )
-    => H.SourcePageContext
-    -> ItemType
-    -> Sem r ByteString
-fetchStoreOrProcessAsBSFor spc item = do
-    let key = T.pack (H.spcRoute spc) <> keySuffixFor item
-    mBs <- EB.fetch key
-    case mBs of
-        Nothing  -> processSPCToByteStringStore spc item
-        Just bs' -> pure bs'
-
-
-throwOrReturn :: (TextShow e, Member (Error SiteGenError) r) => Either e a -> Sem r a
-throwOrReturn ex = case ex of
-    Left e  -> PE.throw $ LE.OtherError (showt e)
-    Right x -> pure x
 
 
 fetchContentHtml
     :: ( Member File r
-       , Member ByteStringStore r
+       , Member (Cache Pandoc) r
        , Member (State SiteGenState) r
        , Member (Reader SiteGenReader) r
        , Member (Reader SiteGenConfig) r
@@ -207,13 +147,12 @@ fetchContentHtml
     => H.SourcePageContext
     -> Sem r Text
 fetchContentHtml spc =
-    throwOrReturn =<< decodeUtf8' <$> fetchStoreOrProcessAsBSFor spc Content
-
+    PE.fromEither =<< pandocToContentTextEither <$> cachedProcessSPCToPandocAST spc
 
 
 fetchSummaryHtml
     :: ( Member File r
-       , Member ByteStringStore r
+       , Member (Cache Pandoc) r
        , Member (State SiteGenState) r
        , Member (Reader SiteGenReader) r
        , Member (Reader SiteGenConfig) r
@@ -224,13 +163,15 @@ fetchSummaryHtml
     -> Bool
     -> Sem r Text
 fetchSummaryHtml spc isRich = do
-    let item = if isRich then SummaryRich else SummaryPlain
-    throwOrReturn =<< decodeUtf8' <$> fetchStoreOrProcessAsBSFor spc item
+    maxSummaryWords <- PR.asks @SiteGenConfig SGC.sgcMaxSummaryWords
+    -- get Either err (plain, rick) as a Summary
+    res <- pandocToSummaryTextEither maxSummaryWords <$> cachedProcessSPCToPandocAST spc
+    PE.fromEither $ fmap (if isRich then snd else fst) res
 
 
 fetchTocHtml
     :: ( Member File r
-       , Member ByteStringStore r
+       , Member (Cache Pandoc) r
        , Member (State SiteGenState) r
        , Member (Reader SiteGenReader) r
        , Member (Reader SiteGenConfig) r
@@ -241,8 +182,6 @@ fetchTocHtml
     -> Maybe Int
     -> Sem r Text
 fetchTocHtml spc mLevels = do
-    tocItems <- throwOrReturn =<< loadTocEither <$> fetchStoreOrProcessAsBSFor spc Toc
+    tocItems <- extractToc <$> cachedProcessSPCToPandocAST spc
     let levels = fromMaybe 6 mLevels
-    case renderTocItemsToHtml levels tocItems of
-        Left e     -> PE.throw e
-        Right html -> pure html
+    PE.fromEither $ renderTocItemsToHtml levels tocItems

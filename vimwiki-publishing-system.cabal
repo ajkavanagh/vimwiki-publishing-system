@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: eddbb4de919f27c893f369b312db35002d01d90c2f6192d1a7d2ace56e1895b3
+-- hash: d49709fcac11cabd86bc3abdcdedd0fdc4ce61e7abcf0c6cd6d588110793cf4c
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -27,7 +27,6 @@ source-repository head
 
 library
   exposed-modules:
-      Effect.ByteStringStore
       Effect.Cache
       Effect.File
       Effect.Ginger

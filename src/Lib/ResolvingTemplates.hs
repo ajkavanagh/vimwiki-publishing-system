@@ -103,6 +103,40 @@ resolveTemplateNameForSC sc = do
     pure tName
 
 
+resolveTemplateName
+    :: Members '[ File
+                , Error FileException
+                , Reader SiteGenConfig
+                , Log String
+                ] r
+    => String
+    -> Sem r FilePath
+resolveTemplateName tName = do
+    CP.log @String $ "resolveTemplateName: trying to resolve :" <> show tName
+    -- try using the filepath we were sent
+    sgc <- PR.ask @SiteGenConfig
+    let tDir = sgcTemplatesDir sgc
+        tExt = sgcTemplateExt sgc
+    mFp <- resolveTemplatePath tDir tName >>= (\case
+        -- if we got nothing back, try to resolve it with an extension added
+        Nothing -> resolveTemplatePath tDir (tName <.> tExt)
+        fp@(Just _) -> pure fp)
+    maybe (PE.throw $ EF.FileException tName "File Not found") pure mFp
+
+
+resolveTemplateNameRelative
+    :: Members '[ File
+                , Error FileException
+                , Reader SiteGenConfig
+                , Log String
+                ] r
+    => String
+    -> Sem r FilePath
+resolveTemplateNameRelative tName = do
+    tDir <- PR.asks @SiteGenConfig sgcTemplatesDir
+    makeRelative tDir <$> resolveTemplateName tName
+
+
 -- | resolve the actual path using the tPath and tDir.  If tDir is a
 -- subdirectory of tPAth, remove it, and then check it directly, and then with
 -- the _defaults in front of it. If we can't resolve it return Nothing

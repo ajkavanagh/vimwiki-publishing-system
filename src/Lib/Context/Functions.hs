@@ -40,7 +40,6 @@ import qualified Polysemy.Reader        as PR
 import           Polysemy.State         (State)
 import           Polysemy.Writer        (Writer)
 
-import           Effect.ByteStringStore (ByteStringStore)
 import           Effect.File            (File)
 import           Effect.Ginger          (GingerSemEffects)
 import           Effect.Locale          (getLocale)

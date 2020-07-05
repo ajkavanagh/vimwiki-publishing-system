@@ -45,7 +45,6 @@ import           Polysemy.State              (State)
 import qualified Polysemy.State              as PS
 import           Polysemy.Writer             (Writer)
 
-import           Effect.ByteStringStore      (ByteStringStore)
 import           Effect.File                 (File)
 import           Effect.Ginger               (GingerSemEffects)
 

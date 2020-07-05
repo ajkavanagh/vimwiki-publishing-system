@@ -64,8 +64,11 @@ parseToTemplate
 parseToTemplate source = do
     mTpl <- EC.fetch (T.pack source)
     case mTpl of
-        Just tpl' -> pure tpl'
+        Just tpl' -> do
+            CP.log @String $ "\n\n ---->>>>>>>> REUSING: " <> source <> " !!!!!!!"
+            pure tpl'
         Nothing -> do
+            CP.log @String $ "\n\n ---->>>>>>>> ACTUALLY PARSING: " <> source <> " !!!!!!!"
             res <- TG.parseGingerFile includeResolver source
             case res of
                 Left parseError -> PE.throw $ GingerException (T.pack $ show parseError)

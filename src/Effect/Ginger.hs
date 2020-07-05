@@ -27,9 +27,11 @@ import           Polysemy.Reader        (Reader)
 import           Polysemy.State         (State)
 import           Polysemy.Writer        (Writer)
 
-import           Effect.ByteStringStore (ByteStringStore)
+import           Text.Pandoc            (Pandoc)
+
 import           Effect.File            (File)
 import           Effect.Locale          (Locale)
+import           Effect.Cache           (Cache)
 
 import           Types.SiteGenState     (SiteGenReader, SiteGenState)
 
@@ -46,7 +48,7 @@ import           Lib.SiteGenConfig      (SiteGenConfig)
 type GingerSemEffects r
   =    ( Member File r
        , Member Locale r
-       , Member ByteStringStore r
+       , Member (Cache Pandoc) r
        , Member (State SiteGenState) r
        , Member (Reader SiteGenReader) r
        , Member (Reader SiteGenConfig) r

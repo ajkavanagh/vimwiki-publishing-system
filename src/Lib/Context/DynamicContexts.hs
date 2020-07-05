@@ -33,7 +33,6 @@ import           Polysemy.Reader        (Reader)
 import           Polysemy.State         (State)
 import           Polysemy.Writer        (Writer)
 
-import           Effect.ByteStringStore (ByteStringStore)
 import           Effect.File            (File)
 import           Effect.Ginger          (GingerSemEffects)
 

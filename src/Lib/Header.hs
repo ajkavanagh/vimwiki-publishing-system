@@ -30,6 +30,7 @@ module Lib.Header
     , scAbsFilePath
     , scRelFilePath
     , scIndexPage
+    , scTemplate
     ) where
 
 -- header.hs -- extract the header (maybe) from a File
@@ -136,6 +137,11 @@ scRelFilePath (VPC _)   = Nothing
 scIndexPage       :: SourceContext -> Bool
 scIndexPage (SPC spc) = spcIndexPage spc
 scIndexPage (VPC vpc) = vpcIndexPage vpc
+
+
+scTemplate :: SourceContext -> String
+scTemplate (SPC spc) = spcTemplate spc
+scTemplate (VPC vpc) = vpcTemplate vpc
 
 
 data RawPageHeader = RawPageHeader

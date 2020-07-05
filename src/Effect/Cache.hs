@@ -71,6 +71,15 @@ cacheInHash = interpret $ \case
     ClearAll -> PS.put @(CacheStore b) HashMap.empty
 
 
+cacheInHashWith :: forall a b r. CacheStore b
+                -> Sem (Cache b : State (CacheStore b) : r) a
+                -> Sem r a
+cacheInHashWith cs = PS.evalState cs .  cacheInHash
+
+
+emptyCache :: forall b. CacheStore b
+emptyCache = HashMap.empty
+
 
 type CacheFileMap = HashMap Text FilePath
 
