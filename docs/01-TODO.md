@@ -82,7 +82,10 @@
     - [x] enumerate(list) to provide [{item=n, item=item}]  -- we can't produce
 	  pairs, so we'll produce a list of dictionaries that have the index
 	  and them item in them.
-    - [ ] markdownify -- convert a Markdown string into html for inclusion
+    - [x] markdownify -- convert a Markdown string into html for inclusion
+[ ] - make the content, summary and toc functions return `unsafeRawHtml` so
+      they don't have to be pushed through `raw` to extract the text as raw
+      which is what is ALWAYS wanted.
 [ ] Top level keys
     - [ ] Title
     - [ ] Site

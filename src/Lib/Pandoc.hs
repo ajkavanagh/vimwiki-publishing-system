@@ -20,8 +20,6 @@ module Lib.Pandoc where
 
 import           TextShow
 
---import           Control.Applicative    ((<|>))
-
 import           Data.ByteString        (ByteString)
 import           Data.Maybe             (fromMaybe)
 import           Data.Text              (Text)
@@ -185,3 +183,21 @@ fetchTocHtml spc mLevels = do
     tocItems <- extractToc <$> cachedProcessSPCToPandocAST spc
     let levels = fromMaybe 6 mLevels
     PE.fromEither $ renderTocItemsToHtml levels tocItems
+
+
+markdownToHTML
+    :: ( Member File r
+       , Member (Cache Pandoc) r
+       , Member (State SiteGenState) r
+       , Member (Reader SiteGenReader) r
+       , Member (Reader SiteGenConfig) r
+       , Member (Error SiteGenError) r
+       , Member (Log String) r
+       )
+    => Text
+    -> Sem r Text
+markdownToHTML txt = do
+    pd <- PE.fromEither $ parseMarkdown (encodeUtf8 txt)
+    vws <- PR.asks @SiteGenReader siteVimWikiLinkMap
+    let pd' = processPandocAST vws pd
+    PE.fromEither $ pandocToContentTextEither pd'

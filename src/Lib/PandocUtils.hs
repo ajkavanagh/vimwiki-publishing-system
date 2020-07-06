@@ -525,7 +525,7 @@ findSummaryInline :: TP.Meta         -- meta we need to reconstruct
 -- the next block
 findSummaryInline meta dbs cons bs dis [] = findSummary' meta (cons (reverse dis):dbs) bs
 -- if we have an inline with a Str element, we have to see if it is <!--more-->
-findSummaryInline meta dbs cons bs dis ((TP.Str s):ils)
+findSummaryInline meta dbs cons bs dis (TP.Str s:ils)
     | s == "<!--more-->" = Just $ TP.Pandoc meta (reverse (cons (reverse dis):dbs))
 findSummaryInline meta dbs cons bs dis (i:ils) =
     findSummaryInline meta dbs cons bs (i:dis) ils

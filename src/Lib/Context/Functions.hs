@@ -28,6 +28,7 @@ import           Data.Text              (Text, unpack)
 
 import           Text.Ginger            ((~>))
 import qualified Text.Ginger            as TG
+import qualified Text.Ginger.Html       as TGH
 
 import qualified Network.URI            as NU
 
@@ -48,7 +49,7 @@ import           Lib.Context.Core       (contextFromList, extractBoolArg,
                                          tryExtractStringArg, tryExtractListArg)
 import           Lib.Errors             (SiteGenError)
 import qualified Lib.Header             as H
-import           Lib.Pandoc             (scContentM, scSummaryM, scTocM)
+import           Lib.Pandoc             (scContentM, scSummaryM, scTocM, markdownToHTML)
 import           Lib.SiteGenConfig      (SiteGenConfig (..))
 import           Lib.SiteGenState       (SiteGenReader, SiteGenState)
 import           Types.Context          (Context, RunSem, RunSemGVal)
@@ -58,10 +59,11 @@ functionsContext
     :: GingerSemEffects r
     => Context (RunSem r)
 functionsContext = contextFromList
-    [ ("absURL",    pure $ TG.fromFunction absURLF)
-    , ("not",       pure $ TG.fromFunction notF)
-    , ("getlocale", pure $ TG.fromFunction getLocaleF)
-    , ("enumerate", pure $ TG.fromFunction enumerateF)
+    [ ("absURL",      pure $ TG.fromFunction absURLF)
+    , ("not",         pure $ TG.fromFunction notF)
+    , ("getlocale",   pure $ TG.fromFunction getLocaleF)
+    , ("enumerate",   pure $ TG.fromFunction enumerateF)
+    , ("markdownify", pure $ TG.fromFunction markdownifyF)
     ]
 
 
@@ -91,6 +93,8 @@ absURLF args = do
                               , NU.uriFragment=NU.uriFragment arg })
 
 
+-- | notF -- logical NOT of whatever is passed.  What is passed is either
+-- truth-y or false-y and that has not applied to it.
 notF :: GingerSemEffects r => TG.Function (RunSem r)
 notF = pure . TG.toGVal . not . extractBoolArg
 
@@ -121,3 +125,18 @@ enumerateF args =
     case tryExtractListArg args of
         Nothing -> pure $ TG.list []
         Just l -> pure $ TG.list $ zipWith (\i a -> TG.dict ["index" ~> i, "item" ~> a]) [0..] l
+
+
+-- | given a text item in the first argument position, evaluate it as markdown
+-- and then return it as parsed text suitable for direct insertion.  Parse
+-- links, etc and stabalise them, plust allow wiki links.
+-- Note: this is inherently dangerous; any kind of HTML markup and links can
+-- make it to the document; however, this is the same as the content, summary,
+-- and toc functions which do the same.
+markdownifyF :: GingerSemEffects r => TG.Function (RunSem r)
+markdownifyF args =
+    case tryExtractStringArg args of
+        Nothing -> do
+            TG.liftRun $ CP.log "No text arg summied to markdownify!"
+            pure def
+        Just s -> TG.toGVal . TGH.unsafeRawHtml <$> (TG.liftRun . markdownToHTML) s
