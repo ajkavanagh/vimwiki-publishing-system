@@ -149,3 +149,14 @@ extractBoolArg xs =
      in case xs' of
          []        -> False
          ((_,v):_) -> TG.asBoolean v
+
+
+tryExtractListArg
+    :: [(Maybe Text, TG.GVal m)]    -- ^ the args provided by Ginger
+    -> Maybe [TG.GVal m]            -- ^ a Maybe List of the first args
+tryExtractListArg [] = Nothing
+tryExtractListArg xs =
+    let xs' = filter (isNothing . fst) xs
+     in case xs' of
+         [] -> Nothing
+         ((_, v):_) -> TG.asList v

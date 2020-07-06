@@ -210,6 +210,7 @@ runSiteGenSem args = do
     -- Create the SiteGenState and Reader
     let sgr = makeSiteGenReader scs
 
+    -- TODO: filtering whilst in debug; pass in from the command line.
     let scs' = if not (null (extraArgs args))
              then let fp' = head $ extraArgs args
                    in map H.SPC $ filter ((==fp').H.spcRelFilePath) spcs

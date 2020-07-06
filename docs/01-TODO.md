@@ -77,9 +77,11 @@
     a `Template SourcePos` thing and then just return them when they next need
     to be resolved.
 [ ] implement functions for:
-    - [ ] absURL
+    - [x] absURL
     - [ ] urlize (which might be the same as urlencode)
-    - [ ] enumerate(list) to provide [(n, item)]
+    - [x] enumerate(list) to provide [{item=n, item=item}]  -- we can't produce
+	  pairs, so we'll produce a list of dictionaries that have the index
+	  and them item in them.
     - [ ] markdownify -- convert a Markdown string into html for inclusion
 [ ] Top level keys
     - [ ] Title

@@ -45,7 +45,7 @@ import           Effect.Ginger          (GingerSemEffects)
 import           Effect.Locale          (getLocale)
 
 import           Lib.Context.Core       (contextFromList, extractBoolArg,
-                                         tryExtractStringArg)
+                                         tryExtractStringArg, tryExtractListArg)
 import           Lib.Errors             (SiteGenError)
 import qualified Lib.Header             as H
 import           Lib.Pandoc             (scContentM, scSummaryM, scTocM)
@@ -61,6 +61,7 @@ functionsContext = contextFromList
     [ ("absURL",    pure $ TG.fromFunction absURLF)
     , ("not",       pure $ TG.fromFunction notF)
     , ("getlocale", pure $ TG.fromFunction getLocaleF)
+    , ("enumerate", pure $ TG.fromFunction enumerateF)
     ]
 
 
@@ -111,3 +112,12 @@ getLocaleF args =
         _ -> do
             TG.liftRun $ CP.log @String "'getlocale' requirs a string category and name - invalid args"
             pure def
+
+
+-- | given a list in the first argument position, return a list of zipped
+-- dictionaries.  i.e [a] => [{index=i, item=a}] for use in lists
+enumerateF :: GingerSemEffects r => TG.Function (RunSem r)
+enumerateF args =
+    case tryExtractListArg args of
+        Nothing -> pure $ TG.list []
+        Just l -> pure $ TG.list $ zipWith (\i a -> TG.dict ["index" ~> i, "item" ~> a]) [0..] l
