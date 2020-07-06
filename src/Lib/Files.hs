@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds      #-}
 {-# LANGUAGE DataKinds            #-}
 {-# LANGUAGE ExtendedDefaultRules #-}
 {-# LANGUAGE FlexibleContexts     #-}
@@ -36,6 +37,7 @@ import           Data.Function         ((&))
 import qualified Data.List             as L
 import           Data.Maybe            (catMaybes)
 import           Data.Text             (Text)
+import qualified Data.Text             as T
 import           Data.Text.Encoding    (encodeUtf8)
 
 import           Colog.Core            (logStringStderr)
@@ -52,6 +54,8 @@ import qualified Polysemy.State        as PS
 
 import           Effect.File           (File, FileException (..))
 import qualified Effect.File           as EF
+import           Effect.Logging        (LoggingMessage)
+import qualified Effect.Logging        as EL
 
 import           Types.SiteGenState    (FileMemo (..), SiteGenState (..))
 
@@ -65,13 +69,30 @@ import           Lib.SiteGenState      (recordMemo)
 import           Lib.Utils             (strToLower)
 
 
+type RestrictedFilesSemEffects r
+    = ( Member File r
+      , Member (Error FileException) r
+      , Member (Reader SiteGenConfig) r
+      , Member (Log String) r
+      , Member (Log LoggingMessage) r
+      )
+
+
+type FilesSemEffects r
+    = ( Member File r
+      , Member (Error FileException) r
+      , Member (Error SiteGenError) r
+      , Member (Reader SiteGenConfig) r
+      , Member (Log String) r
+      , Member (Log LoggingMessage) r
+      , Member (State SiteGenState) r
+      )
+
+
 -- | Get a list of files for a directory (the FilePath) and an extension
 -- (including the '.').
 sourceDirectory
-    :: Members '[ File
-                , Error FileException
-                , Log String
-                ] r
+    :: RestrictedFilesSemEffects r
     => FilePath
     -> String
     -> Sem r [FilePath]
@@ -91,10 +112,7 @@ isExtensionFileLC ext = (==ext) . strToLower . takeExtension
 -- return True if the filepath file is <= the size provided
 -- runs inside a monad that has IO.
 isSmallerThanM
-    :: Members '[ File
-                , Error FileException
-                , Log String
-                ] r
+    :: RestrictedFilesSemEffects r
     => Int
     -> FilePath
     -> Sem r Bool
@@ -102,7 +120,7 @@ isSmallerThanM size fp = do
     fs <- EF.fileStatus fp
     let size' = (fromIntegral . fileSize) fs
     let ok = size' <= size
-    unless ok $ CP.log @String $ "File " ++ show fp ++ " is too big to process"
+    unless ok $ EL.logError $ T.pack $ "File " ++ show fp ++ " is too big to process"
     pure ok
 
 
@@ -128,11 +146,7 @@ isSmallerThanM size fp = do
 -- read up to maxHeaderSize of the file (into a ByteString) and see if we can
 -- extract a header.
 filePathToMaybeSourcePageContext
-    :: Members '[ File
-                , Error FileException
-                , Reader SiteGenConfig
-                , Log String
-                ] r
+    :: RestrictedFilesSemEffects r
     => FilePath
     -> Sem r (Maybe SourcePageContext)
 filePathToMaybeSourcePageContext fp = do
@@ -145,11 +159,7 @@ filePathToMaybeSourcePageContext fp = do
 -- now convert a bunch of files to a list of SourcePageContexts -- note the list
 -- may be empty if there are not headers available, or the files do not resolve.
 filePathsToSourcePageContexts
-    :: Members '[ File
-                , Error FileException
-                , Reader SiteGenConfig
-                , Log String
-                ] r
+    :: RestrictedFilesSemEffects r
     => [FilePath]
     -> Sem r [SourcePageContext]
 filePathsToSourcePageContexts fs =
@@ -160,11 +170,7 @@ filePathsToSourcePageContexts fs =
 -- SourcePageContexts.  This is the magic function to find out what we need to
 -- process.
 filePathToSourcePageContexts
-    :: Members '[ File
-                , Error FileException
-                , Reader SiteGenConfig
-                , Log String
-                ] r
+    :: RestrictedFilesSemEffects r
     => FilePath       -- the directory
     -> String         -- the extension to filter by
     -> Sem r [SourcePageContext]
@@ -176,12 +182,7 @@ filePathToSourcePageContexts dir ext =
 -- warnings if we overwrite something that we've generated (i.e. in the memo).
 -- Record what we copied.  This function is only called for its side-effects
 copyStaticFiles
-    :: ( Member File r
-       , Member (Error FileException) r
-       , Member (Reader SiteGenConfig) r
-       , Member (State SiteGenState) r
-       , Member (Log String) r
-       )
+    :: FilesSemEffects r
     => Sem r ()
 copyStaticFiles = do
     sgc <- PR.ask @SiteGenConfig
@@ -191,17 +192,13 @@ copyStaticFiles = do
     -- any symlinks
     paths <-  EF.sourceDirectoryDeep False sourceDir
     let paths' = makeRelative sourceDir <$> paths
-    CP.log @String $ "Copying static files from '" <> sourceDir <> "' to '" <> targetDir <> "':"
+    EL.logInfo $ T.pack $ "Copying static files from '" <> sourceDir <> "' to '" <> targetDir <> "':"
     forM_ paths' (copyAndMemoFile sourceDir targetDir)
-    CP.log @String "...done copying."
+    EL.logInfo "...done copying."
 
 
 copyAndMemoFile
-    :: ( Member File r
-       , Member (Error FileException) r
-       , Member (State SiteGenState) r
-       , Member (Log String) r
-       )
+    :: FilesSemEffects r
     => FilePath
     -> FilePath
     -> FilePath
@@ -209,10 +206,9 @@ copyAndMemoFile
 copyAndMemoFile sourceDir targetDir path = do
     let srcFile = normalise (sourceDir </> path)
         toFile  = normalise (targetDir </> path)
-    CP.log @String $ "path is: " <> path
+    EL.logDebug $ T.pack $ "path is: " <> path
     ensureDirectoriesExistFor targetDir path
-    CP.log @String $ "Copying file " <> srcFile
-    CP.log @String $ " to " <> toFile
+    EL.logInfo $ T.pack $ "Copying file " <> srcFile <> " to " <> toFile
     EF.copyFile srcFile toFile
     recordMemo $ FileMemo toFile
 
@@ -222,11 +218,7 @@ copyAndMemoFile sourceDir targetDir path = do
 -- will cause a File Exception.  The function also makes a note of all the
 -- intermediate directories in the memoFiles state (in SiteGenState)
 ensureDirectoriesExistFor
-    :: ( Member File r
-       , Member (State SiteGenState) r
-       , Member (Log String) r
-       , Member (Error FileException) r
-       )
+    :: FilesSemEffects r
     => FilePath     -- The base directory; we've already checked, but doing again does no harm
     -> FilePath     -- the whole additional path including the file
     -> Sem r ()     -- this function is run for it's side-effect.
@@ -239,7 +231,7 @@ ensureDirectoriesExistFor base relFile = do
             dir' = normalise (base </> path)
         exists <- EF.doesDirectoryExist dir'
         unless exists $ do
-            CP.log $ "Directory " <> dir' <> " doesn't exist, creating"
+            EL.logDebug $ T.pack $ "Directory " <> dir' <> " doesn't exist, creating"
             EF.createDirectory dir'
         -- as the directory create worked (no exception), or alreadly exists,
         -- create the memo for it.
@@ -248,13 +240,7 @@ ensureDirectoriesExistFor base relFile = do
 
 -- | write the file and memo it, so we know which file was written.
 writeAndMemo
-    :: ( Member File r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Error FileException) r
-       , Member (Log String) r
-       )
+    :: FilesSemEffects r
     => FilePath
     -> FilePath
     -> Text
@@ -262,22 +248,7 @@ writeAndMemo
 writeAndMemo dir relFile txt = do
     let fullpath = normalise (dir </> relFile)
         nFile = normalise relFile
-    CP.log $ "Writing output to " <> nFile
-    {-CP.log $ "Writing output to " <> fullpath-}
+    EL.logDebug $ T.pack $ "Writing output to " <> nFile
     EF.writeFile fullpath (encodeUtf8 txt)
     -- if the above passed, the memo the file
     recordMemo $ FileMemo nFile
-
-
--- Some tests; we'll delete these when we move to unit testing this module.
--- test if we can get a file list
-
--- TODO: remove these test functions
-
-runTest x = x & EF.fileToIO
-              & PE.errorToIOFinal @FileException
-              & runLogAction @IO logStringStderr  -- [Embed IO, Error ConfigException]
-              & embedToFinal @IO
-              & runFinal
-
-sourceDirectoryP dir ext = sourceDirectory dir ext & runTest

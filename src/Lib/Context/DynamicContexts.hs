@@ -36,6 +36,7 @@ import           Polysemy.Writer   (Writer)
 
 import           Effect.File       (File)
 import           Effect.Ginger     (GingerSemEffects)
+import qualified Effect.Logging    as EL
 
 import           Lib.Context.Core  (contextFromList, tryExtractIntArg)
 import           Lib.Errors        (SiteGenError)
@@ -90,7 +91,7 @@ contentDynamic
     => H.SourceContext
     -> TG.Function (RunSem r)
 contentDynamic sc _ = do           -- content ignores the args
-    TG.liftRun $ CP.log "Dynamic content was asked for"
+    TG.liftRun $ EL.logDebug "Dynamic content was asked for"
     txt <- TG.liftRun $ scContentM sc
     pure $ TG.toGVal $TGH.unsafeRawHtml txt
 

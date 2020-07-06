@@ -47,7 +47,6 @@ siteGenConfigContext = contextFromList [("Site", siteGenMGValM)]
 
 siteGenMGValM :: GingerSemEffects r => RunSemGVal r
 siteGenMGValM = do
-    -- TG.liftRun $ CP.log @String "Building the siteGenMGValM value"
     sgc <- TG.liftRun $ PR.ask @S.SiteGenConfig
     pure $ TG.dict
         [ "siteYaml"           ~> S.sgcSiteYaml sgc

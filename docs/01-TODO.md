@@ -72,7 +72,7 @@
 [ ] Ensure that index files don't need to be reprocessed if none of the
     dependent files have changed.
 [ ] Generate a sitemap.xml file for the site as needed.
-[ ] Cache a template once it has been resolved -> this might be a bit complex,
+[x] Cache a template once it has been resolved -> this might be a bit complex,
     but it's probably possible to cache the resolved template name to
     a `Template SourcePos` thing and then just return them when they next need
     to be resolved.
@@ -90,6 +90,23 @@
     - [ ] Title
     - [ ] Site
     - [ ] Data
+[ ] - Re-do logging and printing functions so that we can control the output
+      nicely.
+    - [x] Write a logging effect that provide severity and optional module
+          logs.
+    - [x] Write a Print effect that provides colorised printing output options.
+    - [ ] Add a '--no-color' switch to the args parsing so that colour or no
+	  colour output can be selected.
+    - [ ] Add a '--debug=xxx' option to extract the level of debugging wanted.
+          Default is None.
+    - [ ] Add colour control to the Logging message effect to disable color if
+          not needed.
+    - [x] Go through the app to change all the log @String to either the print
+          or the logging effect.
+[ ] Generate an RSS feed for the site to describe what's new/published, etc.
+    - [ ] Probably use: https://github.com/bergmark/feed
+    - [ ] Generate RSS and Atom feeds.
+    - [ ] link them somehow to some config or something.
 
 
 I really like the idea of using the top level values as Initial caps, and

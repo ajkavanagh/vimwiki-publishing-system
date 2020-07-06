@@ -33,6 +33,8 @@ import           Polysemy.Error   (Error, throw)
 
 import           Effect.File      (File, FileException)
 import qualified Effect.File      as EF
+import           Effect.Logging   (LoggingMessage)
+import qualified Effect.Logging   as EL
 
 
 -- | define the biggest file we are willing to process
@@ -147,6 +149,7 @@ data SiteGenConfig = SiteGenConfig
 
 getSiteGenConfig
     :: Members '[ Log String
+                , Log LoggingMessage
                 , File
                 , Error FileException
                 , Error ConfigException
@@ -162,6 +165,7 @@ getSiteGenConfig configFileName forceDrafts = do
 
 makeSiteGenConfigFromRaw
     :: Members '[ Log String
+                , Log LoggingMessage
                 , File
                 , Error FileException
                 , Error ConfigException
@@ -202,6 +206,7 @@ makeSiteGenConfigFromRaw configPath rawConfig forceDrafts = do
 
 resolvePath
     :: Members '[ Log String
+                , Log LoggingMessage
                 , File
                 , Error FileException
                 ] r
@@ -210,7 +215,7 @@ resolvePath
     -> String          -- A handy error string to log with (maybe)
     -> Sem r (Maybe FilePath)  -- what to return
 resolvePath "" _ errorStr = do
-    CP.log @String $ "Path  is empty for: " ++ errorStr
+    EL.logError$ T.pack $ "Path  is empty for: " ++ errorStr
     pure Nothing
 resolvePath path root errorStr = do
     resolvedPath <- if head path /= pathSeparator
@@ -220,5 +225,5 @@ resolvePath path root errorStr = do
     if exists
       then pure $ Just resolvedPath
       else do
-          CP.log @String $ "Path " ++ resolvedPath ++ " doesn't exist for: " ++ errorStr
+          EL.logError $ T.pack $ "Path " ++ resolvedPath ++ " doesn't exist for: " ++ errorStr
           pure Nothing

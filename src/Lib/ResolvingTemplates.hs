@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds      #-}
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE GADTs               #-}
@@ -9,6 +10,9 @@
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE TypeOperators       #-}
 
+-- for the pattern stuff with Colog
+{-# LANGUAGE PatternSynonyms       #-}
+
 
 module Lib.ResolvingTemplates where
 
@@ -19,15 +23,21 @@ import           System.FilePath   (FilePath, isRelative, joinPath,
 
 import           Control.Monad     (forM)
 
-import           Polysemy          (Embed, Members, Sem, embed, embedToFinal,
+import           Data.Text                   (Text)
+import qualified Data.Text                   as T
+
+import           Polysemy          (Embed, Member, Sem, embed, embedToFinal,
                                     runFinal)
 import           Polysemy.Error    (Error, throw)
 import qualified Polysemy.Error    as PE
 import           Polysemy.Reader   (Reader)
 import qualified Polysemy.Reader   as PR
+import           Polysemy.State    (State)
 
 import           Effect.File       (File, FileException)
 import qualified Effect.File       as EF
+import           Effect.Logging              (LoggingMessage)
+import qualified Effect.Logging              as EL
 
 import           Lib.Header        (SourcePageContext (..),
                                     VirtualPageContext (..))
@@ -37,6 +47,8 @@ import           Lib.SiteGenConfig (ConfigException, SiteGenConfig (..),
 import           Colog.Core        (logStringStderr)
 import           Colog.Polysemy    (Log, runLogAction)
 import qualified Colog.Polysemy    as CP
+import           Colog.Core.Severity (pattern D, pattern E, pattern I, Severity,
+                                      pattern W)
 
 import           Data.Function     ((&))
 import           Data.List         (dropWhile, inits, intercalate)
@@ -45,7 +57,7 @@ import           Data.List.Split   (splitOn)
 import           Lib.Errors        (SiteGenError (..), mapSiteGenError)
 import           Lib.Files         (filePathToMaybeSourcePageContext)
 import qualified Lib.Header        as H
-import           Lib.SiteGenState  (SiteGenReader, makeSiteGenReader)
+import           Lib.SiteGenState  (SiteGenState, SiteGenReader, makeSiteGenReader)
 
 
 {-
@@ -69,6 +81,20 @@ import           Lib.SiteGenState  (SiteGenReader, makeSiteGenReader)
 -}
 
 
+-- The Effects needed for the functions in this module
+type ResolvingTemplatesSemEffects r
+    = ( Member File r
+      , Member (Reader SiteGenConfig) r
+      , Member (Reader SiteGenReader) r
+      , Member (Error SiteGenError) r
+      , Member (Error FileException) r
+      , Member (Error ConfigException) r
+      , Member (State SiteGenState) r
+      , Member (Log String) r
+      , Member (Log LoggingMessage) r
+      )
+
+
 -- | resolve the template name for an SC
 -- This looks at the template name and the route of the page and resolves the
 -- template to that.  e.g. a route of thing/hello with a template "default" will
@@ -76,12 +102,7 @@ import           Lib.SiteGenState  (SiteGenReader, makeSiteGenReader)
 -- attempt to find "thing/default.<ext>", then "_defaults/thing/default.<ext>"
 -- and finally "_defaults/default.<ext>".
 resolveTemplateNameForSC
-    :: Members '[ Reader SiteGenReader
-                , Reader SiteGenConfig
-                , File
-                , Error SiteGenError
-                , Log String
-                ] r
+    :: ResolvingTemplatesSemEffects r
     => H.SourceContext
     -> Sem r String
 resolveTemplateNameForSC sc = do
@@ -98,21 +119,17 @@ resolveTemplateNameForSC sc = do
             (True, _)      -> tFileName
             (False, True)  -> dir </> tFileName
             (False, False) -> tFileName
-    CP.log $ " >> resolveTemplateNameforSC: template: "
+    EL.logDebug $ T.pack $ " >> resolveTemplateNameforSC: template: "
           <> show tBaseName <> ", route: " <> show sPath <> " -> " <> show tName
     pure tName
 
 
 resolveTemplateName
-    :: Members '[ File
-                , Error FileException
-                , Reader SiteGenConfig
-                , Log String
-                ] r
+    :: ResolvingTemplatesSemEffects r
     => String
     -> Sem r FilePath
 resolveTemplateName tName = do
-    CP.log @String $ "resolveTemplateName: trying to resolve :" <> show tName
+    EL.logDebug $ T.pack $ "resolveTemplateName: trying to resolve :" <> show tName
     -- try using the filepath we were sent
     sgc <- PR.ask @SiteGenConfig
     let tDir = sgcTemplatesDir sgc
@@ -125,11 +142,7 @@ resolveTemplateName tName = do
 
 
 resolveTemplateNameRelative
-    :: Members '[ File
-                , Error FileException
-                , Reader SiteGenConfig
-                , Log String
-                ] r
+    :: ResolvingTemplatesSemEffects r
     => String
     -> Sem r FilePath
 resolveTemplateNameRelative tName = do
@@ -141,14 +154,12 @@ resolveTemplateNameRelative tName = do
 -- subdirectory of tPAth, remove it, and then check it directly, and then with
 -- the _defaults in front of it. If we can't resolve it return Nothing
 resolveTemplatePath
-    :: Members '[ File
-                , Log String
-                ] r
+    :: ResolvingTemplatesSemEffects r
     => FilePath
     -> FilePath
     -> Sem r (Maybe FilePath)
 resolveTemplatePath tDir tPath = do
-    CP.log $ "resolveTemplatePath for: " <> tPath <> " at " <> tDir
+    EL.logDebug $ T.pack $ "resolveTemplatePath for: " <> tPath <> " at " <> tDir
     let relPath = if isRelative tPath then tPath else makeRelative tDir tPath
         fileName = takeFileName relPath
         hasPath = pathSeparator `elem` relPath
@@ -157,17 +168,15 @@ resolveTemplatePath tDir tPath = do
                 -- try actual, then with _defaults, and then _defaults/fileName
                 then [relPath, "_defaults" </> relPath, "_defaults" </> fileName]
                 else [relPath, "_defaults" </> relPath]
-    {-CP.log "Trying paths:"-}
-    {-CP.log $ intercalate "\n" tryPaths-}
     exists <- forM tryPaths EF.doesFileExist
     let pairs = dropWhile (not.snd) $ zip tryPaths exists
     if null pairs
       then do
-          CP.log "Couldn't find a file"
+          EL.logDebug "Couldn't find a file"
           pure Nothing
       else do
           let rFileName = fst $ head pairs
-          CP.log $ "Using " <> show rFileName
+          EL.logDebug $ T.pack $ "Using " <> show rFileName
           pure $ Just rFileName
 
 
@@ -176,12 +185,7 @@ resolveTemplatePath tDir tPath = do
 
 
 testResolveTemplatePathForSC
-    :: Members '[ File
-                , Error SiteGenError
-                , Error FileException
-                , Error ConfigException
-                , Log String
-                ] r
+    :: ResolvingTemplatesSemEffects r
     => Sem r FilePath
 testResolveTemplatePathForSC = do
     sgc <- getSiteGenConfig "./example-site/site.yaml" False
@@ -199,13 +203,14 @@ testResolveTemplatePathForSC = do
 
 
 -- Run the Sem r monad to IO
-runTest x = x & EF.fileToIO
-              & PE.mapError @FileException mapSiteGenError
-              & PE.mapError @ConfigException mapSiteGenError
-              & PE.errorToIOFinal @SiteGenError
-              & runLogAction @IO logStringStderr  -- [Embed IO, Error ConfigException]
-              & embedToFinal @IO
-              & runFinal @IO
+{-runTest x = x & EF.fileToIO-}
+              {-& PE.mapError @FileException mapSiteGenError-}
+              {-& PE.mapError @ConfigException mapSiteGenError-}
+              {-& PE.errorToIOFinal @SiteGenError-}
+              {-& runLogAction @IO logStringStderr  -- [Embed IO, Error ConfigException]-}
+              {-& runLogAction @IO (EL.logActionLevel D)-}
+              {-& embedToFinal @IO-}
+              {-& runFinal @IO-}
 
 
-testRP = testResolveTemplatePathForSC & runTest
+{-testRP = testResolveTemplatePathForSC & runTest-}

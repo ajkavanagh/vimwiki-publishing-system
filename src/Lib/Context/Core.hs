@@ -51,6 +51,8 @@ import           Text.Ginger.Html     (Html, htmlSource)
 
 import           Effect.File          (File, FileException)
 import qualified Effect.File          as EF
+import           Effect.Logging       (LoggingMessage)
+import qualified Effect.Logging       as EL
 
 import           Types.Context
 
@@ -108,6 +110,7 @@ mergeContexts = Context . HashMap.unions . L.reverse . map unContext
 contextLookup
     :: forall r.
        ( Member (Log String) r
+       , Member (Log LoggingMessage) r
        )
     => Context (RunSem r)
     -> Text
@@ -115,11 +118,9 @@ contextLookup
 contextLookup ctxt key =
     case resolveContext ctxt key of
         Nothing -> do
-            TG.liftRun $ CP.log @String $ "contextLookup for key: " ++ T.unpack key ++ " was not resolved!"
+            TG.liftRun $ EL.logWarning $ "contextLookup for key: " <> key <> " was not resolved!"
             pure def
-        Just f -> do
-            -- TG.liftRun $ CP.log @String $ "contextLookup for key: " ++ T.unpack key ++ " resolved"
-            f
+        Just f -> f
 
 
 tryExtractIntArg :: Monad m => [(Maybe Text, TG.GVal m)] -> Maybe Int
@@ -158,5 +159,5 @@ tryExtractListArg [] = Nothing
 tryExtractListArg xs =
     let xs' = filter (isNothing . fst) xs
      in case xs' of
-         [] -> Nothing
+         []         -> Nothing
          ((_, v):_) -> TG.asList v

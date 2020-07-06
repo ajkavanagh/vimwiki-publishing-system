@@ -20,6 +20,7 @@
 module Effect.Logging where
 
 import           Data.Text           (Text)
+import qualified Data.Text           as T
 
 import           Colog.Core.Severity (pattern D, pattern E, pattern I, Severity,
                                       pattern W, filterBySeverity)
@@ -39,8 +40,8 @@ extractSeverity (LM sev _ _) = sev
 
 
 instance Show LoggingMessage where
-    show (LM sev (Just mod) txt) = show $ showSeverity sev <> " (" <> mod <> ") - " <> txt
-    show (LM sev Nothing    txt) = show $ showSeverity sev <> " - " <> txt
+    show (LM sev (Just mod) txt) = T.unpack $ showSeverity sev <> " (" <> mod <> ") - " <> txt
+    show (LM sev Nothing    txt) = T.unpack $ showSeverity sev <> " - " <> txt
 
 
 makeLogger

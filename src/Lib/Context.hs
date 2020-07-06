@@ -20,6 +20,7 @@
 module Lib.Context where
 
 import           Data.Text                   (Text)
+import qualified Data.Text                   as T
 
 import           Colog.Polysemy              (Log)
 import qualified Colog.Polysemy              as CP
@@ -31,6 +32,8 @@ import           Polysemy.Writer             (Writer)
 
 import           Effect.File                 (File, FileException)
 import           Effect.Ginger               (GingerSemEffects)
+import           Effect.Logging              (LoggingMessage)
+import qualified Effect.Logging              as EL
 
 import           Lib.Context.Core            (mergeContexts)
 import           Lib.Context.DynamicContexts (pageFunctionsContext)
@@ -52,7 +55,7 @@ makeContextFor
     => SourceContext
     -> Sem r (Context (RunSem (Writer Text : r)))
 makeContextFor sc = do
-    CP.log @String $ "makeContextFor: " <> show (H.scRoute sc)
+    EL.logDebug $ T.pack $ "makeContextFor: " <> show (H.scRoute sc)
     pure $ mergeContexts [ pageHeaderContextFor sc
                          , siteGenConfigContext
                          , pageFunctionsContext sc

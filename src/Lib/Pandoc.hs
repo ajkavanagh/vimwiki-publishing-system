@@ -1,3 +1,4 @@
+{-# LANGUAGE ConstraintKinds      #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE ExtendedDefaultRules  #-}
 {-# LANGUAGE FlexibleContexts      #-}
@@ -43,6 +44,9 @@ import           Effect.File            (File)
 import qualified Effect.File            as EF
 import           Effect.Cache           (Cache)
 import qualified Effect.Cache           as EC
+import           Effect.Print           (Print)
+import           Effect.Logging         (LoggingMessage)
+import qualified Effect.Logging         as EL
 
 import           Lib.Errors             (SiteGenError)
 import qualified Lib.Errors             as LE
@@ -58,49 +62,30 @@ import           Lib.PandocUtils        (pandocToContentTextEither,
                                          extractToc, renderTocItemsToHtml)
 
 
-scContentM
-    :: ( Member File r
+type PandocSemEffects r
+  =    ( Member File r
        , Member (Cache Pandoc) r
        , Member (State SiteGenState) r
        , Member (Reader SiteGenReader) r
        , Member (Reader SiteGenConfig) r
        , Member (Error SiteGenError) r
        , Member (Log String) r
+       , Member (Log LoggingMessage) r
+       , Member Print r
        )
-    => H.SourceContext
-    -> Sem r Text
+
+
+scContentM :: PandocSemEffects r => H.SourceContext -> Sem r Text
 scContentM (H.VPC _)   = pure ""
 scContentM (H.SPC spc) = fetchContentHtml spc
 
 
-scSummaryM
-    :: ( Member File r
-       , Member (Cache Pandoc) r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenReader) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Log String) r
-       )
-    => H.SourceContext
-    -> Bool
-    -> Sem r Text
+scSummaryM :: PandocSemEffects r => H.SourceContext -> Bool -> Sem r Text
 scSummaryM (H.VPC _) _   = pure ""
 scSummaryM (H.SPC spc) b = fetchSummaryHtml spc b
 
 
-scTocM
-    :: ( Member File r
-       , Member (Cache Pandoc) r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenReader) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Log String) r
-       )
-    => H.SourceContext
-    -> Maybe Int
-    -> Sem r Text
+scTocM :: PandocSemEffects r => H.SourceContext -> Maybe Int -> Sem r Text
 scTocM (H.VPC _) _    = pure ""
 scTocM (H.SPC spc) mi = fetchTocHtml spc mi
 
@@ -108,14 +93,7 @@ scTocM (H.SPC spc) mi = fetchTocHtml spc mi
 -- | process the SPC to a pandoc AST and cache it/return it.  If it already
 -- exists just return the cached version.
 cachedProcessSPCToPandocAST
-    :: ( Member File r
-       , Member (Cache Pandoc) r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenReader) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Log String) r
-       )
+    :: PandocSemEffects r
     => H.SourcePageContext
     -> Sem r TP.Pandoc
 cachedProcessSPCToPandocAST spc = do
@@ -123,7 +101,7 @@ cachedProcessSPCToPandocAST spc = do
     EC.fetch key >>= \case
         Just pd' -> pure pd'
         Nothing -> do
-            CP.log @String $ "Parsing and processing: " <> H.spcRelFilePath spc
+            EL.logInfo $ T.pack $ "Parsing and processing: " <> H.spcRelFilePath spc
             bs <- EF.readFile (H.spcAbsFilePath spc) (Just $ H.spcHeaderLen spc) Nothing
             pd <- PE.fromEither $ parseMarkdown bs
             vws <- PR.asks @SiteGenReader siteVimWikiLinkMap
@@ -133,30 +111,13 @@ cachedProcessSPCToPandocAST spc = do
 
 
 
-fetchContentHtml
-    :: ( Member File r
-       , Member (Cache Pandoc) r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenReader) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Log String) r
-       )
-    => H.SourcePageContext
-    -> Sem r Text
+fetchContentHtml :: PandocSemEffects r => H.SourcePageContext -> Sem r Text
 fetchContentHtml spc =
     PE.fromEither =<< pandocToContentTextEither <$> cachedProcessSPCToPandocAST spc
 
 
 fetchSummaryHtml
-    :: ( Member File r
-       , Member (Cache Pandoc) r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenReader) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Log String) r
-       )
+    :: PandocSemEffects r
     => H.SourcePageContext
     -> Bool
     -> Sem r Text
@@ -168,14 +129,7 @@ fetchSummaryHtml spc isRich = do
 
 
 fetchTocHtml
-    :: ( Member File r
-       , Member (Cache Pandoc) r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenReader) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Log String) r
-       )
+    :: PandocSemEffects r
     => H.SourcePageContext
     -> Maybe Int
     -> Sem r Text
@@ -185,17 +139,7 @@ fetchTocHtml spc mLevels = do
     PE.fromEither $ renderTocItemsToHtml levels tocItems
 
 
-markdownToHTML
-    :: ( Member File r
-       , Member (Cache Pandoc) r
-       , Member (State SiteGenState) r
-       , Member (Reader SiteGenReader) r
-       , Member (Reader SiteGenConfig) r
-       , Member (Error SiteGenError) r
-       , Member (Log String) r
-       )
-    => Text
-    -> Sem r Text
+markdownToHTML :: PandocSemEffects r => Text -> Sem r Text
 markdownToHTML txt = do
     pd <- PE.fromEither $ parseMarkdown (encodeUtf8 txt)
     vws <- PR.asks @SiteGenReader siteVimWikiLinkMap

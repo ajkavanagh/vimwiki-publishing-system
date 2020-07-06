@@ -40,9 +40,9 @@ import           System.FilePath        (normalise, (</>))
 
 import           Control.Monad          (when)
 
+import           Data.Maybe             (isNothing)
 import           Data.Text              (Text)
 import qualified Data.Text              as T
-import           Data.Maybe             (isNothing)
 
 import           Colog.Polysemy         (Log)
 import qualified Colog.Polysemy         as CP
@@ -60,17 +60,22 @@ import           Text.Pandoc            (Pandoc)
 import           Effect.Cache           (Cache)
 import           Effect.File            (File, FileException)
 import           Effect.Locale          (Locale)
+import           Effect.Logging         (LoggingMessage)
+import qualified Effect.Logging         as EL
+import           Effect.Print           (Print)
 
 import           Lib.Context            (makeContextFor)
-import           Lib.Errors             (GingerException (..), SiteGenError (..))
+import           Lib.Errors             (GingerException (..),
+                                         SiteGenError (..))
 import           Lib.Files              (ensureDirectoriesExistFor,
                                          writeAndMemo)
 import           Lib.Ginger             (parseToTemplate, renderTemplate)
 import           Lib.Header             (SourceContext)
 import qualified Lib.Header             as H
-import           Lib.ResolvingTemplates (resolveTemplateNameForSC, resolveTemplateNameRelative)
+import           Lib.ResolvingTemplates (resolveTemplateNameForSC,
+                                         resolveTemplateNameRelative)
 import           Lib.RouteUtils         (makeFileNameFrom)
-import           Lib.SiteGenConfig      (SiteGenConfig (..))
+import           Lib.SiteGenConfig      (ConfigException, SiteGenConfig (..))
 import           Lib.SiteGenState       (SiteGenReader (..), SiteGenState (..))
 
 
@@ -85,15 +90,18 @@ renderSourceContext
        , Member (Error SiteGenError) r
        , Member (Error GingerException) r
        , Member (Error FileException) r
+       , Member (Error ConfigException) r
        , Member (Log String) r
+       , Member (Log LoggingMessage) r
+       , Member Print r
        )
     => SourceContext
     -> Sem r ()
 renderSourceContext sc = do
-    CP.log @String $ "renderSourceContext for route: "
-                  ++ H.scRoute sc
-                  ++ ", file: "
-                  ++ show (H.scRelFilePath sc)
+    EL.logInfo $ T.pack $ "renderSourceContext for route: "
+                       ++ H.scRoute sc
+                       ++ ", file: "
+                       ++ show (H.scRelFilePath sc)
     --
     -- find the template
     template <- resolveTemplateNameRelative (H.scTemplate sc)
@@ -122,6 +130,7 @@ writeOutputFile
        , Member (Error SiteGenError) r
        , Member (Error FileException) r
        , Member (Log String) r
+       , Member (Log LoggingMessage) r
        )
     => SourceContext
     -> Text
@@ -134,10 +143,8 @@ writeOutputFile sc txt = do
         dir = sgcOutputDir sgc
         relFileName = makeFileNameFrom doIndexFiles ext sc
         absFileName = normalise (dir </> relFileName)
-    CP.log @String $ " --> " <> relFileName
-    CP.log @String $ " --> " <> absFileName
-    {-CP.log @String "The output was"-}
-    {-CP.log @String (T.unpack txt)-}
+    EL.logDebug $ T.pack $ " --> " ++ relFileName
+    EL.logDebug $ T.pack $ " --> " ++ absFileName
     -- Need to check that the base output directory exists
     -- Need to test and create any intermediate directories
     ensureDirectoriesExistFor dir relFileName

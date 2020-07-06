@@ -44,6 +44,7 @@ import           Polysemy.Writer        (Writer)
 import           Effect.File            (File)
 import           Effect.Ginger          (GingerSemEffects)
 import           Effect.Locale          (getLocale)
+import qualified Effect.Logging          as EL
 
 import           Lib.Context.Core       (contextFromList, extractBoolArg,
                                          tryExtractStringArg, tryExtractListArg)
@@ -114,7 +115,7 @@ getLocaleF args =
                     pure $ TG.toGVal locale
                 (cat, localeName) -> return def -- valid call, but category not implemented
         _ -> do
-            TG.liftRun $ CP.log @String "'getlocale' requirs a string category and name - invalid args"
+            TG.liftRun $ EL.logWarning "'getlocale' requires a string category and name - invalid args"
             pure def
 
 
@@ -137,6 +138,6 @@ markdownifyF :: GingerSemEffects r => TG.Function (RunSem r)
 markdownifyF args =
     case tryExtractStringArg args of
         Nothing -> do
-            TG.liftRun $ CP.log "No text arg summied to markdownify!"
+            TG.liftRun $ EL.logError "No text arg summied to markdownify!"
             pure def
         Just s -> TG.toGVal . TGH.unsafeRawHtml <$> (TG.liftRun . markdownToHTML) s

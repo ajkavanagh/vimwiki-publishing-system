@@ -10,6 +10,7 @@
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeOperators        #-}
 
+{-# LANGUAGE PatternSynonyms       #-}
 
 module SiteGen
     {-, someOtherFunc-}
@@ -17,9 +18,12 @@ module SiteGen
     {-)-}
       where
 
+import           TextShow
+
 import           Data.Function             ((&))
 import qualified Data.HashMap.Strict       as HashMap
 import           Data.List                 (intercalate)
+import qualified Data.Text                 as T
 
 import           System.Exit               (ExitCode (..), exitWith)
 
@@ -33,6 +37,8 @@ import           Control.Monad             (foldM, forM_, liftM2, unless, when)
 
 -- Polysemy
 import           Colog.Core                (logStringStderr)
+import           Colog.Core.Severity (pattern D, pattern E, pattern I, Severity,
+                                      pattern W)
 import           Colog.Polysemy            (Log, runLogAction)
 import qualified Colog.Polysemy            as CP
 import           Polysemy
@@ -48,6 +54,9 @@ import           Text.Pandoc               (Pandoc)
 import           Effect.File               (File, FileException, fileToIO)
 import           Effect.Locale             (Locale, localeToIO, LocaleException)
 import           Effect.Cache              (Cache, CacheStore, cacheInHashWith, emptyCache)
+import           Effect.Print              (Print, printToIO)
+import qualified Effect.Print              as P
+import           Effect.Logging            (LoggingMessage,logActionLevel)
 
 -- Local Libraries
 import           Lib.RenderUtils           (renderSourceContext)
@@ -154,7 +163,9 @@ runSiteGen args = do
         & mapError @GingerException mapSiteGenError
         & mapError @FileException mapSiteGenError
         & mapError @LocaleException mapSiteGenError
+        & printToIO @IO
         & errorToIOFinal @SiteGenError
+        & runLogAction @IO (logActionLevel D)
         & runLogAction @IO logStringStderr
         & embedToFinal @IO
         & runFinal @IO
@@ -176,8 +187,10 @@ runSiteGenHelper s fp = do
 -- to create the sitegen
 runSiteGenSem
     :: Members '[ Log String
+                , Log LoggingMessage
                 , File
                 , Locale
+                , Print
                 , Error FileException
                 , Error ConfigException
                 , Error GingerException
@@ -188,24 +201,24 @@ runSiteGenSem args = do
     let fp = siteConfigArg args
         draft = draftsArg args
     sgc <- SGC.getSiteGenConfig fp draft
-    CP.log @String "The site gen config is"
-    CP.log @String $ show sgc
+    P.putText "The site gen config is"
+    P.print sgc
     let sourceDir = SGC.sgcSource sgc
     let ext = SGC.sgcExtension sgc
-    CP.log @String $ "Looking in " ++ show sourceDir
-    CP.log @String $ "Extension is " ++ show ext
+    P.putText $ "Looking in " <> showt sourceDir
+    P.putText $ "Extension is " <> showt ext
     spcs <- runReader sgc $ F.filePathToSourcePageContexts sourceDir ext
-    CP.log @String $ "SPCs are:\n" ++ intercalate "\n" (map show spcs)
+    P.putText $ "SPCs are:\n" <> T.pack (intercalate "\n" (map show spcs))
     let files = map H.spcRelFilePath spcs
-    CP.log @String $ "Files are: " ++ intercalate ", " files
-    CP.log @String $ "Routes are: " ++ intercalate ", " (map (show . H.spcRoute) spcs)
+    P.putText $ T.pack $ "Files are: " ++ intercalate ", " files
+    P.putText $ T.pack $ "Routes are: " ++ intercalate ", " (map (show . H.spcRoute) spcs)
     let dr = RU.checkDuplicateRoutesSPC spcs
-    CP.log @String $ "Duplicate routes: " ++ intercalate ", " (map show dr)
+    P.putText $ T.pack $ "Duplicate routes: " ++ intercalate ", " (map show dr)
     let mr = RU.findMissingIndexRoutesSPC spcs
-    CP.log @String $ "Missing routes: Len (" ++ show (length mr) ++ ") = " ++ intercalate ", " mr
+    P.putText $ T.pack $ "Missing routes: Len (" ++ show (length mr) ++ ") = " ++ intercalate ", " mr
     let spcs' = RU.ensureIndexRoutesIn spcs
         scs = RU.addVPCIndexPages spcs'
-    CP.log @String $ "Final route set: " ++ intercalate ", " (map H.scRoute scs)
+    P.putText $ T.pack $ "Final route set: " ++ intercalate ", " (map H.scRoute scs)
     {-CP.log @String $ "Final SourceContext set:\n" ++ intercalate "\n" (map show scs)-}
     -- Create the SiteGenState and Reader
     let sgr = makeSiteGenReader scs
@@ -234,6 +247,6 @@ runSiteGenSem args = do
             go
             when (sgcCopyStaticFiles sgc) F.copyStaticFiles
 
-    CP.log @String $ "Extra: " ++ show (extraArgs args)
+    P.putText $ T.pack $ "Extra: " ++ show (extraArgs args)
 
     pure ()

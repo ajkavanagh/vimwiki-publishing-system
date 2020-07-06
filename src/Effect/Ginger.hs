@@ -17,26 +17,28 @@ module Effect.Ginger
 
 import           TextShow
 
-import           Data.Text              (Text)
+import           Data.Text          (Text)
 
 
-import           Colog.Polysemy         (Log)
-import           Polysemy               (Member, Sem)
-import           Polysemy.Error         (Error)
-import           Polysemy.Reader        (Reader)
-import           Polysemy.State         (State)
-import           Polysemy.Writer        (Writer)
+import           Colog.Polysemy     (Log)
+import           Polysemy           (Member, Sem)
+import           Polysemy.Error     (Error)
+import           Polysemy.Reader    (Reader)
+import           Polysemy.State     (State)
+import           Polysemy.Writer    (Writer)
 
-import           Text.Pandoc            (Pandoc)
+import           Text.Pandoc        (Pandoc)
 
-import           Effect.File            (File)
-import           Effect.Locale          (Locale)
-import           Effect.Cache           (Cache)
+import           Effect.Cache       (Cache)
+import           Effect.File        (File)
+import           Effect.Locale      (Locale)
+import           Effect.Logging     (LoggingMessage)
+import           Effect.Print       (Print)
 
-import           Types.SiteGenState     (SiteGenReader, SiteGenState)
+import           Types.SiteGenState (SiteGenReader, SiteGenState)
 
-import           Lib.Errors             (SiteGenError)
-import           Lib.SiteGenConfig      (SiteGenConfig)
+import           Lib.Errors         (SiteGenError)
+import           Lib.SiteGenConfig  (SiteGenConfig)
 
 
 -- data Ginger m a where
@@ -54,6 +56,8 @@ type GingerSemEffects r
        , Member (Reader SiteGenConfig) r
        , Member (Error SiteGenError) r
        , Member (Log String) r
+       , Member (Log LoggingMessage) r
+       , Member Print r
        )
 
 

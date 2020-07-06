@@ -28,6 +28,7 @@ import           Polysemy.Error         (Error)
 import qualified Polysemy.Error         as PE
 import           Polysemy.Reader        (Reader)
 import qualified Polysemy.Reader        as PR
+import           Polysemy.State         (State)
 import           Polysemy.Writer        (Writer)
 import qualified Polysemy.Writer        as PW
 
@@ -40,12 +41,15 @@ import           Effect.Cache           (Cache)
 import qualified Effect.Cache           as EC
 import           Effect.File            (File, FileException)
 import qualified Effect.File            as EF
+import           Effect.Logging         (LoggingMessage)
+import qualified Effect.Logging         as EL
 
 import           Lib.Context.Core       (contextLookup)
-import           Lib.Errors             (GingerException (..))
+import           Lib.Errors             (GingerException (..), SiteGenError)
 import           Lib.ResolvingTemplates (resolveTemplatePath)
-import           Lib.SiteGenConfig      (SiteGenConfig (..))
+import           Lib.SiteGenConfig      (ConfigException, SiteGenConfig (..))
 import           Types.Context          (Context, RunSem, RunSemGVal)
+import           Types.SiteGenState     (SiteGenReader, SiteGenState)
 
 
 -- | parseToTemplate takes a sourcename (filename basically) and resolves it to
@@ -55,9 +59,14 @@ parseToTemplate
     :: Members '[ File
                 , Error FileException
                 , Error GingerException
+                , Error SiteGenError
+                , Error ConfigException
                 , Reader SiteGenConfig
+                , Reader SiteGenReader
+                , State SiteGenState
                 , Cache (Template SourcePos)
                 , Log String
+                , Log LoggingMessage
                 ] r
     => SourceName
     -> Sem r (Template SourcePos)
@@ -65,10 +74,10 @@ parseToTemplate source = do
     mTpl <- EC.fetch (T.pack source)
     case mTpl of
         Just tpl' -> do
-            CP.log @String $ "\n\n ---->>>>>>>> REUSING: " <> source <> " !!!!!!!"
+            EL.logInfo $ T.pack $ "\n\n ---->>>>>>>> REUSING: " <> source <> " !!!!!!!"
             pure tpl'
         Nothing -> do
-            CP.log @String $ "\n\n ---->>>>>>>> ACTUALLY PARSING: " <> source <> " !!!!!!!"
+            EL.logInfo $ T.pack $ "\n\n ---->>>>>>>> ACTUALLY PARSING: " <> source <> " !!!!!!!"
             res <- TG.parseGingerFile includeResolver source
             case res of
                 Left parseError -> PE.throw $ GingerException (T.pack $ show parseError)
@@ -80,12 +89,17 @@ parseToTemplate source = do
 includeResolver
     :: Members '[ File
                 , Error FileException
+                , Error ConfigException
+                , Error SiteGenError
                 , Reader SiteGenConfig
+                , Reader SiteGenReader
+                , State SiteGenState
                 , Log String
+                , Log LoggingMessage
                 ] r
     => IncludeResolver (Sem r)
 includeResolver source = do
-    CP.log @String $ "includeResolver: trying to resolve :" <> show source
+    EL.logDebug $ T.pack $ "includeResolver: trying to resolve :" <> show source
     -- try using the filepath we were sent
     sgc <- PR.ask @SiteGenConfig
     let tDir = sgcTemplatesDir sgc
@@ -106,6 +120,7 @@ includeResolver source = do
 renderTemplate
     :: ( Member (Error GingerException) r
        , Member (Log String) r
+       , Member (Log LoggingMessage) r
        )
     => Context (RunSem (Writer Text : r))
     -> Template TG.SourcePos
@@ -119,6 +134,7 @@ renderTemplate'
     :: ( Member (Writer Text) r
        , Member (Error GingerException) r
        , Member (Log String) r
+       , Member (Log LoggingMessage) r
        )
     => Context (RunSem r)
     -> Template TG.SourcePos

@@ -47,6 +47,7 @@ import           Polysemy.Writer             (Writer)
 
 import           Effect.File                 (File)
 import           Effect.Ginger               (GingerSemEffects)
+import qualified Effect.Logging              as EL
 
 import           Text.Ginger                 ((~>))
 import qualified Text.Ginger                 as TG
@@ -100,9 +101,7 @@ sourcePageContextM
     :: GingerSemEffects r
     => H.SourcePageContext
     -> RunSemGVal r
-sourcePageContextM spc = do
-    -- TG.liftRun $ CP.log @String $ "Building sourcePageContextM for " ++ show (H.spcRoute spc)
-    pure $ TG.toGVal spc
+sourcePageContextM spc = pure $ TG.toGVal spc
 
 
 instance GingerSemEffects r => TG.ToGVal (RunSem r) H.SourcePageContext where
@@ -210,7 +209,7 @@ paginateF sc args = do
     let (items, mSize) = extractListAndOptionalSize args
     if null items
         then do
-            TG.liftRun $ CP.log @String "No Items provided to paginate() ?"
+            TG.liftRun $ EL.logError "No Items provided to paginate() ?"
             pure def
             -- determine if there is a pager already for the current route
         else case HashMap.lookup route pagerSet of
