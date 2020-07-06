@@ -4,8 +4,7 @@
 <div class="content container">
   <div class="post">
     <h1 class="post-title">{{ Page.Title }}</h1>
-    {# content() is a function that returns HTML and needs to be put it raw. #}
-    {{ Page.content() | raw }}
+    {{ Page.content() }}
   </div>
 </div>
 {% endblock %}

@@ -19,30 +19,31 @@
 
 module Lib.Context.DynamicContexts where
 
-import           Data.Maybe             (isNothing)
-import           Data.Text              (Text)
+import           Data.Maybe        (isNothing)
+import           Data.Text         (Text)
 
-import           Text.Ginger            ((~>))
-import qualified Text.Ginger            as TG
+import           Text.Ginger       ((~>))
+import qualified Text.Ginger       as TG
+import qualified Text.Ginger.Html  as TGH
 
-import           Colog.Polysemy         (Log)
-import qualified Colog.Polysemy         as CP
-import           Polysemy               (Member, Sem)
-import           Polysemy.Error         (Error)
-import           Polysemy.Reader        (Reader)
-import           Polysemy.State         (State)
-import           Polysemy.Writer        (Writer)
+import           Colog.Polysemy    (Log)
+import qualified Colog.Polysemy    as CP
+import           Polysemy          (Member, Sem)
+import           Polysemy.Error    (Error)
+import           Polysemy.Reader   (Reader)
+import           Polysemy.State    (State)
+import           Polysemy.Writer   (Writer)
 
-import           Effect.File            (File)
-import           Effect.Ginger          (GingerSemEffects)
+import           Effect.File       (File)
+import           Effect.Ginger     (GingerSemEffects)
 
-import           Lib.Context.Core       (contextFromList, tryExtractIntArg)
-import           Lib.Errors             (SiteGenError)
-import qualified Lib.Header             as H
-import           Lib.Pandoc             (scContentM, scSummaryM, scTocM)
-import           Lib.SiteGenConfig      (SiteGenConfig)
-import           Lib.SiteGenState       (SiteGenReader, SiteGenState)
-import           Types.Context          (Context, RunSem, RunSemGVal)
+import           Lib.Context.Core  (contextFromList, tryExtractIntArg)
+import           Lib.Errors        (SiteGenError)
+import qualified Lib.Header        as H
+import           Lib.Pandoc        (scContentM, scSummaryM, scTocM)
+import           Lib.SiteGenConfig (SiteGenConfig)
+import           Lib.SiteGenState  (SiteGenReader, SiteGenState)
+import           Types.Context     (Context, RunSem, RunSemGVal)
 
 
 -- Basically, this module provides the 'content', 'summary' and 'toc' html
@@ -83,7 +84,7 @@ funcDynamicMGValM f sc = pure $ TG.fromFunction $ f sc
 
 
 -- | fetch the content dynamically as a function call from the context.  i.e. it
--- has to be called as "content()", probably with a "| raw" filter.
+-- has to be called as "content()". Note it provides RAW html, not text.
 contentDynamic
     :: GingerSemEffects r
     => H.SourceContext
@@ -91,10 +92,10 @@ contentDynamic
 contentDynamic sc _ = do           -- content ignores the args
     TG.liftRun $ CP.log "Dynamic content was asked for"
     txt <- TG.liftRun $ scContentM sc
-    pure $ TG.toGVal txt
+    pure $ TG.toGVal $TGH.unsafeRawHtml txt
 
 
--- | fetch the summary of the page.
+-- | fetch the summary of the page, as raw html
 -- TODO: match the args for plain=True to select for plain summary rather than
 --       rich summary
 summaryDynamic
@@ -103,12 +104,12 @@ summaryDynamic
     -> TG.Function (RunSem r)
 summaryDynamic sc _ = do   -- summary ignores the args, and selects for Rich only
     txt <- TG.liftRun $ scSummaryM sc True
-    pure $ TG.toGVal txt
+    pure $ TG.toGVal $ TGH.unsafeRawHtml txt
 
 
 -- | fetch the table of contents for the page.
 -- The argument is the level as an Integer which determines how many levels to
--- return in the HTML fragment.
+-- return in the RAW HTML fragment.
 tocDynamic
     :: GingerSemEffects r
     => H.SourceContext
@@ -116,4 +117,4 @@ tocDynamic
 tocDynamic sc args = do
     let mLevels = tryExtractIntArg args
     txt <- TG.liftRun $ scTocM sc mLevels
-    pure $ TG.toGVal txt
+    pure $ TG.toGVal $ TGH.unsafeRawHtml txt

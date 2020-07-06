@@ -1,7 +1,7 @@
 {% extends "base" %}
 {% block main %}
 <div class="content container">
-    {{ content() | raw }}
+    {{ content() }}
     <p>This is the page at '{{ Page.Route }}'</p>
   <div class="posts">
     {# {% set paginator = Paginate (where .Data.Pages "Type" "post") %}#}
@@ -33,7 +33,7 @@
         {% if page.Description -%}
         <p><em>{{ page.Description }}</em></p>
         {% endif -%}
-        {{ page.summary() | raw }}
+        {{ page.summary() }}
         {% if page.Truncated -%}<a href="{{ page.Permalink }}">Read On &rarr;</a>{% endif -%}
       {% endif -%}
     </div>
