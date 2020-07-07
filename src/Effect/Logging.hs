@@ -33,6 +33,7 @@ import           Polysemy            (Member, Sem)
 
 
 data LoggingMessage = LM Severity (Maybe Text) Text
+                      deriving Eq
 
 
 extractSeverity :: LoggingMessage -> Severity

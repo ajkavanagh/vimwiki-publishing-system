@@ -69,7 +69,6 @@ type PandocSemEffects r
        , Member (Reader SiteGenReader) r
        , Member (Reader SiteGenConfig) r
        , Member (Error SiteGenError) r
-       , Member (Log String) r
        , Member (Log LoggingMessage) r
        , Member Print r
        )

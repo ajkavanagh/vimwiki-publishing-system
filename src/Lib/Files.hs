@@ -73,7 +73,6 @@ type RestrictedFilesSemEffects r
     = ( Member File r
       , Member (Error FileException) r
       , Member (Reader SiteGenConfig) r
-      , Member (Log String) r
       , Member (Log LoggingMessage) r
       )
 
@@ -83,7 +82,6 @@ type FilesSemEffects r
       , Member (Error FileException) r
       , Member (Error SiteGenError) r
       , Member (Reader SiteGenConfig) r
-      , Member (Log String) r
       , Member (Log LoggingMessage) r
       , Member (State SiteGenState) r
       )

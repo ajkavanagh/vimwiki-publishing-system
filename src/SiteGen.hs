@@ -186,8 +186,7 @@ runSiteGenHelper s fp = do
 -- the full read-only config for the site from the site.yaml.  Then we use that
 -- to create the sitegen
 runSiteGenSem
-    :: Members '[ Log String
-                , Log LoggingMessage
+    :: Members '[ Log LoggingMessage
                 , File
                 , Locale
                 , Print

@@ -90,7 +90,6 @@ type ResolvingTemplatesSemEffects r
       , Member (Error FileException) r
       , Member (Error ConfigException) r
       , Member (State SiteGenState) r
-      , Member (Log String) r
       , Member (Log LoggingMessage) r
       )
 

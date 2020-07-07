@@ -108,10 +108,7 @@ mergeContexts = Context . HashMap.unions . L.reverse . map unContext
 -- dynamic lookup function to actually run once per invocation, not every time
 -- it runs.  Perhaps add a wrapper for a memoised context?
 contextLookup
-    :: forall r.
-       ( Member (Log String) r
-       , Member (Log LoggingMessage) r
-       )
+    :: Member (Log LoggingMessage) r
     => Context (RunSem r)
     -> Text
     -> RunSemGVal r

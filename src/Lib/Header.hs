@@ -94,6 +94,8 @@ import           Polysemy.Reader       (Reader, ask)
 
 -- effects for Polysemy
 import           Effect.File           (File, FileException (..), fileStatus)
+import           Effect.Logging        (LoggingMessage)
+import qualified Effect.Logging        as EL
 
 -- Local imports
 import           Lib.Dates             (parseDate)
@@ -290,9 +292,9 @@ emptyVirtualPageContext = def VirtualPageContext
 ---
 
 
-maybeDecodeHeader :: Members '[ Log String
-                              , Reader S.SiteGenConfig
+maybeDecodeHeader :: Members '[ Reader S.SiteGenConfig
                               , Reader HeaderContext
+                              , Log LoggingMessage
                               ] r
                   => ByteString
                   -> Sem r (Maybe SourcePageContext)
@@ -303,7 +305,7 @@ maybeDecodeHeader bs = do
         Just (Right rph) ->
             Just <$> makeSourcePageContextFromRawPageHeader rph count
         Just (Left ex) -> do
-            log @String $ "Error decoding yaml block: " ++ show ex
+            EL.logError $ T.pack $ "Error decoding yaml block: " ++ show ex
             pure Nothing
         Nothing -> pure Nothing
 
@@ -313,10 +315,10 @@ maybeDecodeHeader bs = do
 -- be in the HeaderContext when construction the actual HeaderContext for the render
 -- and the SourcePageContext is not really needed (or at least the RawPageHeader is not
 -- needed).  We should resolve these in HeaderContext
-makeSourcePageContextFromRawPageHeader :: Members '[ Log String
-                                                  , Reader S.SiteGenConfig
-                                                  , Reader HeaderContext
-                                                  ] r
+makeSourcePageContextFromRawPageHeader :: Members '[ Reader S.SiteGenConfig
+                                                   , Reader HeaderContext
+                                                   , Log LoggingMessage
+                                                   ] r
                                 => RawPageHeader
                                 -> Int
                                 -> Sem r SourcePageContext
@@ -400,14 +402,14 @@ pick = flip fromMaybe
 
 -- Convert the MaybeString into a Maybe UTCTime; logging if the date can't be
 -- decoded.
-convertDate :: Member (Log String) r
+convertDate :: Member (Log LoggingMessage) r
             => Maybe String
             -> Sem r (Maybe UTCTime)
 convertDate Nothing = pure Nothing
 convertDate (Just s) =
     case parseDate s of
         Nothing -> do
-            log @String $ "Couldn't decode date string: " ++ s
+            EL.logError $ T.pack $ "Couldn't decode date string: " ++ s
             pure Nothing
         Just t -> pure $ Just t
 

@@ -65,7 +65,6 @@ parseToTemplate
                 , Reader SiteGenReader
                 , State SiteGenState
                 , Cache (Template SourcePos)
-                , Log String
                 , Log LoggingMessage
                 ] r
     => SourceName
@@ -94,7 +93,6 @@ includeResolver
                 , Reader SiteGenConfig
                 , Reader SiteGenReader
                 , State SiteGenState
-                , Log String
                 , Log LoggingMessage
                 ] r
     => IncludeResolver (Sem r)
@@ -119,7 +117,6 @@ includeResolver source = do
 -- 'r' bit as the @Context m@, but not @Sem r@ that comes into the function.
 renderTemplate
     :: ( Member (Error GingerException) r
-       , Member (Log String) r
        , Member (Log LoggingMessage) r
        )
     => Context (RunSem (Writer Text : r))
@@ -133,7 +130,6 @@ renderTemplate ctxt tpl = do
 renderTemplate'
     :: ( Member (Writer Text) r
        , Member (Error GingerException) r
-       , Member (Log String) r
        , Member (Log LoggingMessage) r
        )
     => Context (RunSem r)

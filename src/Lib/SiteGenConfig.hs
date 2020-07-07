@@ -111,8 +111,7 @@ instance Y.FromJSON RawSiteGenConfig where
 
 
 readConfig
-    :: Members '[ Log String
-                , File
+    :: Members '[ File
                 , Error FileException
                 , Error ConfigException
                 ] r
@@ -148,8 +147,7 @@ data SiteGenConfig = SiteGenConfig
 
 
 getSiteGenConfig
-    :: Members '[ Log String
-                , Log LoggingMessage
+    :: Members '[ Log LoggingMessage
                 , File
                 , Error FileException
                 , Error ConfigException
@@ -164,8 +162,7 @@ getSiteGenConfig configFileName forceDrafts = do
 
 
 makeSiteGenConfigFromRaw
-    :: Members '[ Log String
-                , Log LoggingMessage
+    :: Members '[ Log LoggingMessage
                 , File
                 , Error FileException
                 , Error ConfigException
@@ -205,8 +202,7 @@ makeSiteGenConfigFromRaw configPath rawConfig forceDrafts = do
 
 
 resolvePath
-    :: Members '[ Log String
-                , Log LoggingMessage
+    :: Members '[ Log LoggingMessage
                 , File
                 , Error FileException
                 ] r

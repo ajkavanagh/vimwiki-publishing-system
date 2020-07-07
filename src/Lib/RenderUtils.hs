@@ -91,7 +91,6 @@ renderSourceContext
        , Member (Error GingerException) r
        , Member (Error FileException) r
        , Member (Error ConfigException) r
-       , Member (Log String) r
        , Member (Log LoggingMessage) r
        , Member Print r
        )
@@ -129,7 +128,6 @@ writeOutputFile
        , Member (Reader SiteGenConfig) r
        , Member (Error SiteGenError) r
        , Member (Error FileException) r
-       , Member (Log String) r
        , Member (Log LoggingMessage) r
        )
     => SourceContext

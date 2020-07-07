@@ -30,6 +30,9 @@ import           Polysemy.Error    (Error, errorToIOFinal, runError, throw)
 import           Polysemy.Output   (runOutputList)
 import           Polysemy.Reader   (runReader)
 
+-- The logging effect
+import           Effect.Logging    (LoggingMessage)
+
 -- Bits to get the tests to compile
 import           Lib.Dates         (parseDate)
 import           Lib.SiteGenConfig (SiteGenConfig (..))
@@ -157,13 +160,13 @@ maybeExtractHeaderBlockSpecs = --do
 
 
 runMaybeDecodeHeader :: SiteGenConfig -> HeaderContext -> ByteString
-                     -> ([String], Maybe SourcePageContext)
+                     -> ([LoggingMessage], Maybe SourcePageContext)
 runMaybeDecodeHeader sgc rc txt =
-    maybeDecodeHeader txt          -- [Log String , Reader SiteGenConfig , Reader HeaderContext]
-        & runLogAsOutput           -- [????, Reader SiteGenConfig, Reader HeaderContext]
-        & runOutputList            -- [Reader SiteGenConfig, Reader HeaderContext]
-        & runReader sgc            -- [Reader HeaderContext]
-        & runReader rc             -- []
+    maybeDecodeHeader txt
+        & (runLogAsOutput @LoggingMessage)
+        & (runOutputList @LoggingMessage)
+        & runReader sgc
+        & runReader rc
         & run
 
 
