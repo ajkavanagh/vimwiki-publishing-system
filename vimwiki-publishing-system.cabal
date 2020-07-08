@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 4b16344a2f08e9157ee44dc51030186c22340c1751aa2bbc24c477e4e17ce26e
+-- hash: b84c822cc62735103b92b01a43f992ead5e0bdfa6e4e36c1a14e4b511c778853
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -54,6 +54,7 @@ library
       Lib.RouteUtils
       Lib.SiteGenConfig
       Lib.SiteGenState
+      Lib.SpecialPages.Four04
       Lib.Utils
       SiteGen
       Types.Context

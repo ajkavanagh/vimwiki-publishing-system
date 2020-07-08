@@ -32,10 +32,9 @@
       searched for.
   [ ] need to deal with 404.html page we want to custom generate it, and it
       should have a template.
-[ ] 404 pages
-  [ ] recognise and filter out any page with a `/404` route as part of
-      'normal' page rendering.
-  [ ] generate and recognise the 404 page particularly, 1st check that the
+[x] 404 pages
+  [x] recognise a page with a `/404` route as part of 'normal' page rendering.
+  [x] generate and recognise the 404 page particularly, 1st check that the
       template is available and route it directly in the `RenderContext`.
 [x] Index Pages
   [x] ensure that the default for template is `index` if the page is an index

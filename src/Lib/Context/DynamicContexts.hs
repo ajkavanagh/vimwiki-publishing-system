@@ -91,7 +91,7 @@ contentDynamic
     => H.SourceContext
     -> TG.Function (RunSem r)
 contentDynamic sc _ = do           -- content ignores the args
-    TG.liftRun $ EL.logDebug "Dynamic content was asked for"
+    --TG.liftRun $ EL.logDebug "Dynamic content was asked for"
     txt <- TG.liftRun $ scContentM sc
     pure $ TG.toGVal $TGH.unsafeRawHtml txt
 

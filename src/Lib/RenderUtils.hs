@@ -141,8 +141,8 @@ writeOutputFile sc txt = do
         dir = sgcOutputDir sgc
         relFileName = makeFileNameFrom doIndexFiles ext sc
         absFileName = normalise (dir </> relFileName)
-    EL.logDebug $ T.pack $ " --> " ++ relFileName
-    EL.logDebug $ T.pack $ " --> " ++ absFileName
+    --EL.logDebug $ T.pack $ " --> " ++ relFileName
+    --EL.logDebug $ T.pack $ " --> " ++ absFileName
     -- Need to check that the base output directory exists
     -- Need to test and create any intermediate directories
     ensureDirectoriesExistFor dir relFileName

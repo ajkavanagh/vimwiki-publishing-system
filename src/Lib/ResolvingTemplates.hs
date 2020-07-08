@@ -1,4 +1,4 @@
-{-# LANGUAGE ConstraintKinds      #-}
+{-# LANGUAGE ConstraintKinds     #-}
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE GADTs               #-}
@@ -11,53 +11,54 @@
 {-# LANGUAGE TypeOperators       #-}
 
 -- for the pattern stuff with Colog
-{-# LANGUAGE PatternSynonyms       #-}
+{-# LANGUAGE PatternSynonyms     #-}
 
 
 module Lib.ResolvingTemplates where
 
-import           System.FilePath   (FilePath, isRelative, joinPath,
-                                    makeRelative, normalise, pathSeparator,
-                                    splitPath, takeDirectory, takeFileName,
-                                    (<.>), (</>))
+import           System.FilePath     (FilePath, isRelative, joinPath,
+                                      makeRelative, normalise, pathSeparator,
+                                      splitPath, takeDirectory, takeFileName,
+                                      (<.>), (</>))
 
-import           Control.Monad     (forM)
+import           Control.Monad       (forM)
 
-import           Data.Text                   (Text)
-import qualified Data.Text                   as T
+import           Data.Text           (Text)
+import qualified Data.Text           as T
 
-import           Polysemy          (Embed, Member, Sem, embed, embedToFinal,
-                                    runFinal)
-import           Polysemy.Error    (Error, throw)
-import qualified Polysemy.Error    as PE
-import           Polysemy.Reader   (Reader)
-import qualified Polysemy.Reader   as PR
-import           Polysemy.State    (State)
+import           Polysemy            (Embed, Member, Sem, embed, embedToFinal,
+                                      runFinal)
+import           Polysemy.Error      (Error, throw)
+import qualified Polysemy.Error      as PE
+import           Polysemy.Reader     (Reader)
+import qualified Polysemy.Reader     as PR
+import           Polysemy.State      (State)
 
-import           Effect.File       (File, FileException)
-import qualified Effect.File       as EF
-import           Effect.Logging              (LoggingMessage)
-import qualified Effect.Logging              as EL
+import           Effect.File         (File, FileException)
+import qualified Effect.File         as EF
+import           Effect.Logging      (LoggingMessage)
+import qualified Effect.Logging      as EL
 
-import           Lib.Header        (SourcePageContext (..),
-                                    VirtualPageContext (..))
-import           Lib.SiteGenConfig (ConfigException, SiteGenConfig (..),
-                                    getSiteGenConfig)
+import           Lib.Header          (SourcePageContext (..),
+                                      VirtualPageContext (..))
+import           Lib.SiteGenConfig   (ConfigException, SiteGenConfig (..),
+                                      getSiteGenConfig)
 -- for tests -- remove when removing test code
-import           Colog.Core        (logStringStderr)
-import           Colog.Polysemy    (Log, runLogAction)
-import qualified Colog.Polysemy    as CP
+import           Colog.Core          (logStringStderr)
 import           Colog.Core.Severity (pattern D, pattern E, pattern I, Severity,
                                       pattern W)
+import           Colog.Polysemy      (Log, runLogAction)
+import qualified Colog.Polysemy      as CP
 
-import           Data.Function     ((&))
-import           Data.List         (dropWhile, inits, intercalate)
-import           Data.List.Split   (splitOn)
+import           Data.Function       ((&))
+import           Data.List           (dropWhile, inits, intercalate)
+import           Data.List.Split     (splitOn)
 
-import           Lib.Errors        (SiteGenError (..), mapSiteGenError)
-import           Lib.Files         (filePathToMaybeSourcePageContext)
-import qualified Lib.Header        as H
-import           Lib.SiteGenState  (SiteGenState, SiteGenReader, makeSiteGenReader)
+import           Lib.Errors          (SiteGenError (..), mapSiteGenError)
+import           Lib.Files           (filePathToMaybeSourcePageContext)
+import qualified Lib.Header          as H
+import           Lib.SiteGenState    (SiteGenReader, SiteGenState,
+                                      makeSiteGenReader)
 
 
 {-
@@ -123,21 +124,28 @@ resolveTemplateNameForSC sc = do
     pure tName
 
 
-resolveTemplateName
+resolveTemplateName'
     :: ResolvingTemplatesSemEffects r
     => String
-    -> Sem r FilePath
-resolveTemplateName tName = do
-    EL.logDebug $ T.pack $ "resolveTemplateName: trying to resolve :" <> show tName
+    -> Sem r (Maybe FilePath)
+resolveTemplateName' tName = do
+    --EL.logDebug $ T.pack $ "resolveTemplateName: trying to resolve :" <> show tName
     -- try using the filepath we were sent
     sgc <- PR.ask @SiteGenConfig
     let tDir = sgcTemplatesDir sgc
         tExt = sgcTemplateExt sgc
-    mFp <- resolveTemplatePath tDir tName >>= (\case
+    resolveTemplatePath tDir tName
         -- if we got nothing back, try to resolve it with an extension added
-        Nothing -> resolveTemplatePath tDir (tName <.> tExt)
-        fp@(Just _) -> pure fp)
-    maybe (PE.throw $ EF.FileException tName "File Not found") pure mFp
+        >>= maybe (resolveTemplatePath tDir (tName <.> tExt)) (pure . Just)
+
+
+resolveTemplateName
+    :: ResolvingTemplatesSemEffects r
+    => String
+    -> Sem r FilePath
+resolveTemplateName tName =
+    resolveTemplateName' tName >>=
+        maybe (PE.throw $ EF.FileException tName "File Not found") pure
 
 
 resolveTemplateNameRelative
@@ -158,7 +166,7 @@ resolveTemplatePath
     -> FilePath
     -> Sem r (Maybe FilePath)
 resolveTemplatePath tDir tPath = do
-    EL.logDebug $ T.pack $ "resolveTemplatePath for: " <> tPath <> " at " <> tDir
+    --EL.logDebug $ T.pack $ "resolveTemplatePath for: " <> tPath <> " at " <> tDir
     let relPath = if isRelative tPath then tPath else makeRelative tDir tPath
         fileName = takeFileName relPath
         hasPath = pathSeparator `elem` relPath
@@ -171,11 +179,11 @@ resolveTemplatePath tDir tPath = do
     let pairs = dropWhile (not.snd) $ zip tryPaths exists
     if null pairs
       then do
-          EL.logDebug "Couldn't find a file"
+          --EL.logDebug "Couldn't find a file"
           pure Nothing
       else do
           let rFileName = fst $ head pairs
-          EL.logDebug $ T.pack $ "Using " <> show rFileName
+          --EL.logDebug $ T.pack $ "Using " <> show rFileName
           pure $ Just rFileName
 
 

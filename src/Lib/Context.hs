@@ -54,8 +54,8 @@ makeContextFor
     :: GingerSemEffects r
     => SourceContext
     -> Sem r (Context (RunSem (Writer Text : r)))
-makeContextFor sc = do
-    EL.logDebug $ T.pack $ "makeContextFor: " <> show (H.scRoute sc)
+makeContextFor sc = -- do
+    --EL.logDebug $ T.pack $ "makeContextFor: " <> show (H.scRoute sc)
     pure $ mergeContexts [ pageHeaderContextFor sc
                          , siteGenConfigContext
                          , pageFunctionsContext sc

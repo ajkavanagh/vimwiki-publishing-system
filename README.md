@@ -49,7 +49,7 @@ requests!
 	route space.
   - [ ] Generation tag `VirtualPageContext` pages in the same vein as
         categories.
-  - [ ] Generate a 404 `VirtualPageContext` if a `404` route page doesn't
+  - [x] Generate a 404 `VirtualPageContext` if a `404` route page doesn't
         exist.
   - [ ] Document how to make it all work.
   - [ ] Expand out the example site so that it serves as an example.
@@ -61,7 +61,8 @@ requests!
   - [ ] Ensure that index files don't need to be reprocessed if none of the
         dependent files have changed.
   - [ ] Generate a sitemap.xml file for the site as needed.
-  - [ ] Generate an RSS feed for the site to describe what's new/published, etc.
+  - [ ] Generate RSS/Atom feeds for the site to describe what's new/published,
+        etc.
 
 
 # The Site generator
