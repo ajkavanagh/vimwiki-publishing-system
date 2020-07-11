@@ -107,6 +107,10 @@
     - [ ] Probably use: https://github.com/bergmark/feed
     - [ ] Generate RSS and Atom feeds.
     - [ ] link them somehow to some config or something.
+[ ] Need to work out / have a flag to generate a site without '/' prefixes on
+    the URLs so that they can be explored using the file brower.  At present
+    they stick to the /.  Perhaps something to do with the absURL function and
+    removing the abs bit if a flag is set and just doing everything relatively?
 
 
 I really like the idea of using the top level values as Initial caps, and
