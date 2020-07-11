@@ -1,0 +1,16 @@
+{% extends "base" %}
+{% block main %}
+<div class="content container">
+  <h1>Category: {{ Category.Name }}</h1>
+  {% if Category.Pages -%}
+  <ul class="posts">
+    {% for page in  Category.Pages -%}
+      <li><a href="{{ page.Permalink }}">{{ page.Title }}</a></li>
+    {% endfor -%}
+  </ul>
+  {% else -%}
+    <p> This is odd; shouldn't be make the page if there are not pages for this
+    category.</p>
+  {% endif %}
+</div>
+{% endblock %}

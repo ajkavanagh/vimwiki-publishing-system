@@ -43,9 +43,10 @@ data SiteGenReader = SiteGenReader
 
 
 data SiteGenState = SiteGenState
-    { siteGenPage    :: !SourcePageContext
-    , siteGenErrors  :: !(DList SiteGenError)
-    , memoFiles      :: !(HashSet FileMemo)
-    , siteRenderList :: ![SourceContext]    -- this is a sorted list of "next to render"
-    , sitePagerSet   :: !RouteToPager
+    { siteGenPage       :: !SourcePageContext
+    , siteGenErrors     :: !(DList SiteGenError)
+    , memoFiles         :: !(HashSet FileMemo)
+    , siteRenderList    :: ![SourceContext]    -- this is a sorted list of "next to render"
+    , sitePagerSet      :: !RouteToPager
+    , sitePagesRendered :: !RouteToSC
     } deriving (Show)

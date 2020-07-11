@@ -269,6 +269,7 @@ data VirtualPageContext = VirtualPageContext
     , vpcUpdated         :: !(Maybe UTCTime)
     , vpcIndexPage       :: !Bool
     , vpcPublish         :: !Bool
+    , vpcParams          :: !(Maybe Y.Object)
     } deriving (Eq, Show)
 
 
@@ -283,6 +284,7 @@ instance Default VirtualPageContext where
         , vpcUpdated=def
         , vpcIndexPage=False
         , vpcPublish=True
+        , vpcParams=def
         }
 
 

@@ -1,5 +1,6 @@
 --- sitegen
 random: sample
+category: hello
 ---
 # A file with an almost empty header
 

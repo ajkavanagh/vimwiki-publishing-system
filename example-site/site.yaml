@@ -2,6 +2,7 @@ site: home
 template-ext: .html.j2
 siteURL: http://example.com
 index-files: false
+generate-categories: true
 params:
   tagline: This is a **great** site.
 

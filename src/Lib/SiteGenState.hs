@@ -67,6 +67,7 @@ instance Default SiteGenState where
         , memoFiles=HashSet.empty
         , siteRenderList=def
         , sitePagerSet=HashMap.empty
+        , sitePagesRendered=HashMap.empty
         }
 
 

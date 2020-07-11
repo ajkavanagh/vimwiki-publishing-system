@@ -21,7 +21,7 @@
 [ ] Flesh out the variables that will be available to a rendering page.
 [x] If there isn't a page identifying as the index, then have a boiler plate
       one with no content; i.e. just run the template for the index.
-[ ] Templates
+[x] Templates
   [x] Allow templates to be absolute, and don't do a search.  e.g. if the
       template is `/some-index` then only look for that file in the templates
       directory, and error if it isn't found.
@@ -30,7 +30,7 @@
   [x] add a `_defaults` folder that contains the 'defaults' for the
       templates.  This is present at the root level and is the default that is
       searched for.
-  [ ] need to deal with 404.html page we want to custom generate it, and it
+  [x] need to deal with 404.html page we want to custom generate it, and it
       should have a template.
 [x] 404 pages
   [x] recognise a page with a `/404` route as part of 'normal' page rendering.
@@ -51,7 +51,7 @@
 [X] Copy the static files across
 [ ] enable cleaning of output directories based on what is written and
     copied.
-[ ] Generate category `VirtualPageContext` pages for categories that don't
+[x] Generate category `VirtualPageContext` pages for categories that don't
     have actual physical pages (each will be an index page, and if the
     corresponding `categories/<cat>` page doesn't exist then generate the
     `VirtualPageContext`.  i.e. it's possible to have some content for
@@ -59,8 +59,6 @@
     route space.
 [ ] Generation tag `VirtualPageContext` pages in the same vein as
     categories.
-[ ] Generate a 404 `VirtualPageContext` if a `404` route page doesn't
-    exist.
 [ ] Document how to make it all work.
 [ ] Expand out the example site so that it serves as an example.
 [ ] Enable detecting that the source file hasn't changed so that we don't
@@ -89,6 +87,9 @@
     - [ ] Title
     - [ ] Site
     - [ ] Data
+[ ] NEXT!  Ensure that the pages that get rendered end up in the
+    `sitePagesRendered` variable in the `SiteGenState`.  Otherwise, we could end
+    up with duplicate things.
 [ ] - Re-do logging and printing functions so that we can control the output
       nicely.
     - [x] Write a logging effect that provide severity and optional module

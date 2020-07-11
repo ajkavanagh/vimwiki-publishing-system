@@ -41,7 +41,7 @@ requests!
   - [x] Copy the static files across
   - [ ] enable cleaning of output directories based on what is written and
 	copied.
-  - [ ] Generate category `VirtualPageContext` pages for categories that don't
+  - [x] Generate category `VirtualPageContext` pages for categories that don't
 	have actual physical pages (each will be an index page, and if the
 	corresponding `categories/<cat>` page doesn't exist then generate the
 	`VirtualPageContext`.  i.e. it's possible to have some content for

@@ -15,16 +15,16 @@
       </h1>
       <span class="post-date">{{ dateformat(page.Date, "%h %-d, %Y") }}{% if not(page.Site.Params.ReadingTime) -%} &middot; {{ page.ReadingTime }} minute read{% endif -%}{% if Site.DisqusShortname -%} &middot; <a href="{{ page.Permalink }}#disqus_thread">Comments</a>{% endif -%}
 
-      {% if page.categories -%}
+      {% if page.Category -%}
       <br/>
-      Categories:&nbsp;
-      {% for category in page.categories -%}<a class="label" href="{{ "/categories/" | absURL }}{{ category.url | urlize }}">{{ category.name }}</a>{% endfor -%}
+      Category:&nbsp;
+      <a class="label" href="{{ page.Category.url }}">{{ page.Category.name }}</a>
       {% endif %}
 
-      {% if page.tags -%}
+      {% if page.Tags -%}
       <br/>
       Tags:&nbsp;
-      {% for tag in page.tags -%}<a class="label" href="{{ "/tags/" | absURL }}{{ tag.url | urlize }}">{{ tag.name }}</a>{% endfor -%}
+      {% for tag in page.Tags -%}<a class="label" href="{{ "/tags/" | absURL }}{{ tag.url | urlize }}">{{ tag.name }}</a>{% endfor -%}
       {% endif -%}</span>
 
       {% if Site.Params.dontTruncate -%}

@@ -19,35 +19,36 @@
 
 module Lib.Context where
 
-import           Data.Text                   (Text)
-import qualified Data.Text                   as T
+import           Data.Text                     (Text)
+import qualified Data.Text                     as T
 
-import           Colog.Polysemy              (Log)
-import qualified Colog.Polysemy              as CP
-import           Polysemy                    (Member, Sem)
-import           Polysemy.Error              (Error)
-import           Polysemy.Reader             (Reader)
-import           Polysemy.State              (State)
-import           Polysemy.Writer             (Writer)
+import           Colog.Polysemy                (Log)
+import qualified Colog.Polysemy                as CP
+import           Polysemy                      (Member, Sem)
+import           Polysemy.Error                (Error)
+import           Polysemy.Reader               (Reader)
+import           Polysemy.State                (State)
+import           Polysemy.Writer               (Writer)
 
-import           Effect.File                 (File, FileException)
-import           Effect.Ginger               (GingerSemEffects)
-import           Effect.Logging              (LoggingMessage)
-import qualified Effect.Logging              as EL
+import           Effect.File                   (File, FileException)
+import           Effect.Ginger                 (GingerSemEffects)
+import           Effect.Logging                (LoggingMessage)
+import qualified Effect.Logging                as EL
 
-import           Lib.Context.Core            (mergeContexts)
-import           Lib.Context.DynamicContexts (pageFunctionsContext)
-import           Lib.Context.Functions       (functionsContext)
-import           Lib.Context.PageContexts    (pageHeaderContextFor)
-import           Lib.Context.SiteGenConfig   (siteGenConfigContext)
-import           Lib.Errors                  (GingerException (..),
-                                              SiteGenError)
-import           Lib.Header                  (SourceContext)
-import qualified Lib.Header                  as H
-import           Lib.SiteGenConfig           (SiteGenConfig)
-import           Lib.SiteGenState            (SiteGenReader, SiteGenState)
+import           Lib.Context.CategoriesContext (categoriesContext)
+import           Lib.Context.Core              (mergeContexts)
+import           Lib.Context.DynamicContexts   (pageFunctionsContext)
+import           Lib.Context.Functions         (functionsContext)
+import           Lib.Context.PageContexts      (pageHeaderContextFor)
+import           Lib.Context.SiteGenConfig     (siteGenConfigContext)
+import           Lib.Errors                    (GingerException (..),
+                                                SiteGenError)
+import           Lib.Header                    (SourceContext)
+import qualified Lib.Header                    as H
+import           Lib.SiteGenConfig             (SiteGenConfig)
+import           Lib.SiteGenState              (SiteGenReader, SiteGenState)
 
-import           Types.Context               (Context, RunSem, RunSemGVal)
+import           Types.Context                 (Context, RunSem, RunSemGVal)
 
 
 makeContextFor
@@ -55,11 +56,11 @@ makeContextFor
     => SourceContext
     -> Sem r (Context (RunSem (Writer Text : r)))
 makeContextFor sc = -- do
-    --EL.logDebug $ T.pack $ "makeContextFor: " <> show (H.scRoute sc)
     pure $ mergeContexts [ pageHeaderContextFor sc
                          , siteGenConfigContext
                          , pageFunctionsContext sc
                          , functionsContext
+                         , categoriesContext sc
                          ]
 
 

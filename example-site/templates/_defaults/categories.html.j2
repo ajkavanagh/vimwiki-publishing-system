@@ -1,0 +1,23 @@
+{% extends "base" %}
+{% block main %}
+<div class="content container">
+  <h1>Categories </h1>
+  {{ Categories }}
+  {{ Categories.pagesFor("cat1") | raw}}
+  {% if Categories.Labels -%}
+  <ul class="posts">
+    {% for category in  Categories.Labels -%}
+      <li><a href="{{ category.Url }}">{{ category.Name }}</a>
+      {% set pages = Categories.pagesFor(category.Name) %}
+      {% if pages -%}
+      &middot;{{ length(pages) }} page{% if pages > 1 -%}s{% endif -%}
+      {% set _ = Categories.generatePageFor(category.Name) -%}
+      {% endif -%}
+      </li>
+    {% endfor -%}
+  </ul>
+  {% else -%}
+    <p> No categories defined </p>
+  {% endif %}
+</div>
+{% endblock %}

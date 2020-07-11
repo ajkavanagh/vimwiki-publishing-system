@@ -30,7 +30,7 @@ import           Polysemy.Writer    (Writer)
 import           Text.Pandoc        (Pandoc)
 
 import           Effect.Cache       (Cache)
-import           Effect.File        (File)
+import           Effect.File        (File, FileException)
 import           Effect.Locale      (Locale)
 import           Effect.Logging     (LoggingMessage)
 import           Effect.Print       (Print)
@@ -38,7 +38,7 @@ import           Effect.Print       (Print)
 import           Types.SiteGenState (SiteGenReader, SiteGenState)
 
 import           Lib.Errors         (SiteGenError)
-import           Lib.SiteGenConfig  (SiteGenConfig)
+import           Lib.SiteGenConfig  (SiteGenConfig, ConfigException)
 
 
 -- data Ginger m a where
@@ -55,6 +55,8 @@ type GingerSemEffects r
        , Member (Reader SiteGenReader) r
        , Member (Reader SiteGenConfig) r
        , Member (Error SiteGenError) r
+       , Member (Error FileException) r
+       , Member (Error ConfigException) r
        , Member (Log LoggingMessage) r
        , Member Print r
        )

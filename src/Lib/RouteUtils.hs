@@ -1,4 +1,15 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ConstraintKinds     #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE GADTs               #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE PolyKinds           #-}
+{-# LANGUAGE RankNTypes          #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications    #-}
+{-# LANGUAGE TypeFamilies        #-}
+{-# LANGUAGE TypeOperators       #-}
+
 
 module Lib.RouteUtils
     ( checkDuplicateRoutes
@@ -11,27 +22,71 @@ module Lib.RouteUtils
     , makeFileNameFrom
     , makeFileNoExtNameFrom
     , sameLevelRoutesAs
+    , checkExistingRoute
     , RouteError(..)
     ) where
 
-import           Data.Default.Class (Default, def)
-import           Data.Function      (on)
-import qualified Data.List          as L
-import qualified Data.List.Split    as LS
-import           Data.Maybe         (fromMaybe)
-import           Data.Ord           (comparing)
-import qualified Data.Text          as T
+import           Data.Bifunctor      (first)
+import           Data.Default.Class  (Default, def)
+import           Data.Function       (on)
+import qualified Data.HashMap.Strict as HashMap
+import qualified Data.List           as L
+import qualified Data.List.Split     as LS
+import           Data.Maybe          (fromMaybe, isNothing)
+import           Data.Ord            (comparing)
+import qualified Data.Text           as T
 
-import qualified System.FilePath    as F
+import qualified System.FilePath     as F
 
-import           Lib.Errors         (SiteGenError (..))
-import           Lib.Header         (SourceContext (..), SourcePageContext (..),
-                                     VirtualPageContext (..), scIndexPage,
-                                     scRelFilePath, scRoute)
+import           Polysemy            (Member, Sem)
+import           Polysemy.Error      (Error)
+import           Polysemy.Reader     (Reader)
+import qualified Polysemy.Reader     as PR
+import           Polysemy.State      (State)
+import qualified Polysemy.State      as PS
+
+import           Colog.Polysemy      (Log)
+import qualified Colog.Polysemy      as CP
+
+import           Types.SiteGenState  (Route, SiteGenReader (..),
+                                      SiteGenState (..))
+
+import           Lib.Errors          (SiteGenError (..))
+import           Lib.Header          (SourceContext (..),
+                                      SourcePageContext (..),
+                                      VirtualPageContext (..), scIndexPage,
+                                      scRelFilePath, scRoute)
 
 
 data RouteError = DuplicateRouteError SourceContext T.Text
                   deriving (Eq, Show)
+
+
+
+-- see if a route exists in the list of pages to render, or the pages that have
+-- been rendered.  This is so that functions can avoid dynamically generating
+-- duplicate routes.
+checkExistingRoute
+    :: ( Member (Reader SiteGenReader) r
+       , Member (State SiteGenState) r
+       )
+    => Route
+    -> Sem r Bool
+checkExistingRoute route = do
+    -- check if the route is in the route map (this is quick)
+    page <- (pure . HashMap.lookup route) =<< PR.asks @SiteGenReader siteRouteMap
+    falseOr page $ do
+        page' <- (pure . HashMap.lookup route) =<< PS.gets @SiteGenState sitePagesRendered
+        falseOr page' $ do
+            srl <- PS.gets @SiteGenState siteRenderList
+            pure $ elem route $ map scRoute srl
+
+
+falseOr :: Monad m => Maybe a -> m Bool -> m Bool
+falseOr v f =
+    if isNothing v
+      then pure False
+      else f
 
 
 -- | checks for duplicate routes in the SPCs, then generate any missing index
@@ -85,7 +140,7 @@ fmapToFst f = fmap (\x -> (f x, x))
 
 
 fmapOnFst :: Functor f => (a -> b) -> f (a, c) -> f (b, c)
-fmapOnFst f = fmap (\(x,y) -> (f x, y))
+fmapOnFst f = fmap (first f)
 
 
 makeError' :: Show a => [(a, SourceContext)] -> [RouteError]
@@ -156,23 +211,6 @@ makeVPCForIndex route = def { vpcRoute = route
                             , vpcTemplate = "index"
                             , vpcIndexPage = True
                             }
-
-
--- | pagesForSC
--- Works out which pages go with an SC.  If it's an index route, then look for
--- sub-pages (i.e. pages with exactly one additional part)
--- It it's not an index route, then find the associated pages at the same route
--- level.  Note that an index page has to say it's an index page, not just by
--- the route.
-pagesForSC :: SourceContext -> [SourceContext]
-pagesForSC sc =
-    let route = scRoute sc
-     in undefined
-    -- detemine if this is an index or not
-    -- get the base route (i.e. this/ if it's an index or / below it)
-    -- find all the pages that are in this new route (i.e. start with this/ or /
-    -- and end no futehr down).
-    -- return those pages
 
 
 {-

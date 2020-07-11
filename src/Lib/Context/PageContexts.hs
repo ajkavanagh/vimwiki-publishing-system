@@ -53,7 +53,8 @@ import           Text.Ginger                 ((~>))
 import qualified Text.Ginger                 as TG
 import qualified Text.Ginger.Run.FuncUtils   as TF
 
-import           Lib.Context.Core            (contextFromList, tryExtractIntArg)
+import           Lib.Context.Core            (contextFromList, tryExtractIntArg,
+                                              tryExtractStringArg)
 import           Lib.Context.DynamicContexts (contentDynamic, summaryDynamic,
                                               tocDynamic)
 import           Lib.Errors                  (SiteGenError)
@@ -61,7 +62,9 @@ import qualified Lib.Header                  as H
 import           Lib.RouteUtils              (sameLevelRoutesAs)
 import           Lib.SiteGenConfig           (SiteGenConfig)
 import           Lib.SiteGenState            (SiteGenReader (..),
-                                              SiteGenState (..))
+                                              SiteGenState (..),
+                                              addToRenderList)
+
 import           Types.Context               (Context, ContextObject (..),
                                               ContextObjectTypes (..), RunSem,
                                               RunSemGVal,
@@ -219,12 +222,23 @@ paginateF sc args = do
                 -- otherwise:
                 let size = fromMaybe 10 mSize
                     pagerList = makePagerList route (length items) size
+                -- make the extra SourceContext items for the routes
+                    extractPages = makeExtraPaginatePages sc (drop 1 $ map pagerRoute pagerList)
+                TG.liftRun $ addToRenderList extractPages
                 -- 3. add the pagerset to the sitePagerSet
                 let pagerSet' = HashMap.union pagerSet $ HashMap.fromList $ pagerListToTuples pagerList
                 TG.liftRun $ PS.modify' @SiteGenState $ \sgs -> sgs {sitePagerSet=pagerSet'}
                 let pager = pagerSet' HashMap.! route
                 -- 4. return the GVal m for the first Pager
                 pagerToGValM pager items
+
+
+makeExtraPaginatePages :: H.SourceContext -> [Route] -> [H.SourceContext]
+makeExtraPaginatePages sc = map (copy sc)
+  where
+      copy :: H.SourceContext -> Route -> H.SourceContext
+      copy (H.SPC sc') r = H.SPC $ sc' { H.spcRoute=r }
+      copy (H.VPC sc') r = H.VPC $ sc' { H.vpcRoute=r }
 
 
 -- | convert a GVal m -> a ContextObjectType
