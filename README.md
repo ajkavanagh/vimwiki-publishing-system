@@ -52,14 +52,7 @@ requests!
   - [x] Generate a 404 `VirtualPageContext` if a `404` route page doesn't
         exist.
   - [ ] Document how to make it all work.
-  - [ ] Expand out the example site so that it serves as an example.
-  - [ ] Enable detecting that the source file hasn't changed so that we don't
-        bother processing it.
-  - [ ] Enable detecting that the output is the same as the previous version
-	(if an output file exists) so that we don't write it out and change the
-	dates.
-  - [ ] Ensure that index files don't need to be reprocessed if none of the
-        dependent files have changed.
+  - [ ] Do less work; detect when things haven't changed.
   - [ ] Generate a sitemap.xml file for the site as needed.
   - [ ] Generate RSS/Atom feeds for the site to describe what's new/published,
         etc.

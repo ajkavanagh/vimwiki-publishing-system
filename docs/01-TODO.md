@@ -18,7 +18,6 @@
       used internally to build the SourcePageHeader
 [x] Move HeaderContext into Header
 [x] Rename SourcePageHeader to SourcePageContext
-[ ] Flesh out the variables that will be available to a rendering page.
 [x] If there isn't a page identifying as the index, then have a boiler plate
       one with no content; i.e. just run the template for the index.
 [x] Templates
@@ -47,7 +46,6 @@
     it only looks for the first one.  All the others are stripped.
 [x] Work out from the `SourceContext` where to put an output file.
 [x] Write output files, after we've worked out what the output filename is.
-[ ] Complete Ginger context variables for Index and Content pages.
 [X] Copy the static files across
 [ ] enable cleaning of output directories based on what is written and
     copied.
@@ -61,13 +59,14 @@
     categories.
 [ ] Document how to make it all work.
 [ ] Expand out the example site so that it serves as an example.
-[ ] Enable detecting that the source file hasn't changed so that we don't
-    bother processing it.
-[ ] Enable detecting that the output is the same as the previous version
-    (if an output file exists) so that we don't write it out and change the
-    dates.
-[ ] Ensure that index files don't need to be reprocessed if none of the
-    dependent files have changed.
+[ ] Doing less work:
+    [ ] Enable detecting that the source file hasn't changed so that we don't
+        bother processing it.
+    [ ] Enable detecting that the output is the same as the previous version
+        (if an output file exists) so that we don't write it out and change the
+        dates.
+    [ ] Ensure that index files don't need to be reprocessed if none of the
+        dependent files have changed.
 [ ] Generate a sitemap.xml file for the site as needed.
 [x] Cache a template once it has been resolved -> this might be a bit complex,
     but it's probably possible to cache the resolved template name to
@@ -83,10 +82,6 @@
 [x] - make the content, summary and toc functions return `unsafeRawHtml` so
       they don't have to be pushed through `raw` to extract the text as raw
       which is what is ALWAYS wanted.
-[ ] Top level keys
-    - [ ] Title
-    - [ ] Site
-    - [ ] Data
 [x] Ensure that the pages that get rendered end up in the `sitePagesRendered`
     variable in the `SiteGenState`.  Otherwise, we could end up with duplicate
     things.
@@ -95,12 +90,8 @@
     - [x] Write a logging effect that provide severity and optional module
           logs.
     - [x] Write a Print effect that provides colorised printing output options.
-    - [ ] Add a '--no-color' switch to the args parsing so that colour or no
-	  colour output can be selected.
     - [ ] Add a '--debug=xxx' option to extract the level of debugging wanted.
           Default is None.
-    - [ ] Add colour control to the Logging message effect to disable color if
-          not needed.
     - [x] Go through the app to change all the log @String to either the print
           or the logging effect.
 [ ] Generate an RSS feed for the site to describe what's new/published, etc.
