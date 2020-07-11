@@ -76,7 +76,8 @@ import           Lib.ResolvingTemplates (resolveTemplateNameForSC,
                                          resolveTemplateNameRelative)
 import           Lib.RouteUtils         (makeFileNameFrom)
 import           Lib.SiteGenConfig      (ConfigException, SiteGenConfig (..))
-import           Lib.SiteGenState       (SiteGenReader (..), SiteGenState (..))
+import           Lib.SiteGenState       (SiteGenReader (..), SiteGenState (..),
+                                         addToSitePagesRendered)
 
 
 renderSourceContext
@@ -120,6 +121,9 @@ renderSourceContext sc = do
     -- might include creating directories, etc. and making a note that we've
     -- written the file.
     writeOutputFile sc out
+
+    -- Finally make a note that we've actually rendered that route.
+    addToSitePagesRendered sc
 
 
 writeOutputFile

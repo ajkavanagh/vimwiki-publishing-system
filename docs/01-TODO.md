@@ -87,9 +87,9 @@
     - [ ] Title
     - [ ] Site
     - [ ] Data
-[ ] NEXT!  Ensure that the pages that get rendered end up in the
-    `sitePagesRendered` variable in the `SiteGenState`.  Otherwise, we could end
-    up with duplicate things.
+[x] Ensure that the pages that get rendered end up in the `sitePagesRendered`
+    variable in the `SiteGenState`.  Otherwise, we could end up with duplicate
+    things.
 [ ] - Re-do logging and printing functions so that we can control the output
       nicely.
     - [x] Write a logging effect that provide severity and optional module

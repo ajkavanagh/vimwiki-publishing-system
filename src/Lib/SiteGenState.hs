@@ -23,6 +23,7 @@ module Lib.SiteGenState
     , recordMemo
     , nextSCToRender
     , addToRenderList
+    , addToSitePagesRendered
     )
     where
 
@@ -85,6 +86,16 @@ recordMemo memoFile = do
     unless (memoFile `HashSet.member` memo) $
         PS.modify' $ \sgs -> sgs { memoFiles=HashSet.insert memoFile memo }
 
+
+addToSitePagesRendered
+    :: Member (State SiteGenState) r
+    => SourceContext
+    -> Sem r ()
+addToSitePagesRendered sc =
+    PS.modify' $ \sgs ->
+        sgs { sitePagesRendered=HashMap.insert (H.scRoute sc)
+                                               sc
+                                               (sitePagesRendered sgs)}
 
 -- | nextSCToRender -- return the next item to render and remove it from the
 -- list
