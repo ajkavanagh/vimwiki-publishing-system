@@ -102,6 +102,10 @@
     the URLs so that they can be explored using the file brower.  At present
     they stick to the /.  Perhaps something to do with the absURL function and
     removing the abs bit if a flag is set and just doing everything relatively?
+[ ] Rationalise out the SourcePageContext and VirtualPageContext.  It's a bit
+    pointless having both.  Turn them both into the `SourceMetadata` as that's
+    a better description and stops them being confused with Context which is
+    a Ginger variable thing.
 
 
 I really like the idea of using the top level values as Initial caps, and
