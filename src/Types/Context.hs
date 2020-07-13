@@ -30,6 +30,11 @@ import           Polysemy            (Sem)
 type RunSem r = Run SourcePos (Sem r) Html
 type GValRunSem r = GVal (RunSem r)
 type RunSemGVal r = Run SourcePos (Sem r) Html (GValRunSem r)
+type GingerFunctionArgs r = [(Maybe Text, GVal r)]
+
+-- Also note that a TG.Function is:
+-- type Function m = [(Maybe Text, GVal m)] -> m (GVal m)
+-- so with a Function (RunSem r), the bit to the rgiht, is a RunSemGVal r
 
 -- The @Context m@ is basically a HashMap of Text to a function that will run
 -- in the Ginger @Run@ monad, that returns a @GVal m@ where @m@ is going to be

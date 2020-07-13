@@ -1,0 +1,23 @@
+{% extends "base" %}
+{% block main %}
+<div class="content container">
+  <h1>Categories </h1>
+  {{ Tags }}
+  {{ Tags.pagesFor("tag1") | raw}}
+  {% if Tags.Items -%}
+  <ul class="posts">
+    {% for tag in  Tags.Items -%}
+      <li><a href="{{ tag.Url }}">{{ tag.Name }}</a>
+      {% set pages = Tags.pagesFor(tag.Name) %}
+      {% if pages -%}
+      &middot;{{ length(pages) }} page{% if length(pages) > 1 -%}s{% endif -%}
+      {% set _ = Tags.generatePageFor(tag.Name) -%}
+      {% endif -%}
+      </li>
+    {% endfor -%}
+  </ul>
+  {% else -%}
+    <p> No tags defined </p>
+  {% endif %}
+</div>
+{% endblock %}

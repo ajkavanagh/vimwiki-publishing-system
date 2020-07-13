@@ -2,7 +2,7 @@
 title: The page title
 template: default
 style: style.css
-tags: [tag1, tag2]
+tags: [tag1, tagN]
 category: cat1
 date: 2019-10-11
 updated: 2019-10-12

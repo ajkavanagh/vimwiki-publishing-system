@@ -12,18 +12,19 @@
 
 
 module Lib.RouteUtils
-    ( checkDuplicateRoutes
+    ( RouteError(..)
+    , addVPCIndexPages
+    , checkDuplicateRoutes
     , checkDuplicateRoutesSPC
+    , checkExistingRoute
     , ensureIndexRoutesIn
+    , findMissingIndexRoutesSPC
     , indexRoutesFor
     , isIndexRoute
-    , findMissingIndexRoutesSPC
-    , addVPCIndexPages
     , makeFileNameFrom
     , makeFileNoExtNameFrom
+    , routeToConcreteSc
     , sameLevelRoutesAs
-    , checkExistingRoute
-    , RouteError(..)
     ) where
 
 import           Data.Bifunctor      (first)
@@ -48,8 +49,8 @@ import qualified Polysemy.State      as PS
 import           Colog.Polysemy      (Log)
 import qualified Colog.Polysemy      as CP
 
-import           Types.SiteGenState  (Route, SiteGenReader (..),
-                                      SiteGenState (..))
+import           Types.Constants
+import           Types.SiteGenState  (SiteGenReader (..), SiteGenState (..))
 
 import           Lib.Errors          (SiteGenError (..))
 import           Lib.Header          (SourceContext (..),
@@ -74,7 +75,7 @@ checkExistingRoute
     -> Sem r Bool
 checkExistingRoute route = do
     -- check if the route is in the route map (this is quick)
-    page <- (pure . HashMap.lookup route) =<< PR.asks @SiteGenReader siteRouteMap
+    page <- routeToConcreteSc route
     falseOr page $ do
         page' <- (pure . HashMap.lookup route) =<< PS.gets @SiteGenState sitePagesRendered
         falseOr page' $ do
@@ -82,11 +83,22 @@ checkExistingRoute route = do
             pure $ elem route $ map scRoute srl
 
 
+-- Helper that takes a Maybe value (which it doesn't care about), and if Nothing
+-- returns m False, but if Just _ then returns the evaluation of the passed
+-- function.
 falseOr :: Monad m => Maybe a -> m Bool -> m Bool
-falseOr v f =
-    if isNothing v
-      then pure False
-      else f
+falseOr v f = maybe (pure False) (const f) v
+
+
+-- | look up a route to a concrete (actual page) rather than a dynamically
+-- generated page from, say, categories, etc.
+routeToConcreteSc
+    :: ( Member (Reader SiteGenReader) r
+       )
+    => Route
+    -> Sem r (Maybe SourceContext)
+routeToConcreteSc r = (pure . HashMap.lookup r) =<< PR.asks @SiteGenReader siteRouteMap
+
 
 
 -- | checks for duplicate routes in the SPCs, then generate any missing index

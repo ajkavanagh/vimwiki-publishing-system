@@ -47,7 +47,7 @@ requests!
 	`VirtualPageContext`.  i.e. it's possible to have some content for
 	a tag by making a page and giving it a route in the `categories/<cat>`
 	route space.
-  - [ ] Generation tag `VirtualPageContext` pages in the same vein as
+  - [x] Generation tag `VirtualPageContext` pages in the same vein as
         categories.
   - [x] Generate a 404 `VirtualPageContext` if a `404` route page doesn't
         exist.

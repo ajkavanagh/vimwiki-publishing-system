@@ -28,6 +28,7 @@ import           Polysemy.State     (State)
 import           Polysemy.Writer    (Writer)
 
 import           Text.Pandoc        (Pandoc)
+import           Text.Ginger        (ToGVal)
 
 import           Effect.Cache       (Cache)
 import           Effect.File        (File, FileException)
@@ -62,3 +63,19 @@ type GingerSemEffects r
        )
 
 
+-- TODO: maybe remove this, as getting the types lined up is really tricky when
+-- writing the type signature of a funciton.
+type GingerSemEffectsToGVal r a
+  =    ( Member File r
+       , Member Locale r
+       , Member (Cache Pandoc) r
+       , Member (State SiteGenState) r
+       , Member (Reader SiteGenReader) r
+       , Member (Reader SiteGenConfig) r
+       , Member (Error SiteGenError) r
+       , Member (Error FileException) r
+       , Member (Error ConfigException) r
+       , Member (Log LoggingMessage) r
+       , Member Print r
+       , ToGVal (Sem r) a
+       )

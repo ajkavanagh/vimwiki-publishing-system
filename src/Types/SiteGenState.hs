@@ -13,12 +13,9 @@ import           Lib.Errors          (SiteGenError)
 import           Lib.Header          (SourceContext (..),
                                       SourcePageContext (..))
 
+import           Types.Constants
 import           Types.Context       (ContextObject (..))
 import           Types.Pager         (Pager, RouteToPager)
-
-
-type Route = String
-type VimWikiLink = String
 
 
 type FilePathToSC    = HashMap.HashMap FilePath SourceContext

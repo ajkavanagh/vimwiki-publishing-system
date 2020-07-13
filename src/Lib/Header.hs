@@ -16,21 +16,22 @@ module Lib.Header
     ( SourcePageContext(..)
     , VirtualPageContext(..)
     , SourceContext(..)
+    , HeaderContext(..)
     , dropWithNewLine
+    , emptySourcePageContext
     , findEndSiteGenHeader
     , isHeader
-    , maxHeaderSize
-    , maybeExtractHeaderBlock
-    , maybeDecodeHeader
-    , emptySourcePageContext
-    , HeaderContext(..)
+    , keepSourcePageContexts
     , makeHeaderContextFromFileName
-    , scRoute
-    , scVimWikiLinkPath
+    , maxHeaderSize
+    , maybeDecodeHeader
+    , maybeExtractHeaderBlock
     , scAbsFilePath
-    , scRelFilePath
     , scIndexPage
+    , scRelFilePath
+    , scRoute
     , scTemplate
+    , scVimWikiLinkPath
     ) where
 
 -- header.hs -- extract the header (maybe) from a File
@@ -224,6 +225,13 @@ instance Default SourcePageContext where
 
 emptySourcePageContext :: SourcePageContext
 emptySourcePageContext = def SourcePageContext
+
+
+keepSourcePageContexts :: [SourceContext] -> [SourcePageContext]
+keepSourcePageContexts scs = map (\(SPC x) -> x) $ filter isSPC scs
+  where
+    isSPC (SPC _) = True
+    isSPC _       = False
 
 
 {-

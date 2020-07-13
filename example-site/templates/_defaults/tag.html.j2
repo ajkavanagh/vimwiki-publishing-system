@@ -1,0 +1,15 @@
+{% extends "base" %}
+{% block main %}
+<div class="content container">
+  <h1>Tag: {{ Tag.Name }}</h1>
+  {% if Tag.Pages -%}
+  <ul class="posts">
+    {% for page in  Tag.Pages -%}
+      <li><a href="{{ page.Permalink }}">{{ page.Title }}</a></li>
+    {% endfor -%}
+  </ul>
+  {% else -%}
+    <p> This is odd; shouldn't be make the page if there are not pages for this Tag.</p>
+  {% endif %}
+</div>
+{% endblock %}

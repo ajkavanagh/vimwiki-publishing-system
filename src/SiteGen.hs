@@ -77,6 +77,7 @@ import           Lib.Utils                 (isDebug, isMarkDownFile,
                                             validateWithTests)
 import           Lib.SpecialPages.Four04   (resolve404page)
 import           Lib.SpecialPages.Category (resolveCategoriesPage)
+import           Lib.SpecialPages.Tag      (resolveTagsPage)
 
 
 sitegenProgram :: IO ()
@@ -243,6 +244,7 @@ runSiteGenSem args = do
             addToRenderList scs'
             resolve404page
             when (sgcGenerateCategories sgc) resolveCategoriesPage
+            when (sgcGenerateTags sgc) resolveTagsPage
             let go = do mSc <- nextSCToRender
                         case mSc of
                             Just sc -> renderSourceContext sc >> go   -- render the file and loop

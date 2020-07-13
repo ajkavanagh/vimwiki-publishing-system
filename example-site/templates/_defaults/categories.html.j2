@@ -4,13 +4,13 @@
   <h1>Categories </h1>
   {{ Categories }}
   {{ Categories.pagesFor("cat1") | raw}}
-  {% if Categories.Labels -%}
+  {% if Categories.Items -%}
   <ul class="posts">
-    {% for category in  Categories.Labels -%}
+    {% for category in  Categories.Items -%}
       <li><a href="{{ category.Url }}">{{ category.Name }}</a>
       {% set pages = Categories.pagesFor(category.Name) %}
       {% if pages -%}
-      &middot;{{ length(pages) }} page{% if pages > 1 -%}s{% endif -%}
+      &middot;{{ length(pages) }} page{% if length(pages) > 1 -%}s{% endif -%}
       {% set _ = Categories.generatePageFor(category.Name) -%}
       {% endif -%}
       </li>

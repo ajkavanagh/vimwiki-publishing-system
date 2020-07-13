@@ -55,7 +55,7 @@
     `VirtualPageContext`.  i.e. it's possible to have some content for
     a tag by making a page and giving it a route in the `categories/<cat>`
     route space.
-[ ] Generation tag `VirtualPageContext` pages in the same vein as
+[x] Generation tag `VirtualPageContext` pages in the same vein as
     categories.
 [ ] Document how to make it all work.
 [ ] Expand out the example site so that it serves as an example.

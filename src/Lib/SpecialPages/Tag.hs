@@ -10,13 +10,13 @@
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE TypeOperators       #-}
 
-module Lib.SpecialPages.Category where
+module Lib.SpecialPages.Tag where
 
--- | Category Page handling
+-- | Tag Page handling
 --
--- The categories allow a page to be 'in' a category.
+-- The tags allow a page to be 'in' several tags.
 -- We create an ordinary VPC for the 'categories' page.  Then the template can
--- call functions to get the categories and the pages in those categories.
+-- call functions to get the tags and the pages in those tags.
 
 
 import           Control.Monad          (unless, when)
@@ -53,8 +53,7 @@ import           Lib.SiteGenConfig      (ConfigException, SiteGenConfig (..))
 import           Lib.SiteGenState       (addToRenderList)
 
 
-
-resolveCategoriesPage
+resolveTagsPage
     :: ( Member (Reader SiteGenReader) r
        , Member (Reader SiteGenConfig) r
        , Member (State SiteGenState) r
@@ -65,40 +64,40 @@ resolveCategoriesPage
        , Member (Log LoggingMessage) r
        )
     =>  Sem r ()
-resolveCategoriesPage = do
-    mCatPage <- routeToConcreteSc categoriesRoute
-    if isNothing mCatPage
+resolveTagsPage = do
+    mTagsPage <- (pure . HashMap.lookup tagsRoute) =<< PR.asks @SiteGenReader siteRouteMap
+    if isNothing mTagsPage
       then do
-        EL.logInfo "Using Internal Categories page"
-        let newCatPage = makeVPCForCategories
-        addToRenderList [VPC newCatPage]
-      else EL.logInfo "Using user supplied categories page"
+        EL.logInfo "Using Internal Tags page"
+        let newTagsPage = makeVPCForTags
+        addToRenderList [VPC newTagsPage]
+      else EL.logInfo "Using user supplied tags page"
 
 
-makeVPCForCategories :: VirtualPageContext
-makeVPCForCategories = def { vpcRoute = categoriesRoute
-                           , vpcVimWikiLinkPath = categoriesRoute
-                           , vpcTitle = "Categories"
-                           , vpcTemplate = "categories"
-                           , vpcIndexPage = False
-                           }
+makeVPCForTags :: VirtualPageContext
+makeVPCForTags = def { vpcRoute = tagsRoute
+                     , vpcVimWikiLinkPath = tagsRoute
+                     , vpcTitle = "Tags"
+                     , vpcTemplate = "tags"
+                     , vpcIndexPage = False
+                     }
 
 
-getAllCategories
+getAllTags
     :: Member (Reader SiteGenReader) r
     => Sem r [String]
-getAllCategories = do
+getAllTags = do
     scs <- PR.asks @SiteGenReader siteSourceContexts
-    pure $ nub $ sort $ mapMaybe H.spcCategory $ H.keepSourcePageContexts scs
+    pure $ nub $ sort $ concatMap H.spcTags $ H.keepSourcePageContexts scs
 
 
-pagesForCategory :: String -> [H.SourcePageContext] -> [H.SourcePageContext]
-pagesForCategory category = filter hasCategory
+pagesForTag :: String -> [H.SourcePageContext] -> [H.SourcePageContext]
+pagesForTag tag = filter hasTag
   where
-      hasCategory s = H.spcCategory s == Just category
+      hasTag s = tag `elem` H.spcTags s
 
 
-ensureCategoryPageFor
+ensureTagPageFor
     :: ( Member (Reader SiteGenReader) r
        , Member (Reader SiteGenConfig) r
        , Member (State SiteGenState) r
@@ -110,40 +109,40 @@ ensureCategoryPageFor
        )
     => String
     -> Sem r ()
-ensureCategoryPageFor category = do
-    EL.logDebug $ T.pack $ "ensureCategoryPageFor: " ++ category
-    categories <- getAllCategories
-    if category `notElem` categories
+ensureTagPageFor tag = do
+    EL.logDebug $ T.pack $ "ensureTagPageFor: " ++ tag
+    tags <- getAllTags
+    if tag `notElem` tags
         then EL.logError
             $ T.pack
-            $ "ensureCategoryPageFor: there is no category: " ++ category
+            $ "ensureTagPageFor: there is no tag: " ++ tag
         else do
-            let catRoute = categoriesRoutePrefix <> category
+            let tagRoute = tagsRoutePrefix <> tag
             -- see if there is a user category page set up for the route?
-            mCatPage <- routeToConcreteSc catRoute
-            case mCatPage of
-                Just _ -> EL.logInfo $ T.pack $ "Category page already exists for: " ++ category
+            mTagPage <- routeToConcreteSc tagRoute
+            case mTagPage of
+                Just _ -> EL.logInfo $ T.pack $ "Tag page already exists for: " ++ tag
                 Nothing -> do
                     -- see if it's to be rendered or has been rendered?  i.e. does
                     -- it exist already?
-                    exists <- checkExistingRoute catRoute
+                    exists <- checkExistingRoute tagRoute
                     if exists
-                      then EL.logInfo $ T.pack $ "Category page has already been added for: " ++ category
+                      then EL.logInfo $ T.pack $ "Tag page has already been added for: " ++ tag
                       else do
-                        let newCat = makeVPCForCategory catRoute ("Category: " ++ category)
-                        mTname <- resolveTemplateName' (H.vpcTemplate newCat)
-                        -- if it does then add the category page to the render list
+                        let newTag = makeVPCForTag tagRoute ("Tag: " ++ tag)
+                        mTname <- resolveTemplateName' (H.vpcTemplate newTag)
+                        -- if it does then add the tag page to the render list
                         case mTname of
-                            Nothing -> EL.logError $ T.pack $ "No template for category page: " ++ category
+                            Nothing -> EL.logError $ T.pack $ "No template for tag page: " ++ tag
                             Just _ ->  do
-                                EL.logInfo $ T.pack $ "Adding category page for: " ++ category
-                                addToRenderList [VPC newCat]
+                                EL.logInfo $ T.pack $ "Adding tag page for: " ++ tag
+                                addToRenderList [VPC newTag]
 
 
-makeVPCForCategory :: String -> String -> VirtualPageContext
-makeVPCForCategory r t = def { vpcRoute = r
-                             , vpcVimWikiLinkPath = r
-                             , vpcTitle = t
-                             , vpcTemplate = "category"
-                             , vpcIndexPage = False
-                             }
+makeVPCForTag :: String -> String -> VirtualPageContext
+makeVPCForTag r t = def { vpcRoute = r
+                        , vpcVimWikiLinkPath = r
+                        , vpcTitle = t
+                        , vpcTemplate = "tag"
+                        , vpcIndexPage = False
+                        }

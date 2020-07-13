@@ -2,6 +2,7 @@
 title: Home page
 route: /
 index-page: true
+tags: [tag1]
 ---
 
 # Home!

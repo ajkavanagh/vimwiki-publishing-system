@@ -41,6 +41,7 @@ import           Lib.Context.DynamicContexts   (pageFunctionsContext)
 import           Lib.Context.Functions         (functionsContext)
 import           Lib.Context.PageContexts      (pageHeaderContextFor)
 import           Lib.Context.SiteGenConfig     (siteGenConfigContext)
+import           Lib.Context.TagsContext       (tagsContext)
 import           Lib.Errors                    (GingerException (..),
                                                 SiteGenError)
 import           Lib.Header                    (SourceContext)
@@ -61,6 +62,5 @@ makeContextFor sc = -- do
                          , pageFunctionsContext sc
                          , functionsContext
                          , categoriesContext sc
+                         , tagsContext sc
                          ]
-
-
