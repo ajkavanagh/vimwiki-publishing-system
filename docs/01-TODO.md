@@ -17,7 +17,6 @@
 [x] Rename existing RouteContext to HeaderContext to reflect that it's just
       used internally to build the SourcePageHeader
 [x] Move HeaderContext into Header
-[x] Rename SourcePageHeader to SourcePageContext
 [x] If there isn't a page identifying as the index, then have a boiler plate
       one with no content; i.e. just run the template for the index.
 [x] Templates
@@ -39,24 +38,23 @@
   [x] ensure that the default for template is `index` if the page is an index
       page.
   [x] For every route level, and index page is required.  We have to generate
-      the `VirtualPageContext` for the route level if there is no explicit
+      the `SourceMetadata` for the route level if there is no explicit
       index page.
 [x] Process the `<!--more-->` tag to say where a content summary ends.  e.g.
     we walk the processed Pandoc text elements and find the this item.  Note
     it only looks for the first one.  All the others are stripped.
-[x] Work out from the `SourceContext` where to put an output file.
+[x] Work out from the `SourceMetadata` where to put an output file.
 [x] Write output files, after we've worked out what the output filename is.
 [X] Copy the static files across
 [ ] enable cleaning of output directories based on what is written and
     copied.
-[x] Generate category `VirtualPageContext` pages for categories that don't
+[x] Generate category `SourceMetadata` pages for categories that don't
     have actual physical pages (each will be an index page, and if the
     corresponding `categories/<cat>` page doesn't exist then generate the
-    `VirtualPageContext`.  i.e. it's possible to have some content for
+    `SourceMetadata`.  i.e. it's possible to have some content for
     a tag by making a page and giving it a route in the `categories/<cat>`
     route space.
-[x] Generation tag `VirtualPageContext` pages in the same vein as
-    categories.
+[x] Generation tag `SourceMetadata` pages in the same vein as categories.
 [ ] Document how to make it all work.
 [ ] Expand out the example site so that it serves as an example.
 [ ] Doing less work:
@@ -102,7 +100,7 @@
     the URLs so that they can be explored using the file brower.  At present
     they stick to the /.  Perhaps something to do with the absURL function and
     removing the abs bit if a flag is set and just doing everything relatively?
-[ ] Rationalise out the SourcePageContext and VirtualPageContext.  It's a bit
+[x] Rationalise out the SourcePageContext and VirtualPageContext.  It's a bit
     pointless having both.  Turn them both into the `SourceMetadata` as that's
     a better description and stops them being confused with Context which is
     a Ginger variable thing.

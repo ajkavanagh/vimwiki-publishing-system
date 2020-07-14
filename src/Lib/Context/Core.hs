@@ -56,8 +56,8 @@ import qualified Effect.Logging       as EL
 
 import           Types.Context
 
-import           Lib.Errors           (GingerException (..))
 import qualified Lib.SiteGenConfig    as S
+import           Types.Ginger         (GingerException (..))
 
 ----
 

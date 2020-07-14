@@ -43,8 +43,9 @@ import qualified Polysemy.Writer      as PW
 
 import           Effect.File          (FileException (..))
 
-import           Lib.Errors           (GingerException (..), mapSiteGenError)
 import           Lib.SiteGenConfig    (ConfigException (..))
+import           Types.Errors         (mapSiteGenError)
+import           Types.Ginger         (GingerException (..))
 
 -- Experiment with throwing one type of error and catching another.
 

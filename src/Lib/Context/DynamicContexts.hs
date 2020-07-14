@@ -38,61 +38,59 @@ import           Effect.File       (File)
 import           Effect.Ginger     (GingerSemEffects)
 import qualified Effect.Logging    as EL
 
+import           Types.Context     (Context, RunSem, RunSemGVal)
+import           Types.Errors      (SiteGenError)
+import           Types.Header      (SourceMetadata (..))
+
 import           Lib.Context.Core  (contextFromList, tryExtractIntArg)
-import           Lib.Errors        (SiteGenError)
-import qualified Lib.Header        as H
-import           Lib.Pandoc        (scContentM, scSummaryM, scTocM)
+import           Lib.Pandoc        (smContentM, smSummaryM, smTocM)
 import           Lib.SiteGenConfig (SiteGenConfig)
 import           Lib.SiteGenState  (SiteGenReader, SiteGenState)
-import           Types.Context     (Context, RunSem, RunSemGVal)
 
 
 -- Basically, this module provides the 'content', 'summary' and 'toc' html
--- fragments for a SourceContext (although, it's a bit boring for the
--- VirtualPageContext.
---
--- These are determined on demand via the SourceClass (which is provided)
+-- fragments for a SourceMetadata.
 
 
 pageFunctionsContext
     :: GingerSemEffects r
-    => H.SourceContext
+    => SourceMetadata
     -> Context (RunSem r)
-pageFunctionsContext sc = contextFromList
-    [ ("content",  funcDynamicMGValM contentDynamic sc)
-    , ("summary", funcDynamicMGValM summaryDynamic sc)
-    , ("toc", funcDynamicMGValM tocDynamic sc)]
+pageFunctionsContext sm = contextFromList
+    [ ("content",  funcDynamicMGValM contentDynamic sm)
+    , ("summary", funcDynamicMGValM summaryDynamic sm)
+    , ("toc", funcDynamicMGValM tocDynamic sm)]
 
 
 pageFunctionsAsGValDict
     :: GingerSemEffects r
-    => H.SourceContext
+    => SourceMetadata
     -> TG.GVal (RunSem r)
-pageFunctionsAsGValDict sc =
-    TG.dict [ ("content", TG.fromFunction (contentDynamic sc))
-            , ("summary", TG.fromFunction (summaryDynamic sc))
-            , ("toc",     TG.fromFunction (tocDynamic sc))
+pageFunctionsAsGValDict sm =
+    TG.dict [ ("content", TG.fromFunction (contentDynamic sm))
+            , ("summary", TG.fromFunction (summaryDynamic sm))
+            , ("toc",     TG.fromFunction (tocDynamic sm))
             ]
 
 
 -- helper function to hook a function dynamically for the required thing.
 funcDynamicMGValM
     :: GingerSemEffects r
-    => (H.SourceContext -> TG.Function (RunSem r))
-    -> H.SourceContext
+    => (SourceMetadata -> TG.Function (RunSem r))
+    -> SourceMetadata
     -> RunSemGVal r
-funcDynamicMGValM f sc = pure $ TG.fromFunction $ f sc
+funcDynamicMGValM f sm = pure $ TG.fromFunction $ f sm
 
 
 -- | fetch the content dynamically as a function call from the context.  i.e. it
 -- has to be called as "content()". Note it provides RAW html, not text.
 contentDynamic
     :: GingerSemEffects r
-    => H.SourceContext
+    => SourceMetadata
     -> TG.Function (RunSem r)
-contentDynamic sc _ = do           -- content ignores the args
+contentDynamic sm _ = do           -- content ignores the args
     --TG.liftRun $ EL.logDebug "Dynamic content was asked for"
-    txt <- TG.liftRun $ scContentM sc
+    txt <- TG.liftRun $ smContentM sm
     pure $ TG.toGVal $TGH.unsafeRawHtml txt
 
 
@@ -101,10 +99,10 @@ contentDynamic sc _ = do           -- content ignores the args
 --       rich summary
 summaryDynamic
     :: GingerSemEffects r
-    => H.SourceContext
+    => SourceMetadata
     -> TG.Function (RunSem r)
-summaryDynamic sc _ = do   -- summary ignores the args, and selects for Rich only
-    txt <- TG.liftRun $ scSummaryM sc True
+summaryDynamic sm _ = do   -- summary ignores the args, and selects for Rich only
+    txt <- TG.liftRun $ smSummaryM sm True
     pure $ TG.toGVal $ TGH.unsafeRawHtml txt
 
 
@@ -113,9 +111,9 @@ summaryDynamic sc _ = do   -- summary ignores the args, and selects for Rich onl
 -- return in the RAW HTML fragment.
 tocDynamic
     :: GingerSemEffects r
-    => H.SourceContext
+    => SourceMetadata
     -> TG.Function (RunSem r)
-tocDynamic sc args = do
+tocDynamic sm args = do
     let mLevels = tryExtractIntArg args
-    txt <- TG.liftRun $ scTocM sc mLevels
+    txt <- TG.liftRun $ smTocM sm mLevels
     pure $ TG.toGVal $ TGH.unsafeRawHtml txt

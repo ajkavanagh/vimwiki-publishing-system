@@ -41,15 +41,15 @@ requests!
   - [x] Copy the static files across
   - [ ] enable cleaning of output directories based on what is written and
 	copied.
-  - [x] Generate category `VirtualPageContext` pages for categories that don't
+  - [x] Generate category `SourceMetadata` pages for categories that don't
 	have actual physical pages (each will be an index page, and if the
 	corresponding `categories/<cat>` page doesn't exist then generate the
-	`VirtualPageContext`.  i.e. it's possible to have some content for
+	`SourceMetadata`.  i.e. it's possible to have some content for
 	a tag by making a page and giving it a route in the `categories/<cat>`
 	route space.
-  - [x] Generation tag `VirtualPageContext` pages in the same vein as
+  - [x] Generation tag `SourceMetadata` pages in the same vein as
         categories.
-  - [x] Generate a 404 `VirtualPageContext` if a `404` route page doesn't
+  - [x] Generate a 404 `SourceMetadata` if a `404` route page doesn't
         exist.
   - [ ] Document how to make it all work.
   - [ ] Do less work; detect when things haven't changed.
@@ -154,7 +154,7 @@ site: <site-identifier> # the site that this belongs to. 'default' is the
 The `route` is interesting as it can determine what section the page fits into.
 This (could) auto-select the template type for the page.
 
-This config item ends up in the `SourcePageContext` record for that the content.
+This config item ends up in the `SourceMetadata` record for that the content.
 
 ### The `sitegen` program
 

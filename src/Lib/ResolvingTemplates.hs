@@ -39,8 +39,8 @@ import qualified Effect.File         as EF
 import           Effect.Logging      (LoggingMessage)
 import qualified Effect.Logging      as EL
 
-import           Lib.Header          (SourcePageContext (..),
-                                      VirtualPageContext (..))
+import           Types.Header        (SourceMetadata (..))
+
 import           Lib.SiteGenConfig   (ConfigException, SiteGenConfig (..),
                                       getSiteGenConfig)
 -- for tests -- remove when removing test code
@@ -54,11 +54,11 @@ import           Data.Function       ((&))
 import           Data.List           (dropWhile, inits, intercalate)
 import           Data.List.Split     (splitOn)
 
-import           Lib.Errors          (SiteGenError (..), mapSiteGenError)
-import           Lib.Files           (filePathToMaybeSourcePageContext)
+import           Lib.Files           (filePathToMaybeSourceMetadata)
 import qualified Lib.Header          as H
 import           Lib.SiteGenState    (SiteGenReader, SiteGenState,
                                       makeSiteGenReader)
+import           Types.Errors        (SiteGenError (..), mapSiteGenError)
 
 
 {-
@@ -95,24 +95,22 @@ type ResolvingTemplatesSemEffects r
       )
 
 
--- | resolve the template name for an SC
+-- | resolve the template name for an SourceMetadata
 -- This looks at the template name and the route of the page and resolves the
 -- template to that.  e.g. a route of thing/hello with a template "default" will
 -- result in "thing/default".  This is so that the resolveTemplatePath will
 -- attempt to find "thing/default.<ext>", then "_defaults/thing/default.<ext>"
 -- and finally "_defaults/default.<ext>".
-resolveTemplateNameForSC
+resolveTemplateNameForSM
     :: ResolvingTemplatesSemEffects r
-    => H.SourceContext
+    => H.SourceMetadata
     -> Sem r String
-resolveTemplateNameForSC sc = do
+resolveTemplateNameForSM sm = do
     sgc <- PR.ask @SiteGenConfig
-    let tBaseName = case sc of
-            (H.SPC spc) -> spcTemplate spc
-            (H.VPC vpc) -> vpcTemplate vpc
+    let tBaseName = smTemplate sm
         hasPath = '/' `elem` tBaseName
         tFileName = tBaseName <.> sgcTemplateExt sgc
-        sPath = H.scRoute sc
+        sPath = H.smRoute sm
         sHasPath = '/' `elem` sPath
         dir = intercalate "/" $ init $ splitOn "/" sPath
         tName = case (hasPath, sHasPath) of
@@ -191,22 +189,22 @@ resolveTemplatePath tDir tPath = do
 -- now some test code to see if it works
 
 
-testResolveTemplatePathForSC
+testResolveTemplatePathForSM
     :: ResolvingTemplatesSemEffects r
     => Sem r FilePath
-testResolveTemplatePathForSC = do
+testResolveTemplatePathForSM = do
     sgc <- getSiteGenConfig "./example-site/site.yaml" False
     let file = "./example-site/src/posts/test_post.md"
     fp <- EF.makeAbsolute file
     PR.runReader @SiteGenConfig sgc $ do
-        mSpc <- filePathToMaybeSourcePageContext fp
-        case mSpc of
+        mSm <- filePathToMaybeSourceMetadata fp
+        case mSm of
             Nothing -> throw $ EF.FileException file "Not a sitegen file"
-            (Just spc) -> do
-                let sgr = makeSiteGenReader [H.SPC spc]
+            (Just sm) -> do
+                let sgr = makeSiteGenReader [sm]
                 PR.runReader @SiteGenReader sgr
                     $ PR.runReader @SiteGenConfig sgc
-                    $ resolveTemplateNameForSC (H.SPC spc)
+                    $ resolveTemplateNameForSM sm
 
 
 -- Run the Sem r monad to IO

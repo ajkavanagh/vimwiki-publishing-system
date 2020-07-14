@@ -44,12 +44,14 @@ import qualified Effect.File            as EF
 import           Effect.Logging         (LoggingMessage)
 import qualified Effect.Logging         as EL
 
+import           Types.Context          (Context, RunSem, RunSemGVal)
+import           Types.Errors           (SiteGenError)
+import           Types.Ginger           (GingerException (..))
+import           Types.SiteGenState     (SiteGenReader, SiteGenState)
+
 import           Lib.Context.Core       (contextLookup)
-import           Lib.Errors             (GingerException (..), SiteGenError)
 import           Lib.ResolvingTemplates (resolveTemplatePath)
 import           Lib.SiteGenConfig      (ConfigException, SiteGenConfig (..))
-import           Types.Context          (Context, RunSem, RunSemGVal)
-import           Types.SiteGenState     (SiteGenReader, SiteGenState)
 
 
 -- | parseToTemplate takes a sourcename (filename basically) and resolves it to

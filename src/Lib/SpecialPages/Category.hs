@@ -41,12 +41,10 @@ import           Effect.Logging         (LoggingMessage)
 import qualified Effect.Logging         as EL
 
 import           Types.Constants
+import           Types.Errors           (SiteGenError (..))
+import           Types.Header           (SourceMetadata (..))
 import           Types.SiteGenState     (SiteGenReader (..), SiteGenState (..))
 
-import           Lib.Errors             (SiteGenError (..))
-import           Lib.Header             (SourceContext (..),
-                                         VirtualPageContext (..))
-import qualified Lib.Header             as H
 import           Lib.ResolvingTemplates (resolveTemplateName')
 import           Lib.RouteUtils         (checkExistingRoute, routeToConcreteSc)
 import           Lib.SiteGenConfig      (ConfigException, SiteGenConfig (..))
@@ -70,17 +68,17 @@ resolveCategoriesPage = do
     if isNothing mCatPage
       then do
         EL.logInfo "Using Internal Categories page"
-        let newCatPage = makeVPCForCategories
-        addToRenderList [VPC newCatPage]
+        let newCatPage = makeVSMForCategories
+        addToRenderList [newCatPage]
       else EL.logInfo "Using user supplied categories page"
 
 
-makeVPCForCategories :: VirtualPageContext
-makeVPCForCategories = def { vpcRoute = categoriesRoute
-                           , vpcVimWikiLinkPath = categoriesRoute
-                           , vpcTitle = "Categories"
-                           , vpcTemplate = "categories"
-                           , vpcIndexPage = False
+makeVSMForCategories :: SourceMetadata
+makeVSMForCategories = def { smRoute = categoriesRoute
+                           , smVimWikiLinkPath = categoriesRoute
+                           , smTitle = "Categories"
+                           , smTemplate = "categories"
+                           , smIndexPage = False
                            }
 
 
@@ -88,14 +86,14 @@ getAllCategories
     :: Member (Reader SiteGenReader) r
     => Sem r [String]
 getAllCategories = do
-    scs <- PR.asks @SiteGenReader siteSourceContexts
-    pure $ nub $ sort $ mapMaybe H.spcCategory $ H.keepSourcePageContexts scs
+    sms <- PR.asks @SiteGenReader siteSourceMetadataItems
+    pure $ nub $ sort $ mapMaybe smCategory sms
 
 
-pagesForCategory :: String -> [H.SourcePageContext] -> [H.SourcePageContext]
+pagesForCategory :: String -> [SourceMetadata] -> [SourceMetadata]
 pagesForCategory category = filter hasCategory
   where
-      hasCategory s = H.spcCategory s == Just category
+      hasCategory s = smCategory s == Just category
 
 
 ensureCategoryPageFor
@@ -130,20 +128,20 @@ ensureCategoryPageFor category = do
                     if exists
                       then EL.logInfo $ T.pack $ "Category page has already been added for: " ++ category
                       else do
-                        let newCat = makeVPCForCategory catRoute ("Category: " ++ category)
-                        mTname <- resolveTemplateName' (H.vpcTemplate newCat)
+                        let newCat = makeVSMForCategory catRoute ("Category: " ++ category)
+                        mTname <- resolveTemplateName' (smTemplate newCat)
                         -- if it does then add the category page to the render list
                         case mTname of
                             Nothing -> EL.logError $ T.pack $ "No template for category page: " ++ category
                             Just _ ->  do
                                 EL.logInfo $ T.pack $ "Adding category page for: " ++ category
-                                addToRenderList [VPC newCat]
+                                addToRenderList [newCat]
 
 
-makeVPCForCategory :: String -> String -> VirtualPageContext
-makeVPCForCategory r t = def { vpcRoute = r
-                             , vpcVimWikiLinkPath = r
-                             , vpcTitle = t
-                             , vpcTemplate = "category"
-                             , vpcIndexPage = False
+makeVSMForCategory :: String -> String -> SourceMetadata
+makeVSMForCategory r t = def { smRoute = r
+                             , smVimWikiLinkPath = r
+                             , smTitle = t
+                             , smTemplate = "category"
+                             , smIndexPage = False
                              }

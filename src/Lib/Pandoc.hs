@@ -1,8 +1,9 @@
-{-# LANGUAGE ConstraintKinds      #-}
+{-# LANGUAGE ConstraintKinds       #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE ExtendedDefaultRules  #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE GADTs                 #-}
+{-# LANGUAGE LambdaCase            #-}
 {-# LANGUAGE OverloadedStrings     #-}
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE RankNTypes            #-}
@@ -22,7 +23,7 @@ module Lib.Pandoc where
 import           TextShow
 
 import           Data.ByteString        (ByteString)
-import           Data.Maybe             (fromMaybe)
+import           Data.Maybe             (fromJust, fromMaybe)
 import           Data.Text              (Text)
 import           Data.Text              as T
 import           Data.Text.Encoding     (decodeUtf8', encodeUtf8)
@@ -39,27 +40,29 @@ import           Polysemy.State         (State)
 
 import           Text.Pandoc            (Pandoc)
 import qualified Text.Pandoc            as TP
+import qualified Text.Pandoc.Builder    as TPB
+import qualified Text.Pandoc.Definition as TPD
 
-import           Effect.File            (File)
-import qualified Effect.File            as EF
 import           Effect.Cache           (Cache)
 import qualified Effect.Cache           as EC
-import           Effect.Print           (Print)
+import           Effect.File            (File)
+import qualified Effect.File            as EF
 import           Effect.Logging         (LoggingMessage)
 import qualified Effect.Logging         as EL
+import           Effect.Print           (Print)
 
-import           Lib.Errors             (SiteGenError)
-import qualified Lib.Errors             as LE
-import qualified Lib.Header             as H
-import           Lib.SiteGenConfig      (SiteGenConfig)
-import qualified Lib.SiteGenConfig      as SGC
+import           Types.Errors           (SiteGenError)
 import           Types.SiteGenState     (SiteGenReader, SiteGenState,
                                          siteVimWikiLinkMap)
 
-import           Lib.PandocUtils        (pandocToContentTextEither,
+import qualified Lib.Header             as H
+import           Lib.SiteGenConfig      (SiteGenConfig)
+import qualified Lib.SiteGenConfig      as SGC
+
+import           Lib.PandocUtils        (extractToc, pandocToContentTextEither,
                                          pandocToSummaryTextEither,
                                          parseMarkdown, processPandocAST,
-                                         extractToc, renderTocItemsToHtml)
+                                         renderTocItemsToHtml)
 
 
 type PandocSemEffects r
@@ -74,66 +77,53 @@ type PandocSemEffects r
        )
 
 
-scContentM :: PandocSemEffects r => H.SourceContext -> Sem r Text
-scContentM (H.VPC _)   = pure ""
-scContentM (H.SPC spc) = fetchContentHtml spc
-
-
-scSummaryM :: PandocSemEffects r => H.SourceContext -> Bool -> Sem r Text
-scSummaryM (H.VPC _) _   = pure ""
-scSummaryM (H.SPC spc) b = fetchSummaryHtml spc b
-
-
-scTocM :: PandocSemEffects r => H.SourceContext -> Maybe Int -> Sem r Text
-scTocM (H.VPC _) _    = pure ""
-scTocM (H.SPC spc) mi = fetchTocHtml spc mi
-
-
 -- | process the SPC to a pandoc AST and cache it/return it.  If it already
 -- exists just return the cached version.
-cachedProcessSPCToPandocAST
+cachedProcessSMToPandocAST
     :: PandocSemEffects r
-    => H.SourcePageContext
+    => H.SourceMetadata
     -> Sem r TP.Pandoc
-cachedProcessSPCToPandocAST spc = do
-    let key = T.pack (H.spcRoute spc) <> "-pandoc-ast"
+cachedProcessSMToPandocAST sm = do
+    let key = T.pack (H.smRoute sm) <> "-pandoc-ast"
     EC.fetch key >>= \case
         Just pd' -> pure pd'
-        Nothing -> do
-            EL.logInfo $ T.pack $ "Parsing and processing: " <> H.spcRelFilePath spc
-            bs <- EF.readFile (H.spcAbsFilePath spc) (Just $ H.spcHeaderLen spc) Nothing
-            pd <- PE.fromEither $ parseMarkdown bs
-            vws <- PR.asks @SiteGenReader siteVimWikiLinkMap
-            let pd'' = processPandocAST vws pd
-            EC.store key pd''
-            pure pd''
+        Nothing -> case H.smAbsFilePath sm of
+            Nothing -> pure $ TPB.doc $ TPB.singleton TPD.Null
+            Just absFile -> do
+                EL.logInfo $ T.pack $ "Parsing and processing: " <> fromJust (H.smRelFilePath sm)
+                bs <- EF.readFile absFile (Just $ H.smHeaderLen sm) Nothing
+                pd <- PE.fromEither $ parseMarkdown bs
+                vws <- PR.asks @SiteGenReader siteVimWikiLinkMap
+                let pd'' = processPandocAST vws pd
+                EC.store key pd''
+                pure pd''
 
 
 
-fetchContentHtml :: PandocSemEffects r => H.SourcePageContext -> Sem r Text
-fetchContentHtml spc =
-    PE.fromEither =<< pandocToContentTextEither <$> cachedProcessSPCToPandocAST spc
+smContentM :: PandocSemEffects r => H.SourceMetadata -> Sem r Text
+smContentM sm =
+    PE.fromEither =<< pandocToContentTextEither <$> cachedProcessSMToPandocAST sm
 
 
-fetchSummaryHtml
+smSummaryM
     :: PandocSemEffects r
-    => H.SourcePageContext
+    => H.SourceMetadata
     -> Bool
     -> Sem r Text
-fetchSummaryHtml spc isRich = do
+smSummaryM sm isRich = do
     maxSummaryWords <- PR.asks @SiteGenConfig SGC.sgcMaxSummaryWords
     -- get Either err (plain, rick) as a Summary
-    res <- pandocToSummaryTextEither maxSummaryWords <$> cachedProcessSPCToPandocAST spc
+    res <- pandocToSummaryTextEither maxSummaryWords <$> cachedProcessSMToPandocAST sm
     PE.fromEither $ fmap (if isRich then snd else fst) res
 
 
-fetchTocHtml
+smTocM
     :: PandocSemEffects r
-    => H.SourcePageContext
+    => H.SourceMetadata
     -> Maybe Int
     -> Sem r Text
-fetchTocHtml spc mLevels = do
-    tocItems <- extractToc <$> cachedProcessSPCToPandocAST spc
+smTocM sm mLevels = do
+    tocItems <- extractToc <$> cachedProcessSMToPandocAST sm
     let levels = fromMaybe 6 mLevels
     PE.fromEither $ renderTocItemsToHtml levels tocItems
 

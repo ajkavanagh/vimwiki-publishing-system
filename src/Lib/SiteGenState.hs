@@ -15,13 +15,13 @@
 module Lib.SiteGenState
     ( SiteGenReader(..)
     , SiteGenState(..)
-    , SourcePageContext(..)
+    , SourceMetadata(..)
     , SiteGenConfig(..)
     , FileMemo(..)
     , makeSiteGenReader
     , emptySiteGenState
     , recordMemo
-    , nextSCToRender
+    , nextSMToRender
     , addToRenderList
     , addToSitePagesRendered
     )
@@ -43,21 +43,19 @@ import           Polysemy            (Member, Sem)
 import           Polysemy.State      (State)
 import qualified Polysemy.State      as PS
 
-import           Lib.Errors          (SiteGenError)
-import           Lib.Header          (SourceContext (..),
-                                      SourcePageContext (..))
-import qualified Lib.Header          as H
+import           Types.Errors        (SiteGenError)
+import           Types.Header        (SourceMetadata (..))
 import           Lib.SiteGenConfig   (SiteGenConfig)
 
 import           Types.SiteGenState  (FileMemo (..), SiteGenReader (..),
                                       SiteGenState (..))
 
 
-makeSiteGenReader :: [H.SourceContext] -> SiteGenReader
-makeSiteGenReader scs = SiteGenReader
-    { siteSourceContexts=scs
-    , siteVimWikiLinkMap=HashMap.fromList $ map (\h -> (H.scVimWikiLinkPath h, h)) scs
-    , siteRouteMap=HashMap.fromList $ map (\h -> (H.scRoute h, h)) scs
+makeSiteGenReader :: [SourceMetadata] -> SiteGenReader
+makeSiteGenReader sms = SiteGenReader
+    { siteSourceMetadataItems=sms
+    , siteVimWikiLinkMap=HashMap.fromList $ map (\h -> (smVimWikiLinkPath h, h)) sms
+    , siteRouteMap=HashMap.fromList $ map (\h -> (smRoute h, h)) sms
     }
 
 
@@ -89,20 +87,20 @@ recordMemo memoFile = do
 
 addToSitePagesRendered
     :: Member (State SiteGenState) r
-    => SourceContext
+    => SourceMetadata
     -> Sem r ()
-addToSitePagesRendered sc =
+addToSitePagesRendered sm =
     PS.modify' $ \sgs ->
-        sgs { sitePagesRendered=HashMap.insert (H.scRoute sc)
-                                               sc
+        sgs { sitePagesRendered=HashMap.insert (smRoute sm)
+                                               sm
                                                (sitePagesRendered sgs)}
 
 -- | nextSCToRender -- return the next item to render and remove it from the
 -- list
-nextSCToRender
+nextSMToRender
     :: Member (State SiteGenState) r
-    => Sem r (Maybe SourceContext)
-nextSCToRender = do
+    => Sem r (Maybe SourceMetadata)
+nextSMToRender = do
     rs <- PS.gets @SiteGenState siteRenderList
     case rs of
         [] -> pure Nothing
@@ -111,17 +109,17 @@ nextSCToRender = do
             pure $ Just r
 
 
--- | addToRenderList - add SourceContext's to the render list.  Any duplicates
--- are dropped (which would be odd if there were), and the new items are
--- inserted in order.
+-- | addToRenderList - add SourceMetadata items to the render list.  Any
+-- duplicates are dropped (which would be odd if there were), and the new items
+-- are inserted in order.
 addToRenderList
     :: Member (State SiteGenState) r
-    => [SourceContext]
+    => [SourceMetadata]
     -> Sem r ()
-addToRenderList scs = case scs of
+addToRenderList sms = case sms of
     [] -> pure ()
     scs' -> PS.modify' $ \sgs ->
-        sgs {siteRenderList=insertListBy H.scRoute (siteRenderList sgs) scs}
+        sgs {siteRenderList=insertListBy smRoute (siteRenderList sgs) sms}
 
 
 -- | assuming the first list is sorted, insert the 2nd list into it, dropping

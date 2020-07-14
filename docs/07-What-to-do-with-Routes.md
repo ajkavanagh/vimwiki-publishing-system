@@ -31,7 +31,7 @@ virtual routes added if they don't exist.
 An example is the 404 page.  This will get rendered if there is a template
 called 404.html in either the templates root or `_default` directories.
 However, a page *saying* it is the `404` route doesn't actually have to exist.
-In this case a virtual SourcePageContext will be created that will generate the
+In this case a virtual SourceMetadata will be created that will generate the
 page.  If no template exists then no page will be created.
 
 The same goes for categories and tags.  If not real page grabs the route for

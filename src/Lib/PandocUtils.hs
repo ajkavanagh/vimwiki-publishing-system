@@ -68,10 +68,11 @@ import           Control.Applicative    ((<|>))
 import           Data.Yaml              ((.!=), (.:), (.:?), (.=))
 import qualified Data.Yaml              as Y
 
-import           Lib.Errors             as LE
+import           Types.Errors           as TE
+import qualified Types.SiteGenState     as SGS
+
 import qualified Lib.Header             as H
 import           Lib.Utils              (strToLower)
-import qualified Types.SiteGenState     as SGS
 
 -- testing - remove
 import           Data.Either            (fromRight)
@@ -149,14 +150,14 @@ pandocHtmlArgs = TP.def { TP.writerTemplate = Nothing
 --  - summary (extract that bit)
 --  - table of contents (extract and store to JSON)
 
-parseMarkdown :: BS.ByteString -> Either LE.SiteGenError TP.Pandoc
+parseMarkdown :: BS.ByteString -> Either TE.SiteGenError TP.Pandoc
 parseMarkdown bs =
     case decodeUtf8' bs of
-        Left e -> Left $ LE.PageDecodeError (showt e)
+        Left e -> Left $ TE.PageDecodeError (showt e)
         Right txt ->
             let result = TP.runPure $ TP.readMarkdown pandocMarkdownArgs txt
              in case result of
-                Left e    -> Left $ LE.PandocReadError e
+                Left e    -> Left $ TE.PandocReadError e
                 Right ast -> Right ast
 
 
@@ -165,17 +166,17 @@ parseMarkdown bs =
 --  * local links that don't point to any pages are removed.
 --  * links are 'fixed up' so they point to the right place in the eventual
 --    site.
-processPandocAST :: SGS.VimWikiLinkToSC -> TP.Pandoc -> TP.Pandoc
+processPandocAST :: SGS.VimWikiLinkToSM -> TP.Pandoc -> TP.Pandoc
 processPandocAST hmap ast = processPandocLinks hmap $ convertVimWikiLinks ast
 
 
 -- take the Pandoc AST (that's probably been processed) and process it to HTML
 -- for content.  Then return this content.
-pandocToContentTextEither :: TP.Pandoc -> Either LE.SiteGenError T.Text
+pandocToContentTextEither :: TP.Pandoc -> Either TE.SiteGenError T.Text
 pandocToContentTextEither ast =
     let result = TP.runPure $ TP.writeHtml5String pandocHtmlArgs ast
      in case result of
-        Left e    -> Left $ LE.PandocWriteError e
+        Left e    -> Left $ TE.PandocWriteError e
         Right txt -> Right txt
 
 
@@ -186,7 +187,7 @@ pandocToSummaryTextEither
     :: Int              -- the number of words to use
     -> TP.Pandoc        -- the Pandoc document to fetch the summary from
     -- Plain HTML and marked up HTML versions of the summary
-    -> Either LE.SiteGenError (T.Text, T.Text)
+    -> Either TE.SiteGenError (T.Text, T.Text)
 pandocToSummaryTextEither n ast = do
     plain <- renderWithOneOfEither getSummaryPlain (getSummaryNPlain n) ast
     rich <- renderWithOneOfEither getSummaryPandoc (getSummaryNPandoc n) ast
@@ -198,15 +199,15 @@ renderWithOneOfEither
     :: (TP.Pandoc -> Maybe TP.Pandoc)
     -> (TP.Pandoc -> TP.Pandoc)
     -> TP.Pandoc
-    -> Either LE.SiteGenError T.Text
+    -> Either TE.SiteGenError T.Text
 renderWithOneOfEither f1 f2 ast =
     let mAst = f1 ast <|> pure (f2 ast)
      in case mAst of
-        Nothing -> Left $ LE.PandocProcessError "Couldn't extract text?"
+        Nothing -> Left $ TE.PandocProcessError "Couldn't extract text?"
         Just ast' ->
             let resultTxt = TP.runPure $ TP.writeHtml5String pandocHtmlArgs ast'
              in case resultTxt of
-                Left e    -> Left $ LE.PandocWriteError e
+                Left e    -> Left $ TE.PandocWriteError e
                 Right txt -> Right txt
 
 
@@ -218,15 +219,15 @@ renderWithOneOfEither f1 f2 ast =
 -- The Link, if it's local, will be the filename minus the extension.  i.e. we
 -- have to add the extension and then try to match it to the filepath
 
-processPandocLinks :: SGS.VimWikiLinkToSC -> TP.Pandoc -> TP.Pandoc
+processPandocLinks :: SGS.VimWikiLinkToSM -> TP.Pandoc -> TP.Pandoc
 processPandocLinks hmap = TPW.walk (walkLinksInInlines hmap)
 
 
-walkLinksInInlines :: SGS.VimWikiLinkToSC -> [TP.Inline] -> [TP.Inline]
+walkLinksInInlines :: SGS.VimWikiLinkToSM -> [TP.Inline] -> [TP.Inline]
 walkLinksInInlines hmap xs = L.concat $ walkLinksInInlines' hmap [] xs
 
 
-walkLinksInInlines' :: SGS.VimWikiLinkToSC
+walkLinksInInlines' :: SGS.VimWikiLinkToSM
                     -> [[TP.Inline]]
                     -> [TP.Inline]
                     -> [[TP.Inline]]
@@ -248,8 +249,8 @@ walkLinksInInlines' hmap ds xs =
 --     and substitute in the text or inlines.  Most likely the text.
 -- use Network.URI to detect the whether it is relative or a URI.  If it is
 -- relative, parse it, pull out the relative bit, and match it against the
--- relative link of the the SourcePageContext items.
-maybeRewriteLink :: SGS.VimWikiLinkToSC -> TP.Inline -> [TP.Inline]
+-- relative link of the the SourceMetadata items.
+maybeRewriteLink :: SGS.VimWikiLinkToSM -> TP.Inline -> [TP.Inline]
 maybeRewriteLink hmap link@(TPD.Link attr desc (url, title)) =
     let url' = T.unpack url
   -- it's a relative reference; they should ALL be within the site
@@ -264,8 +265,8 @@ maybeRewriteLink hmap link@(TPD.Link attr desc (url, title)) =
                             else desc
                 -- otherwise re-write it to the route; note we need to add back in
                 -- any of the other bits of the url (query and fragment)
-                Just sc ->
-                    let newUri = show (uri {NU.uriPath=H.scRoute sc})
+                Just sm ->
+                    let newUri = show (uri {NU.uriPath=H.smRoute sm})
                     in [TPD.Link attr desc (T.pack newUri, title)]
           -- it was absolute or something else; thus we just ignore the link
           else [link]
@@ -662,10 +663,10 @@ extractTocItemsToByteString = dumpToc . extractToc
 
 -- | extract the TocItems out of the bytestring and into a Right
 -- Left is a site error (suitable for raising).
-byteStringToTocItemsEither :: BS.ByteString -> Either LE.SiteGenError [TocItem]
+byteStringToTocItemsEither :: BS.ByteString -> Either TE.SiteGenError [TocItem]
 byteStringToTocItemsEither bs =
     case loadTocEither bs of
-        Left e -> Left $ LE.OtherError $ T.pack $ "Could decode TocItems? : " ++ e
+        Left e -> Left $ TE.OtherError $ T.pack $ "Could decode TocItems? : " ++ e
         Right ts -> Right ts
 
 
@@ -675,12 +676,12 @@ byteStringToTocItemsEither bs =
 -- asked for by the template (via Ginger).  Hence, this function expects the TOC
 -- as a [TocItem] and then calls the relevant Pandoc utils to build the Pandoc
 -- document from that.  This is then rendered to Text.
-renderTocItemsToHtml :: Int -> [TocItem] -> Either LE.SiteGenError T.Text
+renderTocItemsToHtml :: Int -> [TocItem] -> Either TE.SiteGenError T.Text
 renderTocItemsToHtml n ts =
     let pd = buildPandocFromTocItems n ts
         resultTxt = TP.runPure $ TP.writeHtml5String pandocHtmlArgs pd
      in case resultTxt of
-        Left e    -> Left $ LE.PandocWriteError e
+        Left e    -> Left $ TE.PandocWriteError e
         Right txt -> Right txt
 
 

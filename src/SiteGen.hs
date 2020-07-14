@@ -10,7 +10,7 @@
 {-# LANGUAGE TypeFamilies         #-}
 {-# LANGUAGE TypeOperators        #-}
 
-{-# LANGUAGE PatternSynonyms       #-}
+{-# LANGUAGE PatternSynonyms      #-}
 
 module SiteGen
     {-, someOtherFunc-}
@@ -37,47 +37,49 @@ import           Control.Monad             (foldM, forM_, liftM2, unless, when)
 
 -- Polysemy
 import           Colog.Core                (logStringStderr)
-import           Colog.Core.Severity (pattern D, pattern E, pattern I, Severity,
-                                      pattern W)
+import           Colog.Core.Severity       (pattern D, pattern E, pattern I,
+                                            Severity, pattern W)
 import           Colog.Polysemy            (Log, runLogAction)
 import qualified Colog.Polysemy            as CP
 import           Polysemy
 import           Polysemy.Error            (Error, errorToIOFinal, mapError)
 import qualified Polysemy.Error            as PE
 import           Polysemy.Reader           (runReader)
-import           Polysemy.State            (runState, evalState)
+import           Polysemy.State            (evalState, runState)
 
-import           Text.Ginger               (Template, SourcePos)
+import           Text.Ginger               (SourcePos, Template)
 import           Text.Pandoc               (Pandoc)
 
 -- Application Effects
+import           Effect.Cache              (Cache, CacheStore, cacheInHashWith,
+                                            emptyCache)
 import           Effect.File               (File, FileException, fileToIO)
-import           Effect.Locale             (Locale, localeToIO, LocaleException)
-import           Effect.Cache              (Cache, CacheStore, cacheInHashWith, emptyCache)
+import           Effect.Locale             (Locale, LocaleException, localeToIO)
+import           Effect.Logging            (LoggingMessage, logActionLevel)
 import           Effect.Print              (Print, printToIO)
 import qualified Effect.Print              as P
-import           Effect.Logging            (LoggingMessage,logActionLevel)
 
 -- Local Libraries
-import           Lib.RenderUtils           (renderSourceContext)
-import           Lib.Errors                (SiteGenError, mapSiteGenError, GingerException (..))
+import           Types.Errors              (SiteGenError (..), mapSiteGenError)
+import           Types.Ginger              (GingerException)
+import           Types.Header              (SourceMetadata (..))
+
+import           Lib.RenderUtils           (renderSourceMetadata)
 import qualified Lib.Files                 as F
 import qualified Lib.Header                as H
 import qualified Lib.RouteUtils            as RU
 import           Lib.SiteGenConfig         (ConfigException, SiteGenConfig (..))
 import qualified Lib.SiteGenConfig         as SGC
 import           Lib.SiteGenState          (SiteGenReader, SiteGenState,
-                                            emptySiteGenState,
-                                            makeSiteGenReader
-                                            , nextSCToRender
-                                            , addToRenderList )
+                                            addToRenderList, emptySiteGenState,
+                                            makeSiteGenReader, nextSMToRender)
+import           Lib.SpecialPages.Category (resolveCategoriesPage)
+import           Lib.SpecialPages.Four04   (resolve404page)
+import           Lib.SpecialPages.Tag      (resolveTagsPage)
 import           Lib.Utils                 (isDebug, isMarkDownFile,
                                             isMarkDownStr, printIfDoesntExist,
                                             strToLower, validateFileExists,
                                             validateWithTests)
-import           Lib.SpecialPages.Four04   (resolve404page)
-import           Lib.SpecialPages.Category (resolveCategoriesPage)
-import           Lib.SpecialPages.Tag      (resolveTagsPage)
 
 
 sitegenProgram :: IO ()
@@ -209,30 +211,29 @@ runSiteGenSem args = do
     let ext = SGC.sgcExtension sgc
     P.putText $ "Looking in " <> showt sourceDir
     P.putText $ "Extension is " <> showt ext
-    spcs <- runReader sgc $ F.filePathToSourcePageContexts sourceDir ext
-    P.putText $ "SPCs are:\n" <> T.pack (intercalate "\n" (map show spcs))
-    let files = map H.spcRelFilePath spcs
-    P.putText $ T.pack $ "Files are: " ++ intercalate ", " files
-    P.putText $ T.pack $ "Routes are: " ++ intercalate ", " (map (show . H.spcRoute) spcs)
-    let dr = RU.checkDuplicateRoutesSPC spcs
+    sms <- runReader sgc $ F.filePathToSourceMetadataItems sourceDir ext
+    P.putText $ "SMs are:\n" <> T.pack (intercalate "\n" (map show sms))
+    let files = map smRelFilePath sms
+    P.putText $ T.pack $ "Files are: " ++ intercalate ", " (map show files)
+    P.putText $ T.pack $ "Routes are: " ++ intercalate ", " (map (show . smRoute) sms)
+    let dr = RU.checkDuplicateRoutes sms
     P.putText $ T.pack $ "Duplicate routes: " ++ intercalate ", " (map show dr)
-    let mr = RU.findMissingIndexRoutesSPC spcs
+    let mr = RU.findMissingIndexRoutes sms
     P.putText $ T.pack $ "Missing routes: Len (" ++ show (length mr) ++ ") = " ++ intercalate ", " mr
-    let spcs' = RU.ensureIndexRoutesIn spcs
-        scs = RU.addVPCIndexPages spcs'
-    P.putText $ T.pack $ "Final route set: " ++ intercalate ", " (map H.scRoute scs)
-    {-CP.log @String $ "Final SourceContext set:\n" ++ intercalate "\n" (map show scs)-}
+    let sms' = RU.ensureIndexRoutesIn sms
+        scs = RU.addVSMIndexPages sms'
+    P.putText $ T.pack $ "Final route set: " ++ intercalate ", " (map smRoute scs)
     -- Create the SiteGenState and Reader
     let sgr = makeSiteGenReader scs
 
     -- TODO: filtering whilst in debug; pass in from the command line.
     let scs' = if not (null (extraArgs args))
              then let fp' = head $ extraArgs args
-                   in map H.SPC $ filter ((==fp').H.spcRelFilePath) spcs
+                   in filter ((== Just fp') . smRelFilePath) sms
              else scs
     -- now just call the rendering function to render all of these files
     -- Note that they are put into the renderList with addToRenderList and taken
-    -- out with nextSCToRender.  This means that rendering can add to the list
+    -- out with nextSMToRender.  This means that rendering can add to the list
     -- (e.g. pagination or other dynamic tasks that might generate additional
     -- pages)
     runReader @SiteGenConfig sgc
@@ -245,9 +246,9 @@ runSiteGenSem args = do
             resolve404page
             when (sgcGenerateCategories sgc) resolveCategoriesPage
             when (sgcGenerateTags sgc) resolveTagsPage
-            let go = do mSc <- nextSCToRender
-                        case mSc of
-                            Just sc -> renderSourceContext sc >> go   -- render the file and loop
+            let go = do mSm <- nextSMToRender
+                        case mSm of
+                            Just sm -> renderSourceMetadata sm >> go   -- render the file and loop
                             Nothing -> pure ()
             go
             when (sgcCopyStaticFiles sgc) F.copyStaticFiles

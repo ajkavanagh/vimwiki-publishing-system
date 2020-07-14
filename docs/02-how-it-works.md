@@ -83,13 +83,13 @@ Something along the lines of:
   * Size of the file
   * Hash of the file has changed.
 
-Each .[extension] file will have a `SourcePageContext` that contains the
+Each .[extension] file will have a `SourceMetadata` that contains the
 information necessary to render the .[extension] file into an HTML fragment.
 
 Rendering needs to be able to handle:
 
- - No SourceContext objects
- - Multiple SourceContext objects
+ - No SourceMetadata objects
+ - Multiple SourceMetadata objects
  - Tags
  - Categories
  - Diary entries  -- pages with a template?
@@ -105,7 +105,7 @@ order for the keys.  The collections are accessed by keys which are strings:
 
 ### Tags & Categories
 
-These are essentially a string => [`SourcePageContext`] items.  It almost
+These are essentially a string => [`SourceMetadata`] items.  It almost
 certainly needs to be a list of those strings, so it's probably a list of
 tuples, or a mapping and then the tags can be extacted as keys.
 

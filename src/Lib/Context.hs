@@ -20,20 +20,11 @@
 module Lib.Context where
 
 import           Data.Text                     (Text)
-import qualified Data.Text                     as T
 
-import           Colog.Polysemy                (Log)
-import qualified Colog.Polysemy                as CP
-import           Polysemy                      (Member, Sem)
-import           Polysemy.Error                (Error)
-import           Polysemy.Reader               (Reader)
-import           Polysemy.State                (State)
+import           Polysemy                      (Sem)
 import           Polysemy.Writer               (Writer)
 
-import           Effect.File                   (File, FileException)
 import           Effect.Ginger                 (GingerSemEffects)
-import           Effect.Logging                (LoggingMessage)
-import qualified Effect.Logging                as EL
 
 import           Lib.Context.CategoriesContext (categoriesContext)
 import           Lib.Context.Core              (mergeContexts)
@@ -42,25 +33,20 @@ import           Lib.Context.Functions         (functionsContext)
 import           Lib.Context.PageContexts      (pageHeaderContextFor)
 import           Lib.Context.SiteGenConfig     (siteGenConfigContext)
 import           Lib.Context.TagsContext       (tagsContext)
-import           Lib.Errors                    (GingerException (..),
-                                                SiteGenError)
-import           Lib.Header                    (SourceContext)
-import qualified Lib.Header                    as H
-import           Lib.SiteGenConfig             (SiteGenConfig)
-import           Lib.SiteGenState              (SiteGenReader, SiteGenState)
 
-import           Types.Context                 (Context, RunSem, RunSemGVal)
+import           Types.Context                 (Context, RunSem)
+import           Types.Header                  (SourceMetadata)
 
 
 makeContextFor
     :: GingerSemEffects r
-    => SourceContext
+    => SourceMetadata
     -> Sem r (Context (RunSem (Writer Text : r)))
-makeContextFor sc = -- do
-    pure $ mergeContexts [ pageHeaderContextFor sc
+makeContextFor sm =
+    pure $ mergeContexts [ pageHeaderContextFor sm
                          , siteGenConfigContext
-                         , pageFunctionsContext sc
+                         , pageFunctionsContext sm
                          , functionsContext
-                         , categoriesContext sc
-                         , tagsContext sc
+                         , categoriesContext sm
+                         , tagsContext sm
                          ]

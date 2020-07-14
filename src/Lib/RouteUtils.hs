@@ -13,12 +13,11 @@
 
 module Lib.RouteUtils
     ( RouteError(..)
-    , addVPCIndexPages
+    , addVSMIndexPages
     , checkDuplicateRoutes
-    , checkDuplicateRoutesSPC
     , checkExistingRoute
     , ensureIndexRoutesIn
-    , findMissingIndexRoutesSPC
+    , findMissingIndexRoutes
     , indexRoutesFor
     , isIndexRoute
     , makeFileNameFrom
@@ -52,16 +51,9 @@ import qualified Colog.Polysemy      as CP
 import           Types.Constants
 import           Types.SiteGenState  (SiteGenReader (..), SiteGenState (..))
 
-import           Lib.Errors          (SiteGenError (..))
-import           Lib.Header          (SourceContext (..),
-                                      SourcePageContext (..),
-                                      VirtualPageContext (..), scIndexPage,
-                                      scRelFilePath, scRoute)
-
-
-data RouteError = DuplicateRouteError SourceContext T.Text
-                  deriving (Eq, Show)
-
+import           Types.Errors        (SiteGenError (..))
+import           Types.Header        (SourceMetadata (..))
+import           Types.RouteUtils
 
 
 -- see if a route exists in the list of pages to render, or the pages that have
@@ -80,7 +72,7 @@ checkExistingRoute route = do
         page' <- (pure . HashMap.lookup route) =<< PS.gets @SiteGenState sitePagesRendered
         falseOr page' $ do
             srl <- PS.gets @SiteGenState siteRenderList
-            pure $ elem route $ map scRoute srl
+            pure $ elem route $ map smRoute srl
 
 
 -- Helper that takes a Maybe value (which it doesn't care about), and if Nothing
@@ -96,7 +88,7 @@ routeToConcreteSc
     :: ( Member (Reader SiteGenReader) r
        )
     => Route
-    -> Sem r (Maybe SourceContext)
+    -> Sem r (Maybe SourceMetadata)
 routeToConcreteSc r = (pure . HashMap.lookup r) =<< PR.asks @SiteGenReader siteRouteMap
 
 
@@ -104,17 +96,17 @@ routeToConcreteSc r = (pure . HashMap.lookup r) =<< PR.asks @SiteGenReader siteR
 -- | checks for duplicate routes in the SPCs, then generate any missing index
 -- pages and finally check for inconsistent indexes (i.e. where an output
 -- filename can't be generated due to index pages.
-validateRoutesInSPCs
+validateRoutesInSMs
     :: Bool                                -- whether we are generating "indexPages"
     -> String                              -- The final extension ".html"
-    -> [SourcePageContext]
-    -> Either [RouteError] [SourceContext]
-validateRoutesInSPCs doIndexFileNames ext spcs =
-    let errors = checkDuplicateRoutesSPC spcs
+    -> [SourceMetadata]
+    -> Either [RouteError] [SourceMetadata]
+validateRoutesInSMs doIndexFileNames ext sms =
+    let errors = checkDuplicateRoutes sms
      in if not (null errors)
           then Left errors
-          else let spcs' = ensureIndexRoutesIn spcs
-                   scs = addVPCIndexPages spcs'
+          else let sms' = ensureIndexRoutesIn sms
+                   scs = addVSMIndexPages sms'
                    ferrors = checkDuplicateFiles doIndexFileNames ext scs
                 in if not (null ferrors)
                      then Left errors
@@ -122,25 +114,24 @@ validateRoutesInSPCs doIndexFileNames ext spcs =
 
 
 
--- | check for duplicate routes in [SourceContext]
-checkDuplicateRoutes :: [SourceContext] -> [RouteError]
-checkDuplicateRoutes = checkDuplicateUsing scRoute
+-- | check for duplicate routes in [SourceMetadata]
+checkDuplicateRoutes :: [SourceMetadata] -> [RouteError]
+checkDuplicateRoutes = checkDuplicateUsing smRoute
 
 
-checkDuplicateRoutesSPC :: [SourcePageContext] -> [RouteError]
-checkDuplicateRoutesSPC = checkDuplicateRoutes . map SPC
-
-
--- | check for duplicate files in [SourceContext]
-checkDuplicateFiles :: Bool -> String -> [SourceContext] -> [RouteError]
+-- | check for duplicate files in [SourceMetadata]
+checkDuplicateFiles :: Bool -> String -> [SourceMetadata] -> [RouteError]
 checkDuplicateFiles doIndexFiles ext = checkDuplicateUsing (makeFileNameFrom doIndexFiles ext)
 
 
 -- | helper to find duplicates and generate error lists if there are
--- duplicates.  The function takes something from the SourceContext and that is
+-- duplicates.  The function takes something from the SourceMetadata and that is
 -- the thing that is checked for duplicates.
-checkDuplicateUsing :: (Ord a, Eq a, Show a) => (SourceContext -> a) -> [SourceContext] -> [RouteError]
-checkDuplicateUsing f scs = concatMap makeError' $ checkForDuplicates $ fmapToFst f scs
+checkDuplicateUsing :: (Ord a, Eq a, Show a)
+                    => (SourceMetadata -> a)
+                    -> [SourceMetadata]
+                    -> [RouteError]
+checkDuplicateUsing f sms = concatMap makeError' $ checkForDuplicates $ fmapToFst f sms
 
 
 checkForDuplicates :: (Ord a, Eq a) => [(a, b)] -> [[(a, b)]]
@@ -155,38 +146,38 @@ fmapOnFst :: Functor f => (a -> b) -> f (a, c) -> f (b, c)
 fmapOnFst f = fmap (first f)
 
 
-makeError' :: Show a => [(a, SourceContext)] -> [RouteError]
+makeError' :: Show a => [(a, SourceMetadata)] -> [RouteError]
 makeError' pairs =
     let route = fst $ head pairs
-        fileNames = map (fromMaybe "<virtual>" . scRelFilePath . snd) pairs
+        fileNames = map (fromMaybe "<virtual>" . smRelFilePath . snd) pairs
         spcs = map snd pairs
      in map (go route fileNames) spcs
   where
-      go :: Show a => a -> [FilePath] -> SourceContext -> RouteError
-      go r fps spc = DuplicateRouteError spc (T.pack ("Pages share same route: "
-                                             <> show r
-                                             <> ", filenames: "
-                                             <> L.intercalate ", " fps))
+      go :: Show a => a -> [FilePath] -> SourceMetadata -> RouteError
+      go r fps sm = DuplicateRouteError sm (T.pack ("Pages share same route: "
+                                           <> show r
+                                           <> ", filenames: "
+                                           <> L.intercalate ", " fps))
 
 
--- | fix the index page routes in SourcePageContext records that are an index
+-- | fix the index page routes in SourceMetadata records that are an index
 -- page.
-ensureIndexRoutesIn :: [SourcePageContext] -> [SourcePageContext]
-ensureIndexRoutesIn spcs = go <$> spcs
-  where go spc = let r = spcRoute spc
-                  in if spcIndexPage spc && not (isIndexRoute r)
-                       then spc { spcRoute=r <> "/" }
-                       else spc
+ensureIndexRoutesIn :: [SourceMetadata] -> [SourceMetadata]
+ensureIndexRoutesIn sms = go <$> sms
+  where go sm = let r = smRoute sm
+                 in if smIndexPage sm && not (isIndexRoute r)
+                      then sm { smRoute=r <> "/" }
+                      else sm
 
 
 -- | identify the missing index pages in the routes.
 -- We are looking for routes that have a 'directories' in them for which no
 -- index page exists at that point.
 -- e.g. thing/one route needs a thing/ page.
-findMissingIndexRoutesSPC :: [SourcePageContext] -> [String]
-findMissingIndexRoutesSPC spcs =
-    let allRoutes = L.nub $ L.sort $ concatMap (indexRoutesFor . spcRoute) spcs
-        actualRoutes = spcRoute <$> filter spcIndexPage spcs
+findMissingIndexRoutes :: [SourceMetadata] -> [String]
+findMissingIndexRoutes sms =
+    let allRoutes = L.nub $ L.sort $ concatMap (indexRoutesFor . smRoute) sms
+        actualRoutes = smRoute <$> filter smIndexPage sms
      in allRoutes L.\\ actualRoutes
 
 
@@ -205,23 +196,21 @@ indexRoutesFor s =
          xs -> "/" : map (\p -> "/" <> p <> "/") (L.init parts)
 
 
--- | ensure that we have a set of VirtualPageContext records for each missing
--- index page.  Note that SourceContext is a wrapper around the
--- SourcePageContext and the VirtualPageContext, and the SourceClass is used to
--- paper over the cracks in most places.
-addVPCIndexPages :: [SourcePageContext] -> [SourceContext]
-addVPCIndexPages spcs =
-    let missingIndexes = findMissingIndexRoutesSPC spcs
-        vpcs = map makeVPCForIndex missingIndexes
-     in map SPC spcs ++ map VPC vpcs
+-- | ensure that we have a set of Virtual SourceMetadata records for each missing
+-- index page.
+addVSMIndexPages :: [SourceMetadata] -> [SourceMetadata]
+addVSMIndexPages sms =
+    let missingIndexes = findMissingIndexRoutes sms
+        vsms = map makeVSMForIndex missingIndexes
+     in sms ++ vsms
 
 
-makeVPCForIndex :: String -> VirtualPageContext
-makeVPCForIndex route = def { vpcRoute = route
-                            , vpcVimWikiLinkPath = route
-                            , vpcTitle = "Page: " ++ route
-                            , vpcTemplate = "index"
-                            , vpcIndexPage = True
+makeVSMForIndex :: String -> SourceMetadata
+makeVSMForIndex route = def { smRoute = route
+                            , smVimWikiLinkPath = route
+                            , smTitle = "Page: " ++ route
+                            , smTemplate = "index"
+                            , smIndexPage = True
                             }
 
 
@@ -250,11 +239,11 @@ makeVPCForIndex route = def { vpcRoute = route
     both exist as otherwise there will be an error!
 -}
 
--- | make an filename from the source page SourceContext.
-makeFileNoExtNameFrom :: Bool -> SourceContext -> FilePath
-makeFileNoExtNameFrom doIndexPage sc =
-    let route = "./" <> routeToFileName (scRoute sc)
-        isIndex = scIndexPage sc
+-- | make an filename from the source page SourceMetadata.
+makeFileNoExtNameFrom :: Bool -> SourceMetadata -> FilePath
+makeFileNoExtNameFrom doIndexPage sm =
+    let route = "./" <> routeToFileName (smRoute sm)
+        isIndex = smIndexPage sm
      in case (isIndex, doIndexPage) of
          (False, False) -> route
          (False, True)  -> route <> "/index"
@@ -267,8 +256,8 @@ routeToFileName "/" = ""
 routeToFileName x   = x
 
 
-makeFileNameFrom :: Bool -> String -> SourceContext -> FilePath
-makeFileNameFrom doIndexPage ext sc = makeFileNoExtNameFrom doIndexPage sc <> ext
+makeFileNameFrom :: Bool -> String -> SourceMetadata -> FilePath
+makeFileNameFrom doIndexPage ext sm = makeFileNoExtNameFrom doIndexPage sm <> ext
 
 
 -- | work out routes at the same level.  i.e. for the paging functions.

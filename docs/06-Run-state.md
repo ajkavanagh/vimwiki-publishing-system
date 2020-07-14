@@ -14,12 +14,12 @@ to upgrade Haskell and Stack to be able to handle the 1.3.0 code.
 Anyway, the immutable parts are:
 
 * `SiteGenConfig` configuration
-* List of files to process in the form of `SourcePageContext` records.
-* map of `FilePath` -> `SourcePageContext`
-* map of route (`Text`) -> `SourcePageContext`
+* List of files to process in the form of `SourceMetadata` records.
+* map of `FilePath` -> `SourceMetadata`
+* map of route (`Text`) -> `SourceMetadata`
 
 The mutable parts of the application:
 
-* The current `SourcePageContext` being processed
+* The current `SourceMetadata` being processed
 * The html (body) to insert into the Ginger template.
 * Any other bits associated with the current page.

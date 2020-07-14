@@ -50,12 +50,10 @@ import qualified Effect.File            as EF
 import           Effect.Logging         (LoggingMessage)
 import qualified Effect.Logging         as EL
 
+import           Types.Errors           (SiteGenError (..))
+import           Types.Header           (SourceMetadata (..))
 import           Types.SiteGenState     (SiteGenReader (..), SiteGenState (..))
 
-import           Lib.Errors             (SiteGenError (..))
-import           Lib.Header             (SourceContext (..),
-                                         VirtualPageContext (..))
-import qualified Lib.Header             as H
 import           Lib.ResolvingTemplates (resolveTemplateName')
 import           Lib.SiteGenConfig      (ConfigException, SiteGenConfig (..))
 import           Lib.SiteGenState       (addToRenderList)
@@ -78,20 +76,20 @@ resolve404page = do
     m404 <- (pure . HashMap.lookup "/404") =<< PR.asks @SiteGenReader siteRouteMap
     -- if it already exists, then no need to do more, otherwise:
     when (isNothing m404) $ do
-        let new404 = makeVPCFor404
+        let new404 = makeVSMFor404
         -- verify that the 404 template exists.
-        mTname <- resolveTemplateName' (H.vpcTemplate new404)
+        mTname <- resolveTemplateName' (smTemplate new404)
         -- if it does then add the 404 page to the render list
         when (isJust mTname) $ do
             EL.logInfo "Adding default 404 handler."
-            addToRenderList [VPC new404]
+            addToRenderList [new404]
 
 
 
-makeVPCFor404 :: VirtualPageContext
-makeVPCFor404 = def { vpcRoute = "/404"
-                    , vpcVimWikiLinkPath = "/404"
-                    , vpcTitle = "Not Found"
-                    , vpcTemplate = "404"
-                    , vpcIndexPage = False
+makeVSMFor404 :: SourceMetadata
+makeVSMFor404 = def { smRoute = "/404"
+                    , smVimWikiLinkPath = "/404"
+                    , smTitle = "Not Found"
+                    , smTemplate = "404"
+                    , smIndexPage = False
                     }

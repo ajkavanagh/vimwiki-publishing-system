@@ -1,30 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Lib.Errors
+module Types.Errors
     where
 
 import           Data.Text         (Text, pack)
 
 import           Effect.File       (FileException (..))
 import           Effect.Locale     (LocaleException (..))
-import           Lib.Header        (SourceContext, SourcePageContext)
 import           Lib.SiteGenConfig (ConfigException (..))
+import           Types.Ginger      (GingerException (..))
+import           Types.Header      (SourceMetadata)
 
 import qualified Text.Pandoc.Error as TPE
-
--- move this, but it's here whilst I consider its proper home
-{-data PageError = SourcePageContextError SourcePageContext Text-}
-               {-| PageDecodeError Text-}
-               {-| PandocReadError TPE.PandocError-}
-               {-| PandocWriteError TPE.PandocError-}
-
-newtype GingerException = GingerException Text
-
-instance Show GingerException where
-    show ex = "Ginger Exception issue: " ++ ss
-      where
-          ss = case ex of
-              (GingerException s)   -> show s
 
 
 data SiteGenError
@@ -32,8 +19,7 @@ data SiteGenError
     | GingerError Text            -- initially, this'll just be the text for the error
     | ConfigError Text Text       -- formed from Config Exception
     | LocaleError Text Text       -- if we get a locale error
-    | SourcePageContextError SourcePageContext Text
-    | SourceContextError SourceContext Text
+    | SourceMetadataError SourceMetadata Text
     | PageDecodeError Text
     | PandocReadError TPE.PandocError
     | PandocWriteError TPE.PandocError

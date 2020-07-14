@@ -14,7 +14,7 @@
 
 
 module Lib.RenderUtils
-    ( renderSourceContext
+    ( renderSourceMetadata
     )
     where
 
@@ -64,15 +64,15 @@ import           Effect.Logging         (LoggingMessage)
 import qualified Effect.Logging         as EL
 import           Effect.Print           (Print)
 
+import           Types.Errors           (SiteGenError (..))
+import           Types.Ginger           (GingerException (..))
+import           Types.Header           (SourceMetadata (..))
+
 import           Lib.Context            (makeContextFor)
-import           Lib.Errors             (GingerException (..),
-                                         SiteGenError (..))
 import           Lib.Files              (ensureDirectoriesExistFor,
                                          writeAndMemo)
 import           Lib.Ginger             (parseToTemplate, renderTemplate)
-import           Lib.Header             (SourceContext)
-import qualified Lib.Header             as H
-import           Lib.ResolvingTemplates (resolveTemplateNameForSC,
+import           Lib.ResolvingTemplates (resolveTemplateNameForSM,
                                          resolveTemplateNameRelative)
 import           Lib.RouteUtils         (makeFileNameFrom)
 import           Lib.SiteGenConfig      (ConfigException, SiteGenConfig (..))
@@ -80,7 +80,7 @@ import           Lib.SiteGenState       (SiteGenReader (..), SiteGenState (..),
                                          addToSitePagesRendered)
 
 
-renderSourceContext
+renderSourceMetadata
     :: ( Member File r
        , Member Locale r
        , Member (Cache Pandoc) r
@@ -95,21 +95,21 @@ renderSourceContext
        , Member (Log LoggingMessage) r
        , Member Print r
        )
-    => SourceContext
+    => SourceMetadata
     -> Sem r ()
-renderSourceContext sc = do
-    EL.logInfo $ T.pack $ "renderSourceContext for route: "
-                       ++ H.scRoute sc
+renderSourceMetadata sm = do
+    EL.logInfo $ T.pack $ "renderSourceMetadata for route: "
+                       ++ smRoute sm
                        ++ ", file: "
-                       ++ show (H.scRelFilePath sc)
+                       ++ show (smRelFilePath sm)
     --
     -- find the template
-    template <- resolveTemplateNameRelative (H.scTemplate sc)
+    template <- resolveTemplateNameRelative (smTemplate sm)
     tplt <- parseToTemplate template
 
     -- build a Ginger context  -- this contains functions for content()
     -- summary(), toc(), etc.
-    ctxt <- makeContextFor sc
+    ctxt <- makeContextFor sm
 
     -- render the file (this is one that accepts the context the template and
     -- returns the output as a string or throws an error.  Note calling
@@ -120,10 +120,10 @@ renderSourceContext sc = do
     -- and arrange to write the file and record what we have written.  This
     -- might include creating directories, etc. and making a note that we've
     -- written the file.
-    writeOutputFile sc out
+    writeOutputFile sm out
 
     -- Finally make a note that we've actually rendered that route.
-    addToSitePagesRendered sc
+    addToSitePagesRendered sm
 
 
 writeOutputFile
@@ -134,16 +134,16 @@ writeOutputFile
        , Member (Error FileException) r
        , Member (Log LoggingMessage) r
        )
-    => SourceContext
+    => SourceMetadata
     -> Text
     -> Sem r ()
-writeOutputFile sc txt = do
+writeOutputFile sm txt = do
     sgc <- PR.ask @SiteGenConfig
     -- need to construct the relative filename
     let doIndexFiles = sgcIndexFiles sgc
         ext = sgcOutputFileExt sgc
         dir = sgcOutputDir sgc
-        relFileName = makeFileNameFrom doIndexFiles ext sc
+        relFileName = makeFileNameFrom doIndexFiles ext sm
         absFileName = normalise (dir </> relFileName)
     --EL.logDebug $ T.pack $ " --> " ++ relFileName
     --EL.logDebug $ T.pack $ " --> " ++ absFileName

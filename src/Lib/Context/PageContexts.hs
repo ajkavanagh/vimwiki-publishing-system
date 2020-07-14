@@ -53,85 +53,75 @@ import           Text.Ginger                 ((~>))
 import qualified Text.Ginger                 as TG
 import qualified Text.Ginger.Run.FuncUtils   as TF
 
+import           Types.Constants
+import           Types.Context               (Context, ContextObject (..),
+                                              ContextObjectTypes (..), RunSem,
+                                              RunSemGVal,
+                                              gValContextObjectTypeDictItemFor)
+import           Types.Errors                (SiteGenError)
+import           Types.Header                (SourceMetadata (..))
+import           Types.Pager                 (Pager (..), makePagerList,
+                                              pagerListToTuples)
+
 import           Lib.Context.Core            (contextFromList, tryExtractIntArg,
                                               tryExtractStringArg)
 import           Lib.Context.DynamicContexts (contentDynamic, summaryDynamic,
                                               tocDynamic)
-import           Lib.Errors                  (SiteGenError)
-import qualified Lib.Header                  as H
 import           Lib.RouteUtils              (sameLevelRoutesAs)
 import           Lib.SiteGenConfig           (SiteGenConfig)
 import           Lib.SiteGenState            (SiteGenReader (..),
                                               SiteGenState (..),
                                               addToRenderList)
 
-import           Types.Constants
-import           Types.Context               (Context, ContextObject (..),
-                                              ContextObjectTypes (..), RunSem,
-                                              RunSemGVal,
-                                              gValContextObjectTypeDictItemFor)
 
-import           Types.Pager                 (Pager (..), makePagerList,
-                                              pagerListToTuples)
-
--- Provide contexts for the SourcePageContext and the VirtualPageContext records
--- They will be provided under the key 'header'
-
+-- Provide contexts for the SourceMetadata records
 
 pageHeaderContextFor
     :: GingerSemEffects r
-    => H.SourceContext
+    => SourceMetadata
     -> Context (RunSem r)
-pageHeaderContextFor sc = do
-    let route = H.scRoute sc
+pageHeaderContextFor sm = do
+    let route = smRoute sm
     contextFromList
-        $  [("Page", pageSourceContextM sc)
-           ,("paginate", pure $ TG.fromFunction $ paginateF sc)
-           ,("selectPages", pure $ TG.fromFunction $ selectPagesF sc)
+        $  [("Page", pageSourceMetadataM sm)
+           ,("paginate", pure $ TG.fromFunction $ paginateF sm)
+           ,("selectPages", pure $ TG.fromFunction $ selectPagesF sm)
            ]
-        ++ [("Pages", pagesContextM route [route]) | H.scIndexPage sc]
+        ++ [("Pages", pagesContextM route [route]) | smIndexPage sm]
 
 
-pageSourceContextM
+pageSourceMetadataM
     :: GingerSemEffects r
-    => H.SourceContext
+    => SourceMetadata
     -> RunSemGVal r
-pageSourceContextM (H.SPC spc) = sourcePageContextM spc
-pageSourceContextM (H.VPC vpc) = virtualPageContextM vpc
+pageSourceMetadataM sm = pure $ TG.toGVal sm
 
 
-sourcePageContextM
-    :: GingerSemEffects r
-    => H.SourcePageContext
-    -> RunSemGVal r
-sourcePageContextM spc = pure $ TG.toGVal spc
-
-
-instance GingerSemEffects r => TG.ToGVal (RunSem r) H.SourcePageContext where
-    toGVal spc =
+instance GingerSemEffects r => TG.ToGVal (RunSem r) SourceMetadata where
+    toGVal sm =
         TG.dict
-            [ gValContextObjectTypeDictItemFor SPCObjectType
-            , "Permalink"       ~> H.spcRoute spc  -- the permalink is currently just the route
-            , "Route"           ~> H.spcRoute spc
-            , "AbsFilePath"     ~> H.spcAbsFilePath spc
-            , "RelFilePath"     ~> H.spcRelFilePath spc
-            , "VimWikiLinkPath" ~> H.spcVimWikiLinkPath spc
-            , "Title"           ~> H.spcTitle spc
-            , "Template"        ~> H.spcTemplate spc
-            , "Tags"            ~> H.spcTags spc
-            , "Category"        ~> H.spcCategory spc
-            , "Date"            ~> (tempToLocalTimeHelper <$> H.spcDate spc)
-            , "Updated"         ~> (tempToLocalTimeHelper <$> H.spcUpdated spc)
-            , "IndexPage"       ~> H.spcIndexPage spc
-            , "Authors"         ~> H.spcAuthors spc
-            , "Publish"         ~> H.spcPublish spc
-            , "Draft"           ~> not (H.spcPublish spc)
-            , "SiteId"          ~> H.spcSiteId spc
+            [ gValContextObjectTypeDictItemFor SMObjectType
+            , "Permalink"       ~> smRoute sm  -- the permalink is currently just the route
+            , "Route"           ~> smRoute sm
+            , "AbsFilePath"     ~> smAbsFilePath sm
+            , "RelFilePath"     ~> smRelFilePath sm
+            , "VimWikiLinkPath" ~> smVimWikiLinkPath sm
+            , "Title"           ~> smTitle sm
+            , "Template"        ~> smTemplate sm
+            , "Tags"            ~> smTags sm
+            , "Category"        ~> smCategory sm
+            , "Date"            ~> (tempToLocalTimeHelper <$> smDate sm)
+            , "Updated"         ~> (tempToLocalTimeHelper <$> smUpdated sm)
+            , "IndexPage"       ~> smIndexPage sm
+            , "Authors"         ~> smAuthors sm
+            , "Publish"         ~> smPublish sm
+            , "Draft"           ~> not (smPublish sm)
+            , "SiteId"          ~> smSiteId sm
             -- note these are lower case initial as they are functions and need to
             -- be called from the template
-            , ("content",          TG.fromFunction (contentDynamic (H.SPC spc)))
-            , ("summary",          TG.fromFunction (summaryDynamic (H.SPC spc)))
-            , ("toc",              TG.fromFunction (tocDynamic (H.SPC spc)))
+            , ("content",          TG.fromFunction (contentDynamic sm))
+            , ("summary",          TG.fromFunction (summaryDynamic sm))
+            , ("toc",              TG.fromFunction (tocDynamic sm))
             ]
 
 
@@ -148,37 +138,11 @@ pagesContextM
     -> [Route]       -- ^ a set of routes to exclude from the set of pages
     -> RunSemGVal r
 pagesContextM route excludes = do
-    scs <- TG.liftRun $ PR.asks @SiteGenReader siteSourceContexts
-    let pages = sameLevelRoutesAs H.scRoute route scs
-        pages' = filter (\p -> H.scRoute p `notElem` excludes) pages
-    pagesM <- mapM pageSourceContextM pages'
+    sms <- TG.liftRun $ PR.asks @SiteGenReader siteSourceMetadataItems
+    let pages = sameLevelRoutesAs smRoute route sms
+        pages' = filter (\p -> smRoute p `notElem` excludes) pages
+    pagesM <- mapM pageSourceMetadataM pages'
     pure $ TG.list pagesM
-
-
-virtualPageContextM :: Monad m => H.VirtualPageContext -> m (TG.GVal m)
-virtualPageContextM vpc = pure $ TG.toGVal vpc
-
-
-instance TG.ToGVal m H.VirtualPageContext where
-    toGVal vpc =
-        TG.dict
-            [ gValContextObjectTypeDictItemFor SPCObjectType
-            , "Route"           ~> H.vpcRoute vpc
-            , "VimWikiLinkPath" ~> H.vpcVimWikiLinkPath vpc
-            , "Title"           ~> H.vpcTitle vpc
-            , "Template"        ~> H.vpcTemplate vpc
-            , "Date"            ~> (tempToLocalTimeHelper <$> H.vpcDate vpc)
-            , "Updated"         ~> (tempToLocalTimeHelper <$> H.vpcUpdated vpc)
-            , "IndexPage"       ~> H.vpcIndexPage vpc
-            , "Publish"         ~> H.vpcPublish vpc
-            , "Draft"           ~> not (H.vpcPublish vpc)
-            ]
-
-
--- convert a H.SourceContext into a GVal m
-instance GingerSemEffects r => TG.ToGVal (RunSem r) H.SourceContext where
-    toGVal (H.SPC v) = TG.toGVal v
-    toGVal (H.VPC v) = TG.toGVal v
 
 
 -- TODO: helper until I work out what to do with UTC time in the app, and how to
@@ -202,12 +166,12 @@ tempToLocalTimeHelper = utcToLocalTime utc
 -- paginate(List[str], size=Int) -> List[Page]
 paginateF
     :: GingerSemEffects r
-    => H.SourceContext     -- ^ the SourceContext is needed for the route
+    => SourceMetadata     -- ^ the SourceMetadata is needed for the route
     -> TG.Function (RunSem r)
-paginateF sc args = do
+paginateF sm args = do
     -- get the sitePagerSet
     pagerSet <- TG.liftRun $ PS.gets @SiteGenState sitePagerSet
-    let route = H.scRoute sc
+    let route = smRoute sm
     -- 1. parse the args to get the list of routes
     let (items, mSize) = extractListAndOptionalSize args
     if null items
@@ -222,8 +186,8 @@ paginateF sc args = do
                 -- otherwise:
                 let size = fromMaybe 10 mSize
                     pagerList = makePagerList route (length items) size
-                -- make the extra SourceContext items for the routes
-                    extractPages = makeExtraPaginatePages sc (drop 1 $ map pagerRoute pagerList)
+                -- make the extra SourceMetadata items for the routes
+                    extractPages = makeExtraPaginatePages sm (drop 1 $ map pagerRoute pagerList)
                 TG.liftRun $ addToRenderList extractPages
                 -- 3. add the pagerset to the sitePagerSet
                 let pagerSet' = HashMap.union pagerSet $ HashMap.fromList $ pagerListToTuples pagerList
@@ -233,20 +197,18 @@ paginateF sc args = do
                 pagerToGValM pager items
 
 
-makeExtraPaginatePages :: H.SourceContext -> [Route] -> [H.SourceContext]
-makeExtraPaginatePages sc = map (copy sc)
+makeExtraPaginatePages :: SourceMetadata -> [Route] -> [SourceMetadata]
+makeExtraPaginatePages sm = map (copy sm)
   where
-      copy :: H.SourceContext -> Route -> H.SourceContext
-      copy (H.SPC sc') r = H.SPC $ sc' { H.spcRoute=r }
-      copy (H.VPC sc') r = H.VPC $ sc' { H.vpcRoute=r }
+      copy :: SourceMetadata -> Route -> SourceMetadata
+      copy sm' r = sm' {smRoute=r}
 
 
 -- | convert a GVal m -> a ContextObjectType
 fromGValToContextObjectType :: TG.GVal m -> Maybe ContextObjectTypes
 fromGValToContextObjectType g = TG.lookupKey "_objectType_" g >>= \g' -> case TG.asText g' of
     ""        -> Nothing
-    ":spc:"   -> Just SPCObjectType
-    ":vpc:"   -> Just VPCObjectType
+    ":sm:"    -> Just SMObjectType
     ":tag:"   -> Just TagObjectType
     ":cat:"   -> Just CategoryObjectType
     ":pager:" -> Just PagerObjectType
@@ -257,8 +219,7 @@ fromGValToContextObjectType g = TG.lookupKey "_objectType_" g >>= \g' -> case TG
 -- files that own these types.
 fromGValToContextObject :: TG.GVal m -> Maybe ContextObject
 fromGValToContextObject g = fromGValToContextObjectType g >>= \case
-    SPCObjectType -> TG.lookupKey "Route" g >>= extractText >>= Just . SPCObject . T.unpack
-    VPCObjectType -> TG.lookupKey "Route" g >>= extractText >>= Just . VPCObject . T.unpack
+    SMObjectType -> TG.lookupKey "Route" g >>= extractText >>= Just . SMObject . T.unpack
     _             -> Nothing
 
 
@@ -272,7 +233,7 @@ extractText t = case TG.asText t of
 
 pagerToGValM
     :: GingerSemEffects r
-    => Pager                     -- ^ the SourceContext is needed for the route
+    => Pager                        -- ^ the SourceMetadata is needed for the route
     -> [TG.GVal (RunSem r)]         -- ^ the list of items that will paged back
     -> RunSemGVal r
 pagerToGValM pager items = do
@@ -308,23 +269,23 @@ extractListAndOptionalSize args =
 
 ---
 
--- | Select pages using a route.  If the route is missing, use the SourceContext
--- provided.
+-- | Select pages using a route.  If the route is missing, use the
+-- SourceMetadata provided.
 -- selectPages(Str, include_self=Optional[Bool]) -> List[Pages]
 selectPagesF
     :: GingerSemEffects r
-    => H.SourceContext     -- ^ the SourceContext is needed for the route
+    => SourceMetadata     -- ^ the SourceMetadata is needed for the route
     -> TG.Function (RunSem r)
-selectPagesF sc args = do
+selectPagesF sm args = do
     pagerSet <- TG.liftRun $ PS.gets @SiteGenState sitePagerSet
-    let routeSc = H.scRoute sc
+    let routeSm = smRoute sm
         (argRoute, argIncSelf) = extractRouteAndOptionalIncludeArgs args
-        route = fromMaybe routeSc argRoute
-        mPagerSet = HashMap.lookup routeSc pagerSet
+        route = fromMaybe routeSm argRoute
+        mPagerSet = HashMap.lookup routeSm pagerSet
     let excludesp = maybe [] pagerRoutes mPagerSet
         excludes = if argIncSelf
-                     then filter (/=routeSc) excludesp
-                     else routeSc : excludesp
+                     then filter (/=routeSm) excludesp
+                     else routeSm : excludesp
     pagesContextM route excludes
 
 

@@ -40,35 +40,35 @@ import           Effect.Ginger             (GingerSemEffects,
                                             GingerSemEffectsToGVal)
 import qualified Effect.Logging            as EL
 
-import           Lib.Context.Core          (contextFromList,
-                                            tryExtractStringArg)
-import           Lib.Errors                (SiteGenError)
-import qualified Lib.Header                as H
-import           Lib.SpecialPages.Category (ensureCategoryPageFor,
-                                            getAllCategories, pagesForCategory)
-
 import           Types.Constants
 import           Types.Context             (Context, GingerFunctionArgs, RunSem,
                                             RunSemGVal)
+import           Types.Errors              (SiteGenError)
+import           Types.Header              (SourceMetadata (..))
 import           Types.SiteGenState        (SiteGenReader (..))
 
--- TODO: needed for the instance on TG.ToGVal SourceContext; perhaps we should move
--- that?
+import           Lib.Context.Core          (contextFromList,
+                                            tryExtractStringArg)
+import           Lib.SpecialPages.Category (ensureCategoryPageFor,
+                                            getAllCategories, pagesForCategory)
+
+-- TODO: needed for the instance on TG.ToGVal SourceMetadata; perhaps we should move
+-- it?
 import           Lib.Context.PageContexts  ()
-import           Lib.Context.Utils         (filterSourcePageContextsUsing,
+import           Lib.Context.Utils         (filterSourceMetadataItemsUsing,
                                             pagesForFunctionF,
                                             stringArgFuncGValF)
 
 
 categoriesContext
     :: GingerSemEffects r
-    => H.SourceContext
+    => SourceMetadata
     -> Context (RunSem r)
-categoriesContext sc = do
-    let route = H.scRoute sc
+categoriesContext sm = do
+    let route = smRoute sm
     contextFromList
         $  [("getPagesForCategory", pure $ TG.fromFunction pagesForCategoryF)]
-        ++ [("Categories", categoriesM)   | H.scRoute sc == categoriesRoute]
+        ++ [("Categories", categoriesM)   | smRoute sm == categoriesRoute]
         ++ [("Category", categoryM route) | categoriesRoutePrefix `L.isPrefixOf` route]
 
 
@@ -137,7 +137,7 @@ categoryM route = do
     mCategory <- TG.liftRun $ categoryFromRoute route
     pages <- case mCategory of
         Just category ->
-            TG.liftRun $ filterSourcePageContextsUsing pagesForCategory category
+            TG.liftRun $ filterSourceMetadataItemsUsing pagesForCategory category
         Nothing -> pure []
     pure $ TG.dict [ "Name" ~> mCategory
                    , "Pages" ~> pages

@@ -23,36 +23,37 @@
 
 module Lib.Context.Utils where
 
-import           Data.Default              (def)
-import qualified Data.List                 as L
-import           Data.Text                 (Text)
-import qualified Data.Text                 as T
+import           Data.Default             (def)
+import qualified Data.List                as L
+import           Data.Text                (Text)
+import qualified Data.Text                as T
 
-import           Text.Ginger               ((~>))
-import qualified Text.Ginger               as TG
+import           Text.Ginger              ((~>))
+import qualified Text.Ginger              as TG
 
-import           Colog.Polysemy            (Log)
-import qualified Colog.Polysemy            as CP
-import           Polysemy                  (Sem)
-import qualified Polysemy.Reader           as PR
+import           Colog.Polysemy           (Log)
+import qualified Colog.Polysemy           as CP
+import           Polysemy                 (Sem)
+import qualified Polysemy.Reader          as PR
 
-import           Effect.Ginger             (GingerSemEffects, GingerSemEffectsToGVal)
-import qualified Effect.Logging            as EL
+import           Effect.Ginger            (GingerSemEffects,
+                                           GingerSemEffectsToGVal)
+import qualified Effect.Logging           as EL
 
-import           Lib.Context.Core          (contextFromList,
-                                            tryExtractStringArg)
-import           Lib.Errors                (SiteGenError)
-import qualified Lib.Header                as H
-import           Lib.SpecialPages.Tag      (ensureTagPageFor,
-                                            getAllTags, pagesForTag)
-
+import           Lib.Context.Core         (contextFromList, tryExtractStringArg)
 import           Types.Constants
-import           Types.Context             (Context, RunSem, RunSemGVal, GingerFunctionArgs)
-import           Types.SiteGenState        (SiteGenReader (..))
+import           Types.Context            (Context, GingerFunctionArgs, RunSem,
+                                           RunSemGVal)
+import           Types.Errors             (SiteGenError)
+import           Types.Header             (SourceMetadata (..))
+import           Types.SiteGenState       (SiteGenReader (..))
 
--- TODO: needed for the instance on TG.ToGVal SourceContext; perhaps we should move
--- that?
-import           Lib.Context.PageContexts  ()
+import           Lib.SpecialPages.Tag     (ensureTagPageFor, getAllTags,
+                                           pagesForTag)
+
+-- TODO: needed for the instance on TG.ToGVal SourceMetadata; perhaps we should move
+-- it?
+import           Lib.Context.PageContexts ()
 
 
 
@@ -71,15 +72,15 @@ stringArgFuncGValF f args =
         Just s -> f (T.unpack s)
 
 
--- | Using the filterSourcePageContextsUsing function, but return the Ginger
+-- | Using the filterSourceMetadataItemsUsing function, but return the Ginger
 -- context variable form of a (GVAl) list of (GVal) page items.
 pagesForFunctionF
     :: GingerSemEffects r
-    => (String -> [H.SourcePageContext] -> [H.SourcePageContext])
+    => (String -> [SourceMetadata] -> [SourceMetadata])
     -> String
     -> RunSemGVal r
 pagesForFunctionF f s = do
-    spcs <- TG.liftRun $ filterSourcePageContextsUsing f s
+    spcs <- TG.liftRun $ filterSourceMetadataItemsUsing f s
     pure $ TG.list $ map TG.toGVal spcs
 
 
@@ -88,14 +89,14 @@ pagesForFunctionF f s = do
 -- NOTE: it looks a bit wierd to supply both the function and one of it's
 -- arguments, but this is so that we can curry this function to a function that
 -- takes a string and returns the filtered source contexts.
-filterSourcePageContextsUsing
+filterSourceMetadataItemsUsing
     :: GingerSemEffects r
-    => (String -> [H.SourcePageContext] -> [H.SourcePageContext])
+    => (String -> [SourceMetadata] -> [SourceMetadata])
     -> String
-    -> Sem r [H.SourcePageContext]
-filterSourcePageContextsUsing f s = do
-    scs <- PR.asks @SiteGenReader siteSourceContexts
-    pure $  f s $ H.keepSourcePageContexts scs
+    -> Sem r [SourceMetadata]
+filterSourceMetadataItemsUsing f s = do
+    scs <- PR.asks @SiteGenReader siteSourceMetadataItems
+    pure $  f s scs
 
 
 -- | Extract the unamed string arg, if it exists, and return it as a String in
@@ -116,5 +117,3 @@ stringArgRunSemR args =
 
 toTGlistGValm :: (Monad m, TG.ToGVal m a) => [a] -> TG.GVal m
 toTGlistGValm xs = TG.list $ map TG.toGVal xs
-
-

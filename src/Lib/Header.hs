@@ -13,25 +13,16 @@
 {-# OPTIONS_GHC -fplugin=Polysemy.Plugin #-}
 
 module Lib.Header
-    ( SourcePageContext(..)
-    , VirtualPageContext(..)
-    , SourceContext(..)
-    , HeaderContext(..)
+    ( HeaderContext(..)
+    , SourceMetadata(..)
     , dropWithNewLine
-    , emptySourcePageContext
+    , emptySourceMetadata
     , findEndSiteGenHeader
     , isHeader
-    , keepSourcePageContexts
     , makeHeaderContextFromFileName
     , maxHeaderSize
     , maybeDecodeHeader
     , maybeExtractHeaderBlock
-    , scAbsFilePath
-    , scIndexPage
-    , scRelFilePath
-    , scRoute
-    , scTemplate
-    , scVimWikiLinkPath
     ) where
 
 -- header.hs -- extract the header (maybe) from a File
@@ -62,8 +53,8 @@ site: <site-identifier> # the site that this belongs to.
 ---                # this indicates the end of the header.
 -}
 
--- In order to decode this we'll have a SourcePageContext record which we decode yaml
--- to a structure
+-- In order to decode this we'll have a SourceMetadata record which we decode
+-- yaml to a structure
 
 -- hide log, as we're pulling it in from co-log
 import           Prelude               hiding (log)
@@ -98,53 +89,13 @@ import           Effect.File           (File, FileException (..), fileStatus)
 import           Effect.Logging        (LoggingMessage)
 import qualified Effect.Logging        as EL
 
+import           Types.Constants       (maxHeaderSize)
+import           Types.Header
+
 -- Local imports
 import           Lib.Dates             (parseDate)
 import qualified Lib.SiteGenConfig     as S
 import           Lib.Utils             (fixRoute, strToLower)
-
-
--- TODO: make this a global in the SiteGenConfig
-maxHeaderSize :: Int
-maxHeaderSize = 100 * 20
-
--- | Generalise over the the SourcePage and VirtualPage contexts so we can stuff
--- them in a list of contexts.  We'll use some convenience functions to get the
--- stuff out.
-data SourceContext = SPC SourcePageContext
-                   | VPC VirtualPageContext
-                   deriving (Eq, Show)
-
-
-
-scRoute           :: SourceContext -> String
-scRoute (SPC spc) = spcRoute spc
-scRoute (VPC vpc) = vpcRoute vpc
-
-
-scVimWikiLinkPath :: SourceContext -> String
-scVimWikiLinkPath (SPC spc) = spcVimWikiLinkPath spc
-scVimWikiLinkPath (VPC vpc) = vpcVimWikiLinkPath vpc
-
-
-scAbsFilePath     :: SourceContext -> Maybe String
-scAbsFilePath (SPC spc) = Just $ spcAbsFilePath spc
-scAbsFilePath (VPC _)   = Nothing
-
-
-scRelFilePath     :: SourceContext -> Maybe String
-scRelFilePath (SPC spc) = Just $ spcRelFilePath spc
-scRelFilePath (VPC _)   = Nothing
-
-
-scIndexPage       :: SourceContext -> Bool
-scIndexPage (SPC spc) = spcIndexPage spc
-scIndexPage (VPC vpc) = vpcIndexPage vpc
-
-
-scTemplate :: SourceContext -> String
-scTemplate (SPC spc) = spcTemplate spc
-scTemplate (VPC vpc) = vpcTemplate vpc
 
 
 data RawPageHeader = RawPageHeader
@@ -180,58 +131,8 @@ instance Y.FromJSON RawPageHeader where
     parseJSON _ = error "Can't parse RawPageHeader from YAML/JSON"
 
 
--- The SourcePageContext is the resolved and fully parsed page header
-data SourcePageContext = SourcePageContext
-    { spcRoute           :: !String
-    , spcAbsFilePath     :: !FilePath
-    , spcRelFilePath     :: !FilePath
-    , spcVimWikiLinkPath :: !String
-    , spcTitle           :: !String
-    , spcTemplate        :: !String
-    , spcTags            :: ![String]
-    , spcCategory        :: !(Maybe String)
-    , spcDate            :: !(Maybe UTCTime)
-    , spcUpdated         :: !(Maybe UTCTime)
-    , spcIndexPage       :: !Bool
-    , spcAuthors         :: ![String]
-    , spcPublish         :: !Bool
-    , spcSiteId          :: !String
-    , spcHeaderLen       :: !Int   -- the length of the headerblock; i.e. what to drop to get to the content.
-    , spcParams          :: !(Maybe Y.Object)
-    } deriving (Show, Eq)
-
-
--- we can't derive generically, as there's no default for Bool
-instance Default SourcePageContext where
-    def = SourcePageContext
-        { spcRoute=def
-        , spcAbsFilePath=def
-        , spcRelFilePath=def
-        , spcVimWikiLinkPath=def
-        , spcTitle=def
-        , spcTemplate=def
-        , spcTags=def
-        , spcCategory=def
-        , spcDate=def
-        , spcUpdated=def
-        , spcIndexPage=False
-        , spcAuthors=def
-        , spcPublish=False
-        , spcSiteId=def
-        , spcHeaderLen=def
-        , spcParams=def
-        }
-
-
-emptySourcePageContext :: SourcePageContext
-emptySourcePageContext = def SourcePageContext
-
-
-keepSourcePageContexts :: [SourceContext] -> [SourcePageContext]
-keepSourcePageContexts scs = map (\(SPC x) -> x) $ filter isSPC scs
-  where
-    isSPC (SPC _) = True
-    isSPC _       = False
+emptySourceMetadata :: SourceMetadata
+emptySourceMetadata = def
 
 
 {-
@@ -265,40 +166,6 @@ data FilePathParts = FilePathParts
     , _normalised  :: !FilePath
     } deriving Show
 
-
--- | A VirtualPage is one that has no source.  These represent things like
--- phantom index pages, category indexes and category pages, tags and tag pages.
-data VirtualPageContext = VirtualPageContext
-    { vpcRoute           :: !String
-    , vpcVimWikiLinkPath :: !String
-    , vpcTitle           :: !String
-    , vpcTemplate        :: !String
-    , vpcDate            :: !(Maybe UTCTime)
-    , vpcUpdated         :: !(Maybe UTCTime)
-    , vpcIndexPage       :: !Bool
-    , vpcPublish         :: !Bool
-    , vpcParams          :: !(Maybe Y.Object)
-    } deriving (Eq, Show)
-
-
--- we can't derive generically, as there's no default for Bool
-instance Default VirtualPageContext where
-    def = VirtualPageContext
-        { vpcRoute=def
-        , vpcVimWikiLinkPath=def
-        , vpcTitle=def
-        , vpcTemplate=def
-        , vpcDate=def
-        , vpcUpdated=def
-        , vpcIndexPage=False
-        , vpcPublish=True
-        , vpcParams=def
-        }
-
-
-emptyVirtualPageContext :: VirtualPageContext
-emptyVirtualPageContext = def VirtualPageContext
-
 ---
 
 
@@ -307,13 +174,13 @@ maybeDecodeHeader :: Members '[ Reader S.SiteGenConfig
                               , Log LoggingMessage
                               ] r
                   => ByteString
-                  -> Sem r (Maybe SourcePageContext)
+                  -> Sem r (Maybe SourceMetadata)
 maybeDecodeHeader bs = do
     let (maybeHeader, count) = maybeExtractHeaderBlock bs
     let maybeRawPH = Y.decodeEither' <$> maybeHeader
     case maybeRawPH of
         Just (Right rph) ->
-            Just <$> makeSourcePageContextFromRawPageHeader rph count
+            Just <$> makeSourceMetadataFromRawPageHeader rph count
         Just (Left ex) -> do
             EL.logError $ T.pack $ "Error decoding yaml block: " ++ show ex
             pure Nothing
@@ -322,39 +189,40 @@ maybeDecodeHeader bs = do
 
 -- TODO: this function probably shouldn't be here as it's mixing the concerns of
 -- the SiteGenConfig and the HeaderContext.  I suspect that this function should
--- be in the HeaderContext when construction the actual HeaderContext for the render
--- and the SourcePageContext is not really needed (or at least the RawPageHeader is not
--- needed).  We should resolve these in HeaderContext
-makeSourcePageContextFromRawPageHeader :: Members '[ Reader S.SiteGenConfig
-                                                   , Reader HeaderContext
-                                                   , Log LoggingMessage
-                                                   ] r
-                                => RawPageHeader
-                                -> Int
-                                -> Sem r SourcePageContext
-makeSourcePageContextFromRawPageHeader rph len = do
+-- be in the HeaderContext when construction the actual HeaderContext for the
+-- render and the SourceMetadata is not really needed (or at least the
+-- RawPageHeader is not needed).  We should resolve these in HeaderContext
+makeSourceMetadataFromRawPageHeader :: Members '[ Reader S.SiteGenConfig
+                                                , Reader HeaderContext
+                                                , Log LoggingMessage
+                                                ] r
+                                     => RawPageHeader
+                                     -> Int
+                                     {--> Sem r SourcePaeContext-}
+                                     -> Sem r SourceMetadata
+makeSourceMetadataFromRawPageHeader rph len = do
     sgc <- ask @S.SiteGenConfig
     rc  <- ask @HeaderContext
     pageDate <- convertDate $ _date rph
     updatedDate <- convertDate $ _updated rph
     let defTemplate = if _indexPage rph then "index" else "default"
-    pure SourcePageContext
-        { spcRoute           = fixRoute $ pick (_route rph) (hcAutoSlug rc)
-        , spcAbsFilePath     = hcAbsFilePath rc
-        , spcRelFilePath     = hcRelFilePath rc
-        , spcVimWikiLinkPath = hcVimWikiLinkPath rc
-        , spcTitle           = pick (_title rph) (hcAutoTitle rc)
-        , spcTemplate        = pick (_template rph) defTemplate
-        , spcTags            = _tags rph
-        , spcCategory        = _category rph
-        , spcDate            = pageDate
-        , spcUpdated         = updatedDate
-        , spcIndexPage       = _indexPage rph
-        , spcAuthors         = _authors rph
-        , spcPublish         = _publish rph
-        , spcSiteId          = pick (_siteId rph) (S.sgcSiteId sgc)
-        , spcHeaderLen       = len
-        , spcParams          = _params rph
+    pure SourceMetadata
+        { smRoute           = fixRoute $ pick (_route rph) (hcAutoSlug rc)
+        , smAbsFilePath     = Just $ hcAbsFilePath rc
+        , smRelFilePath     = Just $ hcRelFilePath rc
+        , smVimWikiLinkPath = hcVimWikiLinkPath rc
+        , smTitle           = pick (_title rph) (hcAutoTitle rc)
+        , smTemplate        = pick (_template rph) defTemplate
+        , smTags            = _tags rph
+        , smCategory        = _category rph
+        , smDate            = pageDate
+        , smUpdated         = updatedDate
+        , smIndexPage       = _indexPage rph
+        , smAuthors         = _authors rph
+        , smPublish         = _publish rph
+        , smSiteId          = pick (_siteId rph) (S.sgcSiteId sgc)
+        , smHeaderLen       = len
+        , smParams          = _params rph
         }
 
 

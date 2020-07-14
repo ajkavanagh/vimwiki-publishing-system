@@ -19,3 +19,8 @@ tagsRoute = "/_tags"
 
 tagsRoutePrefix :: Route
 tagsRoutePrefix = tagsRoute <> "/"
+
+
+-- / allow up to 2000k for the header
+maxHeaderSize :: Int
+maxHeaderSize = 100 * 20

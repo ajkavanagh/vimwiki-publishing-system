@@ -9,18 +9,17 @@ import           Data.Hashable       (Hashable)
 import qualified Data.HashMap.Strict as HashMap
 import           Data.HashSet        (HashSet)
 
-import           Lib.Errors          (SiteGenError)
-import           Lib.Header          (SourceContext (..),
-                                      SourcePageContext (..))
-
 import           Types.Constants
 import           Types.Context       (ContextObject (..))
+import           Types.Errors        (SiteGenError)
 import           Types.Pager         (Pager, RouteToPager)
 
+import           Types.Header        (SourceMetadata (..))
 
-type FilePathToSC    = HashMap.HashMap FilePath SourceContext
-type RouteToSC       = HashMap.HashMap Route SourceContext
-type VimWikiLinkToSC = HashMap.HashMap VimWikiLink SourceContext
+
+type FilePathToSM    = HashMap.HashMap FilePath SourceMetadata
+type RouteToSM       = HashMap.HashMap Route SourceMetadata
+type VimWikiLinkToSM = HashMap.HashMap VimWikiLink SourceMetadata
 
 data FileMemo = FileMemo FilePath
               | DirMemo FilePath
@@ -30,20 +29,18 @@ data FileMemo = FileMemo FilePath
 instance Hashable FileMemo
 
 
--- This is for the Reader which the
 data SiteGenReader = SiteGenReader
-    { siteSourceContexts :: ![SourceContext]
-    , siteVimWikiLinkMap :: !VimWikiLinkToSC
-    , siteRouteMap       :: !RouteToSC
+    { siteSourceMetadataItems :: ![SourceMetadata]
+    , siteVimWikiLinkMap      :: !VimWikiLinkToSM
+    , siteRouteMap            :: !RouteToSM
     } deriving (Show)
 
 
-
 data SiteGenState = SiteGenState
-    { siteGenPage       :: !SourcePageContext
+    { siteGenPage       :: !SourceMetadata
     , siteGenErrors     :: !(DList SiteGenError)
     , memoFiles         :: !(HashSet FileMemo)
-    , siteRenderList    :: ![SourceContext]    -- this is a sorted list of "next to render"
+    , siteRenderList    :: ![SourceMetadata]    -- this is a sorted list of "next to render"
     , sitePagerSet      :: !RouteToPager
-    , sitePagesRendered :: !RouteToSC
+    , sitePagesRendered :: !RouteToSM
     } deriving (Show)

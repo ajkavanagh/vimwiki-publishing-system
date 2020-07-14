@@ -15,8 +15,8 @@
 
 module Lib.Files
     ( sourceDirectory
-    , filePathToSourcePageContexts
-    , filePathToMaybeSourcePageContext
+    , filePathToSourceMetadataItems
+    , filePathToMaybeSourceMetadata
     , ensureDirectoriesExistFor
     , writeAndMemo
     , copyStaticFiles
@@ -57,11 +57,11 @@ import qualified Effect.File           as EF
 import           Effect.Logging        (LoggingMessage)
 import qualified Effect.Logging        as EL
 
+import           Types.Errors          (SiteGenError)
+import           Types.Header          (SourceMetadata (..))
 import           Types.SiteGenState    (FileMemo (..), SiteGenState (..))
 
-import           Lib.Errors            (SiteGenError)
-import           Lib.Header            (SourcePageContext,
-                                        makeHeaderContextFromFileName,
+import           Lib.Header            (makeHeaderContextFromFileName,
                                         maxHeaderSize, maybeDecodeHeader)
 import           Lib.SiteGenConfig     (SiteGenConfig (..),
                                         maxFileToProcessSize)
@@ -124,7 +124,7 @@ isSmallerThanM size fp = do
 
 
 
--- | convert the FilePath -> Maybe SourcePageContext
+-- | convert the FilePath -> Maybe SourceMetadata
 
 {- what we want to do is to read enough of the file to determine:
 
@@ -143,37 +143,38 @@ isSmallerThanM size fp = do
 
 -- read up to maxHeaderSize of the file (into a ByteString) and see if we can
 -- extract a header.
-filePathToMaybeSourcePageContext
+filePathToMaybeSourceMetadata
     :: RestrictedFilesSemEffects r
     => FilePath
-    -> Sem r (Maybe SourcePageContext)
-filePathToMaybeSourcePageContext fp = do
+    -> Sem r (Maybe SourceMetadata)
+filePathToMaybeSourceMetadata fp = do
     sfp <- PR.asks @SiteGenConfig sgcSource
     hc <- makeHeaderContextFromFileName sfp fp
     bs <- EF.readFile fp Nothing (Just maxHeaderSize)  -- read up to maxHeaderSize bytes
     PR.runReader hc $ maybeDecodeHeader bs   -- add in The Reader HeaderContext to the Sem monad
 
 
--- now convert a bunch of files to a list of SourcePageContexts -- note the list
--- may be empty if there are not headers available, or the files do not resolve.
-filePathsToSourcePageContexts
+-- now convert a bunch of files to a list of SourceMetadata items -- note the
+-- list may be empty if there are not headers available, or the files do not
+-- resolve.
+filePathsToSourceMetadata
     :: RestrictedFilesSemEffects r
     => [FilePath]
-    -> Sem r [SourcePageContext]
-filePathsToSourcePageContexts fs =
-    catMaybes <$> mapM filePathToMaybeSourcePageContext fs
+    -> Sem r [SourceMetadata]
+filePathsToSourceMetadata fs =
+    catMaybes <$> mapM filePathToMaybeSourceMetadata fs
 
 
 -- finally, we convert a single FilePath (a directory) to a list of
--- SourcePageContexts.  This is the magic function to find out what we need to
+-- SourceMetadata items.  This is the magic function to find out what we need to
 -- process.
-filePathToSourcePageContexts
+filePathToSourceMetadataItems
     :: RestrictedFilesSemEffects r
     => FilePath       -- the directory
     -> String         -- the extension to filter by
-    -> Sem r [SourcePageContext]
-filePathToSourcePageContexts dir ext =
-    filePathsToSourcePageContexts =<< sourceDirectory dir ext
+    -> Sem r [SourceMetadata]
+filePathToSourceMetadataItems dir ext =
+    filePathsToSourceMetadata =<< sourceDirectory dir ext
 
 
 -- | copy static files from the statics dir to the target directory.  Print

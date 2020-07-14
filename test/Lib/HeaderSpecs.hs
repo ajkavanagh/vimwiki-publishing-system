@@ -18,6 +18,7 @@ module Lib.HeaderSpecs where
 
 import           Data.ByteString   as BS
 import qualified Data.ByteString   (ByteString)
+import           Data.Default      (def)
 import           Data.Function     ((&))
 import           Data.Maybe        (fromMaybe)
 import           Test.Hspec        (Spec, describe, it, pending, shouldBe, xit)
@@ -39,10 +40,10 @@ import           Lib.SiteGenConfig (SiteGenConfig (..))
 
 
 -- module under test
-import           Lib.Header        (HeaderContext (..), SourcePageContext (..),
-                                    dropWithNewLine, findEndSiteGenHeader,
-                                    isHeader, maybeDecodeHeader,
-                                    maybeExtractHeaderBlock)
+import           Lib.Header        (HeaderContext (..), dropWithNewLine,
+                                    findEndSiteGenHeader, isHeader,
+                                    maybeDecodeHeader, maybeExtractHeaderBlock)
+import           Types.Header      (SourceMetadata (..))
 
 
 
@@ -160,11 +161,11 @@ maybeExtractHeaderBlockSpecs = --do
 
 
 runMaybeDecodeHeader :: SiteGenConfig -> HeaderContext -> ByteString
-                     -> ([LoggingMessage], Maybe SourcePageContext)
+                     -> ([LoggingMessage], Maybe SourceMetadata)
 runMaybeDecodeHeader sgc rc txt =
     maybeDecodeHeader txt
-        & (runLogAsOutput @LoggingMessage)
-        & (runOutputList @LoggingMessage)
+        & runLogAsOutput @LoggingMessage
+        & runOutputList @LoggingMessage
         & runReader sgc
         & runReader rc
         & run
@@ -204,25 +205,19 @@ defaultHC = HeaderContext
     }
 
 
-defaultSPC :: SourcePageContext
-defaultSPC = SourcePageContext
-    { spcRoute="/auto/slug"
-    , spcRelFilePath="some-name.md"
-    , spcAbsFilePath="/some-name.md"
-    , spcVimWikiLinkPath="some-name"
-    , spcTitle="auto-title"
-    , spcTemplate="default"
-    , spcTags=[]
-    , spcCategory=Nothing
-    , spcDate=Nothing
-    , spcUpdated=Nothing
-    , spcIndexPage=False
-    , spcAuthors=[]
-    , spcPublish=False
-    , spcSiteId="site1"
-    , spcHeaderLen=0 -- the length of the headerblock; i.e. what to drop to get to the content.
-    , spcParams=Nothing
-    }
+defaultSM :: SourceMetadata
+defaultSM = def { smRoute="/auto/slug"
+                , smRelFilePath=Just "some-name.md"
+                , smAbsFilePath=Just "/some-name.md"
+                , smVimWikiLinkPath="some-name"
+                , smTitle="auto-title"
+                , smTemplate="default"
+                , smIndexPage=False
+                , smAuthors=[]
+                , smPublish=False
+                , smSiteId="site1"
+                , smHeaderLen=0 -- the length of the headerblock; i.e. what to drop to get to the content.
+                }
 
 
 minimalHeader :: ByteString
@@ -255,25 +250,24 @@ site: default
 # And the header
 |]
 
-fullHeaderSPC :: SourcePageContext
-fullHeaderSPC = SourcePageContext
-    { spcRoute="/the/route"
-    , spcRelFilePath="some-name.md"
-    , spcAbsFilePath="/some-name.md"
-    , spcVimWikiLinkPath="some-name"
-    , spcTitle="The title"
-    , spcTemplate="not-default"
-    , spcTags=["tag1", "tag2"]
-    , spcCategory=Just "category1"
-    , spcDate=parseDate "23-02-2010"
-    , spcUpdated=parseDate "30-04-2020 09:10"
-    , spcIndexPage=True
-    , spcAuthors=["Alex Kavanagh"]
-    , spcPublish=True
-    , spcSiteId="default"
-    , spcHeaderLen=0 -- the length of the headerblock; i.e. what to drop to get to the content.
-    , spcParams=Nothing
-    }
+fullHeaderSM :: SourceMetadata
+fullHeaderSM = def { smRoute="/the/route"
+                   , smRelFilePath=Just "some-name.md"
+                   , smAbsFilePath=Just "/some-name.md"
+                   , smVimWikiLinkPath="some-name"
+                   , smTitle="The title"
+                   , smTemplate="not-default"
+                   , smTags=["tag1", "tag2"]
+                   , smCategory=Just "category1"
+                   , smDate=parseDate "23-02-2010"
+                   , smUpdated=parseDate "30-04-2020 09:10"
+                   , smIndexPage=True
+                   , smAuthors=["Alex Kavanagh"]
+                   , smPublish=True
+                   , smSiteId="default"
+                   , smHeaderLen=0 -- the length of the headerblock; i.e. what to drop to get to the content.
+                   , smParams=Nothing
+                   }
 
 
 
@@ -288,12 +282,12 @@ maybeDecodeHeaderSpecs = -- do
 
         it "Should return the title and length for a minimal header" $
             runMaybeDecodeHeader defaultSCG defaultHC minimalHeader
-                `shouldBe` ([], Just (defaultSPC { spcTitle="This is the day"
-                                                 , spcHeaderLen=39}))
+                `shouldBe` ([], Just (defaultSM { smTitle="This is the day"
+                                                , smHeaderLen=39}))
 
         it "Should be 'Done.\\n' when dropping 39 chars from minimalHeader" $
             BS.drop 39 minimalHeader `shouldBe` "Done.\n"
 
-        it "Should return the full SourcePageContext from a full config" $
+        it "Should return the full SourceMetadata from a full config" $
             runMaybeDecodeHeader defaultSCG defaultHC fullHeader
-                `shouldBe` ([], Just (fullHeaderSPC {spcHeaderLen=278}))
+                `shouldBe` ([], Just (fullHeaderSM {smHeaderLen=278}))

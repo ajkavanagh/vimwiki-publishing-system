@@ -43,8 +43,7 @@ newtype Context m = Context { unContext :: Monad m => HashMap.HashMap Text (m (G
 
 
 
-data ContextObject = SPCObject String
-                   | VPCObject String
+data ContextObject = SMObject String
                    | TagObject String
                    | CategoryObject String
                    deriving (Show, Eq)
@@ -52,8 +51,7 @@ data ContextObject = SPCObject String
 
 -- these are for identifying higher object types when they are GVal m
 -- For use in functions that need to work out what has been passed.
-data ContextObjectTypes = SPCObjectType
-                        | VPCObjectType
+data ContextObjectTypes = SMObjectType
                         | TagObjectType
                         | CategoryObjectType
                         | PagerObjectType
@@ -61,8 +59,7 @@ data ContextObjectTypes = SPCObjectType
 
 
 instance ToGVal m ContextObjectTypes where
-    toGVal SPCObjectType      = toGVal ":spc:"
-    toGVal VPCObjectType      = toGVal ":vpc:"
+    toGVal SMObjectType       = toGVal ":sm:"
     toGVal TagObjectType      = toGVal ":tag:"
     toGVal CategoryObjectType = toGVal ":category:"
     toGVal PagerObjectType    = toGVal ":pager:"
@@ -71,8 +68,7 @@ instance ToGVal m ContextObjectTypes where
 instance FromGVal m ContextObjectTypes where
     fromGVal g = lookupKey "_objectType_" g >>= \g' -> case asText g' of
             ""        -> Nothing
-            ":spc:"   -> Just SPCObjectType
-            ":vpc:"   -> Just VPCObjectType
+            ":sm:"    -> Just SMObjectType
             ":tag:"   -> Just TagObjectType
             ":cat:"   -> Just CategoryObjectType
             ":pager:" -> Just PagerObjectType

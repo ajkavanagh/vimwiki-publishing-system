@@ -20,40 +20,41 @@
 
 module Lib.Context.Functions where
 
-import           System.FilePath.Posix  (normalise, (</>))
+import           System.FilePath.Posix (normalise, (</>))
 
-import           Data.Default           (def)
-import           Data.Maybe             (isNothing)
-import           Data.Text              (Text, unpack)
+import           Data.Default          (def)
+import           Data.Maybe            (isNothing)
+import           Data.Text             (Text, unpack)
 
-import           Text.Ginger            ((~>))
-import qualified Text.Ginger            as TG
-import qualified Text.Ginger.Html       as TGH
+import           Text.Ginger           ((~>))
+import qualified Text.Ginger           as TG
+import qualified Text.Ginger.Html      as TGH
 
-import qualified Network.URI            as NU
+import qualified Network.URI           as NU
 
-import           Colog.Polysemy         (Log)
-import qualified Colog.Polysemy         as CP
-import           Polysemy               (Member, Sem)
-import           Polysemy.Error         (Error)
-import           Polysemy.Reader        (Reader)
-import qualified Polysemy.Reader        as PR
-import           Polysemy.State         (State)
-import           Polysemy.Writer        (Writer)
+import           Colog.Polysemy        (Log)
+import qualified Colog.Polysemy        as CP
+import           Polysemy              (Member, Sem)
+import           Polysemy.Error        (Error)
+import           Polysemy.Reader       (Reader)
+import qualified Polysemy.Reader       as PR
+import           Polysemy.State        (State)
+import           Polysemy.Writer       (Writer)
 
-import           Effect.File            (File)
-import           Effect.Ginger          (GingerSemEffects)
-import           Effect.Locale          (getLocale)
-import qualified Effect.Logging          as EL
+import           Effect.File           (File)
+import           Effect.Ginger         (GingerSemEffects)
+import           Effect.Locale         (getLocale)
+import qualified Effect.Logging        as EL
 
-import           Lib.Context.Core       (contextFromList, extractBoolArg,
-                                         tryExtractStringArg, tryExtractListArg)
-import           Lib.Errors             (SiteGenError)
-import qualified Lib.Header             as H
-import           Lib.Pandoc             (scContentM, scSummaryM, scTocM, markdownToHTML)
-import           Lib.SiteGenConfig      (SiteGenConfig (..))
-import           Lib.SiteGenState       (SiteGenReader, SiteGenState)
-import           Types.Context          (Context, RunSem, RunSemGVal)
+import           Types.Context         (Context, RunSem, RunSemGVal)
+import           Types.Errors          (SiteGenError)
+
+import           Lib.Context.Core      (contextFromList, extractBoolArg,
+                                        tryExtractListArg, tryExtractStringArg)
+import           Lib.Pandoc            (markdownToHTML, smContentM, smSummaryM,
+                                        smTocM)
+import           Lib.SiteGenConfig     (SiteGenConfig (..))
+import           Lib.SiteGenState      (SiteGenReader, SiteGenState)
 
 
 functionsContext

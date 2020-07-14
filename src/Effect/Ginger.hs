@@ -27,8 +27,8 @@ import           Polysemy.Reader    (Reader)
 import           Polysemy.State     (State)
 import           Polysemy.Writer    (Writer)
 
-import           Text.Pandoc        (Pandoc)
 import           Text.Ginger        (ToGVal)
+import           Text.Pandoc        (Pandoc)
 
 import           Effect.Cache       (Cache)
 import           Effect.File        (File, FileException)
@@ -36,13 +36,10 @@ import           Effect.Locale      (Locale)
 import           Effect.Logging     (LoggingMessage)
 import           Effect.Print       (Print)
 
+import           Types.Errors       (SiteGenError)
 import           Types.SiteGenState (SiteGenReader, SiteGenState)
 
-import           Lib.Errors         (SiteGenError)
-import           Lib.SiteGenConfig  (SiteGenConfig, ConfigException)
-
-
--- data Ginger m a where
+import           Lib.SiteGenConfig  (ConfigException, SiteGenConfig)
 
 
 -- | This the effects bundle that all @RunSem r@ functions can expect in the

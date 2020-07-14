@@ -41,12 +41,10 @@ import           Effect.Logging         (LoggingMessage)
 import qualified Effect.Logging         as EL
 
 import           Types.Constants
+import           Types.Errors           (SiteGenError (..))
+import           Types.Header           (SourceMetadata (..))
 import           Types.SiteGenState     (SiteGenReader (..), SiteGenState (..))
 
-import           Lib.Errors             (SiteGenError (..))
-import           Lib.Header             (SourceContext (..),
-                                         VirtualPageContext (..))
-import qualified Lib.Header             as H
 import           Lib.ResolvingTemplates (resolveTemplateName')
 import           Lib.RouteUtils         (checkExistingRoute, routeToConcreteSc)
 import           Lib.SiteGenConfig      (ConfigException, SiteGenConfig (..))
@@ -69,17 +67,17 @@ resolveTagsPage = do
     if isNothing mTagsPage
       then do
         EL.logInfo "Using Internal Tags page"
-        let newTagsPage = makeVPCForTags
-        addToRenderList [VPC newTagsPage]
+        let newTagsPage = makeVSMForTags
+        addToRenderList [newTagsPage]
       else EL.logInfo "Using user supplied tags page"
 
 
-makeVPCForTags :: VirtualPageContext
-makeVPCForTags = def { vpcRoute = tagsRoute
-                     , vpcVimWikiLinkPath = tagsRoute
-                     , vpcTitle = "Tags"
-                     , vpcTemplate = "tags"
-                     , vpcIndexPage = False
+makeVSMForTags :: SourceMetadata
+makeVSMForTags = def { smRoute = tagsRoute
+                     , smVimWikiLinkPath = tagsRoute
+                     , smTitle = "Tags"
+                     , smTemplate = "tags"
+                     , smIndexPage = False
                      }
 
 
@@ -87,14 +85,14 @@ getAllTags
     :: Member (Reader SiteGenReader) r
     => Sem r [String]
 getAllTags = do
-    scs <- PR.asks @SiteGenReader siteSourceContexts
-    pure $ nub $ sort $ concatMap H.spcTags $ H.keepSourcePageContexts scs
+    sms <- PR.asks @SiteGenReader siteSourceMetadataItems
+    pure $ nub $ sort $ concatMap smTags sms
 
 
-pagesForTag :: String -> [H.SourcePageContext] -> [H.SourcePageContext]
+pagesForTag :: String -> [SourceMetadata] -> [SourceMetadata]
 pagesForTag tag = filter hasTag
   where
-      hasTag s = tag `elem` H.spcTags s
+      hasTag s = tag `elem` smTags s
 
 
 ensureTagPageFor
@@ -129,20 +127,20 @@ ensureTagPageFor tag = do
                     if exists
                       then EL.logInfo $ T.pack $ "Tag page has already been added for: " ++ tag
                       else do
-                        let newTag = makeVPCForTag tagRoute ("Tag: " ++ tag)
-                        mTname <- resolveTemplateName' (H.vpcTemplate newTag)
+                        let newTag = makeVSMForTag tagRoute ("Tag: " ++ tag)
+                        mTname <- resolveTemplateName' (smTemplate newTag)
                         -- if it does then add the tag page to the render list
                         case mTname of
                             Nothing -> EL.logError $ T.pack $ "No template for tag page: " ++ tag
                             Just _ ->  do
                                 EL.logInfo $ T.pack $ "Adding tag page for: " ++ tag
-                                addToRenderList [VPC newTag]
+                                addToRenderList [newTag]
 
 
-makeVPCForTag :: String -> String -> VirtualPageContext
-makeVPCForTag r t = def { vpcRoute = r
-                        , vpcVimWikiLinkPath = r
-                        , vpcTitle = t
-                        , vpcTemplate = "tag"
-                        , vpcIndexPage = False
+makeVSMForTag :: String -> String -> SourceMetadata
+makeVSMForTag r t = def { smRoute = r
+                        , smVimWikiLinkPath = r
+                        , smTitle = t
+                        , smTemplate = "tag"
+                        , smIndexPage = False
                         }

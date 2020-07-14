@@ -40,34 +40,35 @@ import           Effect.Ginger            (GingerSemEffects,
                                            GingerSemEffectsToGVal)
 import qualified Effect.Logging           as EL
 
+import           Types.Constants
+import           Types.Context            (Context, GingerFunctionArgs, RunSem,
+                                           RunSemGVal)
+import           Types.Errors             (SiteGenError)
+import           Types.Header             (SourceMetadata (..))
+import           Types.SiteGenState       (SiteGenReader (..))
+
 import           Lib.Context.Core         (contextFromList, tryExtractStringArg)
-import           Lib.Errors               (SiteGenError)
 import qualified Lib.Header               as H
 import           Lib.SpecialPages.Tag     (ensureTagPageFor, getAllTags,
                                            pagesForTag)
 
-import           Types.Constants
-import           Types.Context            (Context, GingerFunctionArgs, RunSem,
-                                           RunSemGVal)
-import           Types.SiteGenState       (SiteGenReader (..))
-
--- TODO: needed for the instance on TG.ToGVal SourceContext; perhaps we should move
--- that?
+-- TODO: needed for the instance on TG.ToGVal SourceMetadata; perhaps we should move
+-- it?
 import           Lib.Context.PageContexts ()
-import           Lib.Context.Utils        (filterSourcePageContextsUsing,
+import           Lib.Context.Utils        (filterSourceMetadataItemsUsing,
                                            pagesForFunctionF,
                                            stringArgFuncGValF)
 
 
 tagsContext
     :: GingerSemEffects r
-    => H.SourceContext
+    => SourceMetadata
     -> Context (RunSem r)
-tagsContext sc = do
-    let route = H.scRoute sc
+tagsContext sm = do
+    let route = smRoute sm
     contextFromList
         $  [("getPagesForTag", pure $ TG.fromFunction pagesForTagF)]
-        ++ [("Tags", tagsM)     | H.scRoute sc == tagsRoute]
+        ++ [("Tags", tagsM)     | smRoute sm == tagsRoute]
         ++ [("Tag", tagM route) | tagsRoutePrefix `L.isPrefixOf` route]
 
 
@@ -136,7 +137,7 @@ tagM route = do
     mTag <- TG.liftRun $ tagFromRoute route
     pages <- case mTag of
         Just tag ->
-            TG.liftRun $ filterSourcePageContextsUsing pagesForTag tag
+            TG.liftRun $ filterSourceMetadataItemsUsing pagesForTag tag
         Nothing -> pure []
     pure $ TG.dict [ "Name" ~> mTag
                    , "Pages" ~> pages
