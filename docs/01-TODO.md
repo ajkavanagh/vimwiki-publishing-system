@@ -1,7 +1,48 @@
 # TODO
 
-[x] Learn Polysemy for the Reader (config) and (state) links to pages.
+## Still to be done
 
+[o] enable cleaning of output directories based on what is written and
+    copied.
+[ ] Document how to make it all work.
+[ ] Expand out the example site so that it serves as an example.
+[ ] Doing less work:
+    [ ] Enable detecting that the source file hasn't changed so that we don't
+        bother processing it.
+    [ ] Enable detecting that the output is the same as the previous version
+        (if an output file exists) so that we don't write it out and change the
+        dates.
+    [ ] Ensure that index files don't need to be reprocessed if none of the
+        dependent files have changed.
+[ ] Generate a sitemap.xml file for the site as needed.
+[ ] Generate an RSS feed for the site to describe what's new/published, etc.
+    - [ ] Probably use: https://github.com/bergmark/feed
+    - [ ] Generate RSS and Atom feeds.
+    - [ ] link them somehow to some config or something.
+[ ] implement functions for:
+    - [x] absURL
+    - [ ] urlize (which might be the same as urlencode)
+    - [x] enumerate(list) to provide [{item=n, item=item}]  -- we can't produce
+	  pairs, so we'll produce a list of dictionaries that have the index
+	  and them item in them.
+    - [x] markdownify -- convert a Markdown string into html for inclusion
+[ ] - Re-do logging and printing functions so that we can control the output
+      nicely.
+    - [x] Write a logging effect that provide severity and optional module
+          logs.
+    - [x] Write a Print effect that provides colorised printing output options.
+    - [ ] Add a '--debug=xxx' option to extract the level of debugging wanted.
+          Default is None.
+    - [x] Go through the app to change all the log @String to either the print
+          or the logging effect.
+[ ] Need to work out / have a flag to generate a site without '/' prefixes on
+    the URLs so that they can be explored using the file brower.  At present
+    they stick to the /.  Perhaps something to do with the absURL function and
+    removing the abs bit if a flag is set and just doing everything relatively?
+
+## Done
+
+[x] Learn Polysemy for the Reader (config) and (state) links to pages.
 [x] Add publish-drafts flag to the the site.yaml config
 [x] Add --drafts option to the command line
 [x] Iterate through files
@@ -46,8 +87,6 @@
 [x] Work out from the `SourceMetadata` where to put an output file.
 [x] Write output files, after we've worked out what the output filename is.
 [X] Copy the static files across
-[ ] enable cleaning of output directories based on what is written and
-    copied.
 [x] Generate category `SourceMetadata` pages for categories that don't
     have actual physical pages (each will be an index page, and if the
     corresponding `categories/<cat>` page doesn't exist then generate the
@@ -55,56 +94,20 @@
     a tag by making a page and giving it a route in the `categories/<cat>`
     route space.
 [x] Generation tag `SourceMetadata` pages in the same vein as categories.
-[ ] Document how to make it all work.
-[ ] Expand out the example site so that it serves as an example.
-[ ] Doing less work:
-    [ ] Enable detecting that the source file hasn't changed so that we don't
-        bother processing it.
-    [ ] Enable detecting that the output is the same as the previous version
-        (if an output file exists) so that we don't write it out and change the
-        dates.
-    [ ] Ensure that index files don't need to be reprocessed if none of the
-        dependent files have changed.
-[ ] Generate a sitemap.xml file for the site as needed.
 [x] Cache a template once it has been resolved -> this might be a bit complex,
     but it's probably possible to cache the resolved template name to
     a `Template SourcePos` thing and then just return them when they next need
     to be resolved.
-[ ] implement functions for:
-    - [x] absURL
-    - [ ] urlize (which might be the same as urlencode)
-    - [x] enumerate(list) to provide [{item=n, item=item}]  -- we can't produce
-	  pairs, so we'll produce a list of dictionaries that have the index
-	  and them item in them.
-    - [x] markdownify -- convert a Markdown string into html for inclusion
 [x] - make the content, summary and toc functions return `unsafeRawHtml` so
       they don't have to be pushed through `raw` to extract the text as raw
       which is what is ALWAYS wanted.
 [x] Ensure that the pages that get rendered end up in the `sitePagesRendered`
     variable in the `SiteGenState`.  Otherwise, we could end up with duplicate
     things.
-[ ] - Re-do logging and printing functions so that we can control the output
-      nicely.
-    - [x] Write a logging effect that provide severity and optional module
-          logs.
-    - [x] Write a Print effect that provides colorised printing output options.
-    - [ ] Add a '--debug=xxx' option to extract the level of debugging wanted.
-          Default is None.
-    - [x] Go through the app to change all the log @String to either the print
-          or the logging effect.
-[ ] Generate an RSS feed for the site to describe what's new/published, etc.
-    - [ ] Probably use: https://github.com/bergmark/feed
-    - [ ] Generate RSS and Atom feeds.
-    - [ ] link them somehow to some config or something.
-[ ] Need to work out / have a flag to generate a site without '/' prefixes on
-    the URLs so that they can be explored using the file brower.  At present
-    they stick to the /.  Perhaps something to do with the absURL function and
-    removing the abs bit if a flag is set and just doing everything relatively?
 [x] Rationalise out the SourcePageContext and VirtualPageContext.  It's a bit
     pointless having both.  Turn them both into the `SourceMetadata` as that's
     a better description and stops them being confused with Context which is
     a Ginger variable thing.
-
 
 I really like the idea of using the top level values as Initial caps, and
 functions as lowercased.
