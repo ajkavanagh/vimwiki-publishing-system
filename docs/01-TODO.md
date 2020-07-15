@@ -2,7 +2,7 @@
 
 ## Still to be done
 
-[o] enable cleaning of output directories based on what is written and
+[x] enable cleaning of output directories based on what is written and
     copied.
 [ ] Document how to make it all work.
 [ ] Expand out the example site so that it serves as an example.

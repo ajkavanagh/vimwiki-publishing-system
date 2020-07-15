@@ -21,6 +21,7 @@ module Lib.SiteGenState
     , makeSiteGenReader
     , emptySiteGenState
     , recordMemo
+    , toFilePath
     , nextSMToRender
     , addToRenderList
     , addToSitePagesRendered
@@ -43,9 +44,9 @@ import           Polysemy            (Member, Sem)
 import           Polysemy.State      (State)
 import qualified Polysemy.State      as PS
 
+import           Lib.SiteGenConfig   (SiteGenConfig)
 import           Types.Errors        (SiteGenError)
 import           Types.Header        (SourceMetadata (..))
-import           Lib.SiteGenConfig   (SiteGenConfig)
 
 import           Types.SiteGenState  (FileMemo (..), SiteGenReader (..),
                                       SiteGenState (..))
@@ -83,6 +84,11 @@ recordMemo memoFile = do
     memo <- PS.gets @SiteGenState memoFiles
     unless (memoFile `HashSet.member` memo) $
         PS.modify' $ \sgs -> sgs { memoFiles=HashSet.insert memoFile memo }
+
+
+toFilePath :: FileMemo -> FilePath
+toFilePath (FileMemo fp) = fp
+toFilePath (DirMemo fp)  = fp
 
 
 addToSitePagesRendered

@@ -20,20 +20,22 @@ module Lib.Files
     , ensureDirectoriesExistFor
     , writeAndMemo
     , copyStaticFiles
+    , deleteNonMemoedFiles
     ) where
 
 
 import           System.FilePath.Posix (joinPath, makeRelative, normalise,
                                         splitDirectories, takeDirectory,
                                         takeExtension, (</>))
-import           System.Posix.Files    (fileSize)
+import           System.Posix.Files    (fileSize, isDirectory)
 
-import           Control.Monad         (filterM, forM_, liftM, unless, when,
-                                        (>=>))
+import           Control.Monad         (filterM, forM, forM_, liftM, unless,
+                                        when, (>=>))
 
 import           Data.ByteString       (ByteString)
 import qualified Data.ByteString       as BS
 import           Data.Function         ((&))
+import qualified Data.HashSet          as HashSet
 import qualified Data.List             as L
 import           Data.Maybe            (catMaybes)
 import           Data.Text             (Text)
@@ -65,7 +67,7 @@ import           Lib.Header            (makeHeaderContextFromFileName,
                                         maxHeaderSize, maybeDecodeHeader)
 import           Lib.SiteGenConfig     (SiteGenConfig (..),
                                         maxFileToProcessSize)
-import           Lib.SiteGenState      (recordMemo)
+import           Lib.SiteGenState      (recordMemo, toFilePath)
 import           Lib.Utils             (strToLower)
 
 
@@ -251,3 +253,58 @@ writeAndMemo dir relFile txt = do
     EF.writeFile fullpath (encodeUtf8 txt)
     -- if the above passed, the memo the file
     recordMemo $ FileMemo nFile
+
+
+-- | clean up the target directory of files / directories that didn't get
+-- written to.
+--
+-- This is slightly interesting as we also want to remove directories that are
+-- empty at the end of process.  So the memoFiles member of the @@SiteGenState@
+-- record contains all the files that were written.  We have to make them all
+-- relative (if they are not).  Then we need to list ALL the files in the target
+-- directory recursively, subtract the files that were written and the see
+-- what's left.  We'll leave any .files and .directories intact.  Then we delete
+-- all the files.  Finally we repeatedly delete empty directories until there
+-- are no empty directories left.
+
+deleteNonMemoedFiles
+    :: FilesSemEffects r
+    => Sem r ()
+deleteNonMemoedFiles = do
+    dir <- PR.asks @SiteGenConfig sgcOutputDir
+    paths <- fmap (makeRelative dir) <$> EF.sourceDirectoryDeep False dir
+    EL.logDebug $ T.pack $ "all files: " ++ L.intercalate ", " paths
+    memoedFiles <- HashSet.map (makeRelative dir . toFilePath) <$> PS.gets @SiteGenState memoFiles
+    -- filter out the paths, based on whether they are to be kept
+    let toDelete = filter (not . (`HashSet.member` memoedFiles)) paths
+    forM_ toDelete $ \p -> do
+        EL.logDebug $ T.pack $ "Deleting file: " ++ p
+        EF.deleteFile (dir </> p)
+    -- now delete any remaining directories
+    deleteEmptyDirectories dir
+
+
+deleteEmptyDirectories :: FilesSemEffects r => FilePath -> Sem r ()
+deleteEmptyDirectories dir = do
+    allDirs <- getDirectories dir
+    emptyFlags <- forM allDirs isDirectoryEmpty
+    let emptyDirs = map fst $ filter snd $ zip allDirs emptyFlags
+    unless (null emptyDirs) $ do
+        forM_ emptyDirs $ \p -> do
+           EL.logDebug $ T.pack $ "Deleting empty directory" ++ makeRelative dir p
+           EF.removeDirectory p
+        deleteEmptyDirectories dir
+
+
+getDirectories :: FilesSemEffects r => FilePath -> Sem r [FilePath]
+getDirectories fp = do
+    paths <- EF.sourceDirectory fp
+    fs <- forM paths EF.fileStatus
+    let dirs = map fst $ filter (isDirectory . snd) $ zip paths fs
+    -- now recurse to see if there are any further directories
+    subs <- forM dirs getDirectories
+    pure $ concat $ dirs : subs
+
+
+isDirectoryEmpty :: FilesSemEffects r => FilePath -> Sem r Bool
+isDirectoryEmpty fp = null <$> EF.sourceDirectory fp

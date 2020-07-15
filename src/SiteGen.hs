@@ -64,9 +64,9 @@ import           Types.Errors              (SiteGenError (..), mapSiteGenError)
 import           Types.Ginger              (GingerException)
 import           Types.Header              (SourceMetadata (..))
 
-import           Lib.RenderUtils           (renderSourceMetadata)
 import qualified Lib.Files                 as F
 import qualified Lib.Header                as H
+import           Lib.RenderUtils           (renderSourceMetadata)
 import qualified Lib.RouteUtils            as RU
 import           Lib.SiteGenConfig         (ConfigException, SiteGenConfig (..))
 import qualified Lib.SiteGenConfig         as SGC
@@ -252,6 +252,9 @@ runSiteGenSem args = do
                             Nothing -> pure ()
             go
             when (sgcCopyStaticFiles sgc) F.copyStaticFiles
+
+            -- finally, let's play delete:
+            F.deleteNonMemoedFiles
 
     P.putText $ T.pack $ "Extra: " ++ show (extraArgs args)
 
