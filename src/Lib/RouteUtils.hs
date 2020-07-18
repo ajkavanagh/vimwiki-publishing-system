@@ -242,7 +242,7 @@ makeVSMForIndex route = def { smRoute = route
 -- | make an filename from the source page SourceMetadata.
 makeFileNoExtNameFrom :: Bool -> SourceMetadata -> FilePath
 makeFileNoExtNameFrom doIndexPage sm =
-    let route = "./" <> routeToFileName (smRoute sm)
+    let route = "." <> routeToFileName (smRoute sm)
         isIndex = smIndexPage sm
      in case (isIndex, doIndexPage) of
          (False, False) -> route
@@ -251,8 +251,8 @@ makeFileNoExtNameFrom doIndexPage sm =
 
 
 routeToFileName :: String -> FilePath
-routeToFileName ""  = ""
-routeToFileName "/" = ""
+routeToFileName ""  = "/"
+routeToFileName "/" = "/"
 routeToFileName x   = x
 
 

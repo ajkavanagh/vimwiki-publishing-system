@@ -209,7 +209,7 @@ copyAndMemoFile sourceDir targetDir path = do
         toFile  = normalise (targetDir </> path)
     EL.logDebug $ T.pack $ "path is: " <> path
     ensureDirectoriesExistFor targetDir path
-    EL.logInfo $ T.pack $ "Copying file " <> srcFile <> " to " <> toFile
+    EL.logInfo $ T.pack $ "    - " <> makeRelative sourceDir srcFile
     EF.copyFile srcFile toFile
     recordMemo $ FileMemo toFile
 

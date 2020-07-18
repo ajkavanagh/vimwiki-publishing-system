@@ -26,6 +26,7 @@ import           Data.List                 (intercalate)
 import qualified Data.Text                 as T
 
 import           System.Exit               (ExitCode (..), exitWith)
+import           System.FilePath           (makeRelative)
 
 -- for optparse
 import           Data.Semigroup            ((<>))
@@ -53,7 +54,7 @@ import           Text.Pandoc               (Pandoc)
 -- Application Effects
 import           Effect.Cache              (Cache, CacheStore, cacheInHashWith,
                                             emptyCache)
-import           Effect.File               (File, FileException, fileToIO)
+import           Effect.File               (File, FileException, fileToIO, getCurrentDirectory)
 import           Effect.Locale             (Locale, LocaleException, localeToIO)
 import           Effect.Logging            (LoggingMessage, logActionLevel)
 import           Effect.Print              (Print, printToIO)
@@ -72,7 +73,8 @@ import           Lib.SiteGenConfig         (ConfigException, SiteGenConfig (..))
 import qualified Lib.SiteGenConfig         as SGC
 import           Lib.SiteGenState          (SiteGenReader, SiteGenState,
                                             addToRenderList, emptySiteGenState,
-                                            makeSiteGenReader, nextSMToRender)
+                                            lengthRenderList, makeSiteGenReader,
+                                            nextSMToRender)
 import           Lib.SpecialPages.Category (resolveCategoriesPage)
 import           Lib.SpecialPages.Four04   (resolve404page)
 import           Lib.SpecialPages.Tag      (resolveTagsPage)
@@ -170,7 +172,7 @@ runSiteGen args = do
         & mapError @LocaleException mapSiteGenError
         & printToIO @IO
         & errorToIOFinal @SiteGenError
-        & runLogAction @IO (logActionLevel D)
+        & runLogAction @IO (logActionLevel I)
         & runLogAction @IO logStringStderr
         & embedToFinal @IO
         & runFinal @IO
@@ -185,6 +187,27 @@ runSiteGen args = do
 runSiteGenHelper s fp = do
     let args = makeSitegenArgs s True True fp
     runSiteGen args
+
+
+printInfoHeader
+    :: ( Member Print r
+       , Member File r
+       )
+    => SGC.SiteGenConfig -> Sem r ()
+printInfoHeader sgc = do
+    P.putText "\n------------------------------------------------"
+    P.putText "sitegen: Static site generator for vimwiki links"
+    P.putText "------------------------------------------------\n"
+    pwd <- getCurrentDirectory
+    let root = sgcRoot sgc
+        root' = makeRelative pwd root
+        pRoot = if length root' < length root then "./" <> root' else root
+    P.putText $ "Root directory is   : " <> T.pack pRoot
+    P.putText $ "Source Directory is : " <> T.pack (SGC.dirForPrint sgcSource sgc)
+    P.putText $ "Output Directory is : " <> T.pack (SGC.dirForPrint sgcOutputDir sgc)
+    P.putText $ "Statics Directory is: " <> T.pack (SGC.dirForPrint sgcStaticDir sgc)
+    P.putText $ "Extension is        : " <> T.pack (sgcExtension sgc)
+    P.putText ""
 
 
 -- we've now got some validated args; now we need to use those args to create
@@ -204,26 +227,18 @@ runSiteGenSem
 runSiteGenSem args = do
     let fp = siteConfigArg args
         draft = draftsArg args
+        clean = cleanArg args
     sgc <- SGC.getSiteGenConfig fp draft
-    P.putText "The site gen config is"
-    P.print sgc
+    printInfoHeader sgc
     let sourceDir = SGC.sgcSource sgc
     let ext = SGC.sgcExtension sgc
-    P.putText $ "Looking in " <> showt sourceDir
-    P.putText $ "Extension is " <> showt ext
     sms <- runReader sgc $ F.filePathToSourceMetadataItems sourceDir ext
-    P.putText $ "SMs are:\n" <> T.pack (intercalate "\n" (map show sms))
-    let files = map smRelFilePath sms
-    P.putText $ T.pack $ "Files are: " ++ intercalate ", " (map show files)
-    P.putText $ T.pack $ "Routes are: " ++ intercalate ", " (map (show . smRoute) sms)
     let dr = RU.checkDuplicateRoutes sms
-    P.putText $ T.pack $ "Duplicate routes: " ++ intercalate ", " (map show dr)
+    unless (null dr) $ PE.throw @SiteGenError $ OtherError
+        $ T.pack $ "Duplicate routes: " ++ intercalate ", " (map show dr)
     let mr = RU.findMissingIndexRoutes sms
-    P.putText $ T.pack $ "Missing routes: Len (" ++ show (length mr) ++ ") = " ++ intercalate ", " mr
     let sms' = RU.ensureIndexRoutesIn sms
         scs = RU.addVSMIndexPages sms'
-    P.putText $ T.pack $ "Final route set: " ++ intercalate ", " (map smRoute scs)
-    -- Create the SiteGenState and Reader
     let sgr = makeSiteGenReader scs
 
     -- TODO: filtering whilst in debug; pass in from the command line.
@@ -246,6 +261,8 @@ runSiteGenSem args = do
             resolve404page
             when (sgcGenerateCategories sgc) resolveCategoriesPage
             when (sgcGenerateTags sgc) resolveTagsPage
+            numToRender <- lengthRenderList
+            P.putText $ T.pack $ "Rendering " ++ show numToRender ++ " main files:\n"
             let go = do mSm <- nextSMToRender
                         case mSm of
                             Just sm -> renderSourceMetadata sm >> go   -- render the file and loop
@@ -253,9 +270,10 @@ runSiteGenSem args = do
             go
             when (sgcCopyStaticFiles sgc) F.copyStaticFiles
 
-            -- finally, let's play delete:
-            F.deleteNonMemoedFiles
+            -- finally, delete any files that shouldn't be in the output
+            -- directories now.
+            when clean $ do
+                P.putText "Cleaning any left over files (if any)"
+                F.deleteNonMemoedFiles
 
-    P.putText $ T.pack $ "Extra: " ++ show (extraArgs args)
-
-    pure ()
+    P.putText "Done."

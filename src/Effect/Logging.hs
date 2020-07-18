@@ -41,8 +41,8 @@ extractSeverity (LM sev _ _) = sev
 
 
 instance Show LoggingMessage where
-    show (LM sev (Just mod) txt) = T.unpack $ showSeverity sev <> " (" <> mod <> ") - " <> txt
-    show (LM sev Nothing    txt) = T.unpack $ showSeverity sev <> " - " <> txt
+    show (LM sev (Just mod) txt) = T.unpack $ showSeverity sev <> " (" <> mod <> ") " <> txt
+    show (LM sev Nothing    txt) = T.unpack $ showSeverity sev <> " " <> txt
 
 
 makeLogger

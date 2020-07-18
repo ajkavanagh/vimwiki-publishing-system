@@ -13,28 +13,28 @@ module Lib.SiteGenConfig where
 
 import           TextShow
 
-import           System.FilePath  (FilePath, pathSeparator, takeDirectory,
-                                   (</>))
+import           System.FilePath (FilePath, makeRelative, pathSeparator,
+                                  takeDirectory, (</>))
 
-import           Data.List        (intercalate)
-import           Data.Maybe       (fromJust, isNothing)
-import qualified Data.Yaml        as Y
-import           Data.Yaml        ((.:), (.:?), (.!=))
-import           Data.Text        (Text)
-import qualified Data.Text        as T
+import           Data.List       (intercalate)
+import           Data.Maybe      (fromJust, isNothing)
+import           Data.Text       (Text)
+import qualified Data.Text       as T
+import           Data.Yaml       ((.!=), (.:), (.:?))
+import qualified Data.Yaml       as Y
 
-import qualified Network.URI            as NU
+import qualified Network.URI     as NU
 
 -- For Polysemy logging of things going on.
-import           Colog.Polysemy   (Log)
-import qualified Colog.Polysemy   as CP
-import           Polysemy         (Embed, Members, Sem, embed)
-import           Polysemy.Error   (Error, throw)
+import           Colog.Polysemy  (Log)
+import qualified Colog.Polysemy  as CP
+import           Polysemy        (Embed, Members, Sem, embed)
+import           Polysemy.Error  (Error, throw)
 
-import           Effect.File      (File, FileException)
-import qualified Effect.File      as EF
-import           Effect.Logging   (LoggingMessage)
-import qualified Effect.Logging   as EL
+import           Effect.File     (File, FileException)
+import qualified Effect.File     as EF
+import           Effect.Logging  (LoggingMessage)
+import qualified Effect.Logging  as EL
 
 
 -- | define the biggest file we are willing to process
@@ -128,6 +128,7 @@ data SiteGenConfig = SiteGenConfig
     { sgcSiteYaml           :: !FilePath
     , sgcSiteUrl            :: !(Maybe NU.URI)
     , sgcSiteId             :: !String
+    , sgcRoot               :: !FilePath
     , sgcSource             :: !FilePath
     , sgcOutputDir          :: !FilePath
     , sgcExtension          :: !String
@@ -183,6 +184,7 @@ makeSiteGenConfigFromRaw configPath rawConfig forceDrafts = do
           { sgcSiteYaml=configPath
           , sgcSiteUrl=NU.parseAbsoluteURI =<< _siteUrl rawConfig
           , sgcSiteId=_siteId rawConfig
+          , sgcRoot=root
           , sgcSource=fromJust source_
           , sgcOutputDir=fromJust outputDir_
           , sgcExtension=_extension rawConfig
@@ -223,3 +225,12 @@ resolvePath path root errorStr = do
       else do
           EL.logError $ T.pack $ "Path " ++ resolvedPath ++ " doesn't exist for: " ++ errorStr
           pure Nothing
+
+
+-- | Modify the directory for printing; returns a string
+dirForPrint :: (SiteGenConfig -> FilePath) -> SiteGenConfig -> String
+dirForPrint f sgc =
+    let root = sgcRoot sgc
+        path = f sgc
+        p1 = makeRelative root path
+     in if length p1 < length path then "<root>/" <> p1 else path

@@ -176,7 +176,7 @@ paginateF sm args = do
     let (items, mSize) = extractListAndOptionalSize args
     if null items
         then do
-            TG.liftRun $ EL.logError "No Items provided to paginate() ?"
+            TG.liftRun $ EL.logWarning "No Items provided to paginate() ?"
             pure def
             -- determine if there is a pager already for the current route
         else case HashMap.lookup route pagerSet of

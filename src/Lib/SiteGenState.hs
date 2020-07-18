@@ -25,6 +25,7 @@ module Lib.SiteGenState
     , nextSMToRender
     , addToRenderList
     , addToSitePagesRendered
+    , lengthRenderList
     )
     where
 
@@ -113,6 +114,12 @@ nextSMToRender = do
         (r:rs') -> do
             PS.modify' $ \sgs -> sgs {siteRenderList=rs'}
             pure $ Just r
+
+
+lengthRenderList
+    :: Member (State SiteGenState) r
+    => Sem r Int
+lengthRenderList = length <$> PS.gets @SiteGenState siteRenderList
 
 
 -- | addToRenderList - add SourceMetadata items to the render list.  Any

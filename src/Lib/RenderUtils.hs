@@ -40,7 +40,7 @@ import           System.FilePath        (normalise, (</>))
 
 import           Control.Monad          (when)
 
-import           Data.Maybe             (isNothing)
+import           Data.Maybe             (fromJust, isJust, isNothing)
 import           Data.Text              (Text)
 import qualified Data.Text              as T
 
@@ -98,10 +98,11 @@ renderSourceMetadata
     => SourceMetadata
     -> Sem r ()
 renderSourceMetadata sm = do
-    EL.logInfo $ T.pack $ "renderSourceMetadata for route: "
+    let fp = smRelFilePath sm
+    EL.logInfo $ T.pack $ "Rendering route: "
                        ++ smRoute sm
-                       ++ ", file: "
-                       ++ show (smRelFilePath sm)
+                       ++ (if isJust fp then " for file: " ++ (fromJust fp)
+                                        else " - no source file.")
     --
     -- find the template
     template <- resolveTemplateNameRelative (smTemplate sm)
@@ -145,7 +146,7 @@ writeOutputFile sm txt = do
         dir = sgcOutputDir sgc
         relFileName = makeFileNameFrom doIndexFiles ext sm
         absFileName = normalise (dir </> relFileName)
-    --EL.logDebug $ T.pack $ " --> " ++ relFileName
+    EL.logInfo $ T.pack $ " Writing to --> " ++ relFileName
     --EL.logDebug $ T.pack $ " --> " ++ absFileName
     -- Need to check that the base output directory exists
     -- Need to test and create any intermediate directories

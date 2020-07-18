@@ -75,10 +75,10 @@ parseToTemplate source = do
     mTpl <- EC.fetch (T.pack source)
     case mTpl of
         Just tpl' -> do
-            EL.logInfo $ T.pack $ "--> Reusing: " <> source
+            EL.logInfo $ T.pack $ "  * Using cached template: " <> source
             pure tpl'
         Nothing -> do
-            EL.logInfo $ T.pack $ "-->> Actually Parsing: " <> source
+            EL.logInfo $ T.pack $ "  * Parsing template: " <> source
             res <- TG.parseGingerFile includeResolver source
             case res of
                 Left parseError -> PE.throw $ GingerException (T.pack $ show parseError)

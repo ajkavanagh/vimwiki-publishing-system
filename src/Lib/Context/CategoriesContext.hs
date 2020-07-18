@@ -98,7 +98,6 @@ categoriesM
     => RunSemGVal r
 categoriesM = do
     categories <- TG.liftRun getAllCategories
-    TG.liftRun $ EL.logInfo $ T.pack $ "Categories are: " ++ L.intercalate ", " categories
     pure $ TG.dict [ ("Items", TG.list $ map (\l ->
                             TG.dict ["Name" ~> l,
                                      "Url" ~> (categoriesRoutePrefix ++ l)]) categories)

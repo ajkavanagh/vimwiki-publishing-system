@@ -105,7 +105,6 @@ tagsM
     => RunSemGVal r
 tagsM = do
     tags <- TG.liftRun getAllTags
-    TG.liftRun $ EL.logInfo $ T.pack $ "Tags are: " ++ L.intercalate ", " tags
     pure $ TG.dict [ ("Items", TG.list $ map (\l ->
                             TG.dict ["Name" ~> l,
                                      "Url" ~> (tagsRoutePrefix ++ l)]) tags)

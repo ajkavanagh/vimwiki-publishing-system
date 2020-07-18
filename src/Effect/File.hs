@@ -25,8 +25,8 @@ import qualified System.Directory   as SD
 import           System.FilePath    (takeExtension)
 import           System.IO          (IOMode (ReadMode), SeekMode (AbsoluteSeek),
                                      hClose, hSeek, withBinaryFile)
-import qualified System.IO.Temp     as SIT
 import           System.IO.Error    (tryIOError)
+import qualified System.IO.Temp     as SIT
 import qualified System.Posix.Files as SPF
 
 import           Control.Exception  (bracket)
@@ -34,11 +34,11 @@ import           Control.Monad      (when)
 
 import           Data.ByteString    (ByteString)
 import qualified Data.ByteString    as BS
-import           Data.Text          (Text)
-import qualified Data.Text          as T
 import           Data.Function      ((&))
 import           Data.List          (intercalate)
 import           Data.Maybe         (fromJust, isJust)
+import           Data.Text          (Text)
+import qualified Data.Text          as T
 
 import           Conduit            (MonadResource, filterC, runConduit,
                                      runResourceT, sinkList)
@@ -96,6 +96,10 @@ data File m a where
     CreateDirectoryIfMissing :: Bool -> FilePath -> File m ()
     RemoveDirectory :: FilePath -> File m ()
     RemoveDirectoryRecursive :: FilePath -> File m ()
+
+    -- Environment
+    GetCurrentDirectory :: File m FilePath
+    SetCurrentDirectory :: FilePath -> File m ()
 
     -- Temporary Dirctory/File Support
     GetCanonicalTemporaryDirectory :: File m FilePath
@@ -228,6 +232,15 @@ fileToIO = interpret $ \case
     RemoveDirectoryRecursive fp ->
         throwIfException fp =<< embed (tryIOError $ SD.removeDirectoryRecursive fp)
 
+
+    -- Environment
+    -- GetCurrentDirectory :: File m FilePath
+    GetCurrentDirectory -> throwIfException "" =<< embed (tryIOError SD.getCurrentDirectory)
+
+    -- SetCurrentDirectory :: FilePath -> File m ()
+    SetCurrentDirectory fp ->
+        throwIfException fp =<< embed (tryIOError $ SD.setCurrentDirectory fp)
+
     -- Temporary Dirctory/File Support
     -- GetCanonicalTemporaryDirectory :: File m FilePath
     GetCanonicalTemporaryDirectory ->
@@ -255,7 +268,7 @@ throwIfException
     -> Either a b
     -> Sem r b
 throwIfException fp e = case e of
-    Left a -> PE.throw $ FileException fp (showt a)
+    Left a  -> PE.throw $ FileException fp (showt a)
     Right b -> pure b
 
 -- let's do q quick tests -- we'll delete these once we have stuff going!
