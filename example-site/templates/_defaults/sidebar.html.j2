@@ -1,18 +1,18 @@
 <div class="sidebar">
   <div class="container sidebar-sticky">
     <div class="sidebar-about">
-      {% if Site.Title -%}<h1>{{ Site.Title }}</h1>{% endif -%}
-      {% if Site.Params.tagline -%}<p class="lead">{{ Site.Params.tagline | markdownify }}</p>{% endif -%}
+      {% if Site.Params.Title -%}<h1>{{ Site.Params.Title }}</h1>{% endif -%}
+      {% if Site.Params.Tagline -%}<p class="lead">{{ Site.Params.Tagline | markdownify }}</p>{% endif -%}
       {% if Site.Params.gravatarHash %}
         <img src="https://www.gravatar.com/avatar/{{ Site.Params.gravatarHash }}?s=200"
              alt="gravatar" title="{{ Site.Author.name }}">
       {% endif %}
-      <h1>{{ Site.Author.name }}</h1>
+      <h1>{{ Site.Params.Author }}</h1>
     </div>
 
     <ul class="sidebar-nav">
       <li class="sidebar-nav-item"><a href="{{ "/" | absURL }}">{% if Site.Params.home -%}{{ Site.Params.home }}{% else -%}Blog{% endif -%}</a></li>
-      {% for menu in Site.Menus.main.ByWeight -%}
+      {% for menu in sort(Site.Params.Menus.main, by="weight") -%}
       <li class="sidebar-nav-item">{{ menu.Pre }}<a href="{{ menu.URL | absURL }}">{{ menu.Name }}</a></li>
       {% endfor -%}
     </ul>

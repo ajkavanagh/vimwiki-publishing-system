@@ -8,7 +8,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
 
   {% block title -%}
-  <title>{{ Site.Params.title }} &middot; {{ Site.Params.author }}</title>
+  <title>{{ Site.Params.Title }} &middot; {{ Site.Params.Author }}</title>
   {% endblock -%}
 
   {% block css -%}
@@ -29,7 +29,7 @@
 
   <!-- RSS -->
   {% set siteTitle = Site.Params.title -%}
-  {% set authorName = Site.Author.name -%}
+  {% set authorName = Site.Params.Author -%}
   {% if Data.RSSLink -%}<link href="{{ Data.RSSLink }}" rel="alternate" type="application/rss+xml" title="{{ siteTitle }} &middot; {{ authorName }}" />{% endif -%}
 
   <meta name="description" content="{% if Page.Description -%}{{ Page.Description }}{% else -%}{{ Site.Params.defaultDescription }}{% endif -%}" />

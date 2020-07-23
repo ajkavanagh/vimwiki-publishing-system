@@ -7,6 +7,8 @@ category: hello
 It should work, the 'random' is just some extra which is ignored. And a bit
 more.
 
+<!--more-->
+
 A link to [[test1]]
 
 ## A sub-heading

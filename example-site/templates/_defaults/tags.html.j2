@@ -1,9 +1,7 @@
 {% extends "base" %}
 {% block main %}
 <div class="content container">
-  <h1>Categories </h1>
-  {{ Tags }}
-  {{ Tags.pagesFor("tag1") | raw}}
+  <h1>Tags </h1>
   {% if Tags.Items -%}
   <ul class="posts">
     {% for tag in  Tags.Items -%}

@@ -1,9 +1,47 @@
 site: home
 template-ext: .html.j2
 siteURL: http://example.com
-index-files: false
+index-files: true
 generate-categories: true
 generate-tags: true
 params:
-  tagline: This is a **great** site.
+  home: Home
+  # Select a syntax highight.
+  # Check the static/css/highlight directory for options.
+  highlight: "github"
+  defaultDescription: Article
+  defaultKeywords: [technology]
+  ReadingTime: False
+  scheme: theme-base-0d
+  Tagline: This is a **great** site.
+  Title: This is a blog site
+  Author: Alex Kavanagh
+  Menus:
+    main:
+      - Name: "About"
+        URL: "/about"
+        weight: 1
+      - Name: "Posts"
+        URL: "/post"
+        weight: 2
+      - Name: "Categories"
+        URL: "/_categories"
+        weight: 3
+      - Name: "Tags"
+        URL: "/_tags"
+        weight: 4
+      - Name: "Archives"
+        URL: "/archive"
+        weight: 5
 
+  gravatarHash: "b434fbad3fed6d85533bc24d93aee446" # alex@ajkavanagh.co.uk
+
+  # Sidebar social links, these must be full URLs.
+  github: "https://github.com/ajkavanagh"
+  bitbucket: "https://bitbucket.org/ajkavanagh/"
+  linkedin: "https://uk.linkedin.com/in/alexkavanagh"
+  facebook: ""
+  twitter: "https://twitter.com/ajkavanagh"
+  youtube: ""
+  flickr: ""
+  vimeo: ""

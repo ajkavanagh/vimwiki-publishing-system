@@ -1,6 +1,7 @@
 --- sitegen
 title: Test Post
 template: index
+tags: [tag1]
 ---
 # The title
 

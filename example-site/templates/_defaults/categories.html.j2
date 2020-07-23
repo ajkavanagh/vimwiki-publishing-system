@@ -2,8 +2,6 @@
 {% block main %}
 <div class="content container">
   <h1>Categories </h1>
-  {{ Categories }}
-  {{ Categories.pagesFor("cat1") | raw}}
   {% if Categories.Items -%}
   <ul class="posts">
     {% for category in  Categories.Items -%}
