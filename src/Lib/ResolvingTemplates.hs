@@ -115,11 +115,21 @@ resolveTemplateNameForSM sm = do
         dir = intercalate "/" $ init $ splitOn "/" sPath
         tName = case (hasPath, sHasPath) of
             (True, _)      -> tFileName
-            (False, True)  -> dir </> tFileName
+            (False, True)  -> _dropLeadingSlash dir </> tFileName
             (False, False) -> tFileName
-    EL.logDebug $ T.pack $ " >> resolveTemplateNameforSC: template: "
+    EL.logDebug $ T.pack $ " >> resolveTemplateNameforSM: template: "
           <> show tBaseName <> ", route: " <> show sPath <> " -> " <> show tName
     pure tName
+
+
+-- | Drop the leading slash from the leading string
+-- This is used when constructing the template path from the route of the
+-- template so that it can then be re-found when it is included as part of
+-- Ginger.
+_dropLeadingSlash :: String -> String
+_dropLeadingSlash "" = ""
+_dropLeadingSlash ('/':s) = s
+_dropLeadingSlash s = s
 
 
 resolveTemplateName'
@@ -173,6 +183,7 @@ resolveTemplatePath tDir tPath = do
                 -- try actual, then with _defaults, and then _defaults/fileName
                 then [relPath, "_defaults" </> relPath, "_defaults" </> fileName]
                 else [relPath, "_defaults" </> relPath]
+    --EL.logDebug $ T.pack $ " --- try paths: " ++ intercalate " : " tryPaths
     exists <- forM tryPaths EF.doesFileExist
     let pairs = dropWhile (not.snd) $ zip tryPaths exists
     if null pairs
@@ -218,4 +229,4 @@ testResolveTemplatePathForSM = do
               {-& runFinal @IO-}
 
 
-{-testRP = testResolveTemplatePathForSC & runTest-}
+--test = testResolveTemplatePathForSM & runTest

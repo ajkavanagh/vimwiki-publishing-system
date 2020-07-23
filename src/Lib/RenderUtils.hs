@@ -105,7 +105,8 @@ renderSourceMetadata sm = do
                                         else " - no source file.")
     --
     -- find the template
-    template <- resolveTemplateNameRelative (smTemplate sm)
+    template <- resolveTemplateNameForSM sm
+    --EL.logDebug $ T.pack $ "++++Template is " ++ template
     tplt <- parseToTemplate template
 
     -- build a Ginger context  -- this contains functions for content()

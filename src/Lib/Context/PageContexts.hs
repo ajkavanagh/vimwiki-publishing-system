@@ -141,7 +141,8 @@ pagesContextM route excludes = do
     sms <- TG.liftRun $ PR.asks @SiteGenReader siteSourceMetadataItems
     let pages = sameLevelRoutesAs smRoute route sms
         pages' = filter (\p -> smRoute p `notElem` excludes) pages
-    pagesM <- mapM pageSourceMetadataM pages'
+        pages'' = filter (not . smIndexPage) pages'
+    pagesM <- mapM pageSourceMetadataM pages''
     pure $ TG.list pagesM
 
 

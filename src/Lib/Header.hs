@@ -59,7 +59,7 @@ site: <site-identifier> # the site that this belongs to.
 -- hide log, as we're pulling it in from co-log
 import           Prelude               hiding (log)
 
-import           System.FilePath       (FilePath)
+import           System.FilePath       (FilePath, (</>))
 import qualified System.FilePath       as FP
 import qualified System.Posix.Files    as SPF
 
@@ -203,11 +203,12 @@ makeSourceMetadataFromRawPageHeader :: Members '[ Reader S.SiteGenConfig
 makeSourceMetadataFromRawPageHeader rph len = do
     sgc <- ask @S.SiteGenConfig
     rc  <- ask @HeaderContext
+    --EL.logDebug $ T.pack $ "headerContext === " ++ show rc
     pageDate <- convertDate $ _date rph
     updatedDate <- convertDate $ _updated rph
     let defTemplate = if _indexPage rph then "index" else "default"
     pure SourceMetadata
-        { smRoute           = fixRoute $ pick (_route rph) (hcAutoSlug rc)
+        { smRoute           = fixRoute $ pick (assembleRoute rc <$> _route rph) (hcAutoSlug rc)
         , smAbsFilePath     = Just $ hcAbsFilePath rc
         , smRelFilePath     = Just $ hcRelFilePath rc
         , smVimWikiLinkPath = hcVimWikiLinkPath rc
@@ -225,6 +226,18 @@ makeSourceMetadataFromRawPageHeader rph len = do
         , smParams          = _params rph
         }
 
+
+assembleRoute :: HeaderContext -> String -> String
+assembleRoute hc "" = "/"
+assembleRoute hc route@(c:_)
+  | c == '/'  = route
+  | otherwise =
+      let fp = hcRelFilePath hc
+          dir = FP.takeDirectory fp
+          dir' = if dir == "." then "" else dir
+       in if '/' `elem` route
+            then route
+            else dir' </> route
 
 makeHeaderContextFromFileName
     :: Members '[ File
@@ -263,7 +276,7 @@ decodeFilePath fp =
 -- | Make a slug from the file path parts, ensuring it is lower case and spaces
 -- and underscores are replaced by '-'s
 makeAutoSlug :: FilePathParts -> String
-makeAutoSlug fpp = FP.joinPath $ map fixRoute $ _path fpp
+makeAutoSlug fpp = L.intercalate "" $ map fixRoute $ _path fpp
 
 
 makeAutoTitle :: FilePathParts -> String

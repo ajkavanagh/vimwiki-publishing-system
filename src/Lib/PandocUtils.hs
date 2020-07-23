@@ -12,6 +12,7 @@ module Lib.PandocUtils
     , extractStrSpace
     , getSummaryPlain
     , getSummaryPandoc
+    , stripMoreIndicator
     , getSummaryNPlain
     , getSummaryNPandoc
     , TocItem(..)
@@ -43,6 +44,7 @@ import qualified Data.HashMap.Strict    as HashMap
 import qualified Data.List              as L
 import qualified Data.Text              as T
 import           Data.Text.Encoding     (decodeUtf8')
+import           Data.Maybe             (isJust)
 
 import           Data.DList             (DList)
 import qualified Data.DList             as DList
@@ -187,7 +189,7 @@ pandocToSummaryTextEither
     :: Int              -- the number of words to use
     -> TP.Pandoc        -- the Pandoc document to fetch the summary from
     -- Plain HTML and marked up HTML versions of the summary
-    -> Either TE.SiteGenError (T.Text, T.Text)
+    -> Either TE.SiteGenError ((T.Text, Bool), (T.Text, Bool))
 pandocToSummaryTextEither n ast = do
     plain <- renderWithOneOfEither getSummaryPlain (getSummaryNPlain n) ast
     rich <- renderWithOneOfEither getSummaryPandoc (getSummaryNPandoc n) ast
@@ -197,18 +199,21 @@ pandocToSummaryTextEither n ast = do
 -- | helper to choose one of the summary functions
 renderWithOneOfEither
     :: (TP.Pandoc -> Maybe TP.Pandoc)
-    -> (TP.Pandoc -> TP.Pandoc)
+    -> (TP.Pandoc -> (TP.Pandoc, Bool))
     -> TP.Pandoc
-    -> Either TE.SiteGenError T.Text
+    -> Either TE.SiteGenError (T.Text, Bool) -- ^ return text and truncated flag
 renderWithOneOfEither f1 f2 ast =
-    let mAst = f1 ast <|> pure (f2 ast)
+    let mAst1 = f1 ast
+        (ast2, truncated) = f2 ast
+        mAst = mAst1 <|> pure ast2
+        truncated' = truncated || isJust mAst1
      in case mAst of
         Nothing -> Left $ TE.PandocProcessError "Couldn't extract text?"
         Just ast' ->
             let resultTxt = TP.runPure $ TP.writeHtml5String pandocHtmlArgs ast'
              in case resultTxt of
                 Left e    -> Left $ TE.PandocWriteError e
-                Right txt -> Right txt
+                Right txt -> Right (txt, truncated')
 
 
 -- | re-write Pandoc Links if they map to a source name.  i.e. map it to a
@@ -443,18 +448,30 @@ matchManyWikiLinks = many1 matchWikiLink
 --  2. Flatten the Pandoc without headers and just plain/para blocks.
 --  3a. For rich, return that (it may includes links, etc.)
 --  3b. For plain, flatten that to just Text.
+--
+--  In each of these functions, the return value is the Maybe(Pandoc, Bool)
+--  where the Bool is whether the summary is actually a trucation of the
+--  document.
 
+-- If this returns True, then it is a truncated view of the document
 getSummaryPlain :: TP.Pandoc -> Maybe TP.Pandoc
 getSummaryPlain pd = extractStrSpace . flattenPandoc <$> findSummary pd
 
-getSummaryNPlain :: Int -> TP.Pandoc -> TP.Pandoc
-getSummaryNPlain n pd = extractStrSpace $ flattenPandoc $ takeNWords n pd
+-- The boolean is whether it is trucated
+getSummaryNPlain :: Int -> TP.Pandoc -> (TP.Pandoc, Bool)
+getSummaryNPlain n pd =
+    let (words, truncated) = takeNWords n pd
+     in (extractStrSpace $ flattenPandoc words, truncated)
 
+-- If this returns True, then it is a truncated view of the document
 getSummaryPandoc :: TP.Pandoc -> Maybe TP.Pandoc
 getSummaryPandoc pd = flattenPandoc <$> findSummary pd
 
-getSummaryNPandoc :: Int -> TP.Pandoc -> TP.Pandoc
-getSummaryNPandoc n pd = flattenPandoc $ takeNWords n pd
+-- The boolean is whether it is trucated
+getSummaryNPandoc :: Int -> TP.Pandoc -> (TP.Pandoc, Bool)
+getSummaryNPandoc n pd =
+    let (words, truncated) = takeNWords n pd
+     in (flattenPandoc words, truncated)
 
 
 -- | flatten the Pandoc by removing every block level item except Para or Plain
@@ -532,6 +549,17 @@ findSummaryInline meta dbs cons bs dis (i:ils) =
     findSummaryInline meta dbs cons bs (i:dis) ils
 
 
+-- Finally we need to be able to strip the <!--more--> item out of the document if
+-- it exists.  This will remove any <!--more--> text anywhere in the document.
+-- if you need to keep it, then put it in a code link.
+--
+stripMoreIndicator :: TP.Pandoc -> TP.Pandoc
+stripMoreIndicator = TPW.walk stripMoreIndicator'
+
+
+stripMoreIndicator' :: TP.Inline -> TP.Inline
+stripMoreIndicator' i@(TP.Str s) = if s == "<!--more-->" then TP.Str "" else i
+stripMoreIndicator' x = x
 ---
 
 -- take the first 'n' words from a document for the summary
@@ -539,16 +567,18 @@ findSummaryInline meta dbs cons bs dis (i:ils) =
 -- This simply counts the complete Str elements in the Inlines working from the
 -- top block.   Note that it ignores headers or any other top level block links.
 -- It only counts words in Plain or Para blocks.
+-- The boolean is True if it did truncate, i.e. there were words left to take.
 
-takeNWords :: Int -> TP.Pandoc -> TP.Pandoc
+takeNWords :: Int -> TP.Pandoc -> (TP.Pandoc, Bool)
 takeNWords n (TP.Pandoc meta bs)
-  | n < 1 = TP.Pandoc meta []
+  | n < 1 = (TP.Pandoc meta [], True)
   | otherwise = takeNWords' (n-1) meta 0 [] bs
 
 
-takeNWords' :: Int -> TP.Meta -> Int -> [TP.Block] -> [TP.Block] -> TP.Pandoc
+-- The boolean is True if it did truncate, i.e. there were words left to take.
+takeNWords' :: Int -> TP.Meta -> Int -> [TP.Block] -> [TP.Block] -> (TP.Pandoc, Bool)
 -- we're done; just return the document.
-takeNWords' n meta m ds [] = TP.Pandoc meta (reverse ds)
+takeNWords' n meta m ds [] = (TP.Pandoc meta (reverse ds), False)
 takeNWords' n meta m ds (b:bs) =
     let (b', m') = case b of
             (TP.Plain ps) -> map' TP.Plain $ processMStr n [] m ps
@@ -556,7 +586,7 @@ takeNWords' n meta m ds (b:bs) =
             x             -> (b, m)
      in if m < n
           then takeNWords' n meta m' (b':ds) bs
-          else TP.Pandoc meta (reverse (b':ds))
+          else (TP.Pandoc meta (reverse (b':ds)), True)
   where
       map' :: ([TP.Inline] -> TP.Block) -> ([TP.Inline], a) -> (TP.Block, a)
       map' cons (x, y) = (cons x, y)

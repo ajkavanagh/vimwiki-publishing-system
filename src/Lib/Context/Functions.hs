@@ -46,6 +46,7 @@ import           Effect.Ginger         (GingerSemEffects)
 import           Effect.Locale         (getLocale)
 import qualified Effect.Logging        as EL
 
+import           Types.Constants
 import           Types.Context         (Context, RunSem, RunSemGVal)
 import           Types.Errors          (SiteGenError)
 
@@ -61,17 +62,20 @@ functionsContext
     :: GingerSemEffects r
     => Context (RunSem r)
 functionsContext = contextFromList
-    [ ("absURL",      pure $ TG.fromFunction absURLF)
-    , ("not",         pure $ TG.fromFunction notF)
-    , ("getlocale",   pure $ TG.fromFunction getLocaleF)
-    , ("enumerate",   pure $ TG.fromFunction enumerateF)
-    , ("markdownify", pure $ TG.fromFunction markdownifyF)
+    [ ("absURL",         pure $ TG.fromFunction absURLF)
+    , ("not",            pure $ TG.fromFunction notF)
+    , ("getlocale",      pure $ TG.fromFunction getLocaleF)
+    , ("enumerate",      pure $ TG.fromFunction enumerateF)
+    , ("markdownify",    pure $ TG.fromFunction markdownifyF)
+    , ("categoryUrlFor", pure $ TG.fromFunction categoryUrlFor)
+    , ("tagUrlFor",      pure $ TG.fromFunction tagUrlFor)
     ]
 
 
 absURLF :: GingerSemEffects r => TG.Function (RunSem r)
 absURLF args = do
-    mSiteUri <- TG.liftRun (PR.asks @SiteGenConfig sgcSiteUrl)
+    -- mSiteUri <- TG.liftRun (PR.asks @SiteGenConfig sgcSiteUrl)
+    let mSiteUri = Nothing
     let mArg = NU.parseURIReference =<< unpack <$> tryExtractStringArg args -- try to get the relative URI
     case mSiteUri of
         -- if there wasn't a site url, just return the parsed version of the
@@ -139,6 +143,24 @@ markdownifyF :: GingerSemEffects r => TG.Function (RunSem r)
 markdownifyF args =
     case tryExtractStringArg args of
         Nothing -> do
-            TG.liftRun $ EL.logError "No text arg summied to markdownify!"
+            TG.liftRun $ EL.logError "No text arg supplied to markdownify!"
             pure def
         Just s -> TG.toGVal . TGH.unsafeRawHtml <$> (TG.liftRun . markdownToHTML) s
+
+
+categoryUrlFor :: GingerSemEffects r => TG.Function (RunSem r)
+categoryUrlFor args =
+    case tryExtractStringArg args of
+        Nothing -> do
+            TG.liftRun $ EL.logError "No text arg supplied to categoryUrlFor!"
+            pure def
+        Just s -> pure $ TG.toGVal (categoriesRoutePrefix ++ unpack s)
+
+
+tagUrlFor :: GingerSemEffects r => TG.Function (RunSem r)
+tagUrlFor args =
+    case tryExtractStringArg args of
+        Nothing -> do
+            TG.liftRun $ EL.logError "No text arg supplied to tagUrlFor!"
+            pure def
+        Just s -> pure $ TG.toGVal (tagsRoutePrefix ++ unpack s)

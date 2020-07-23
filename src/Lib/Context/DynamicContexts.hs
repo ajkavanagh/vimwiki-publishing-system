@@ -91,10 +91,10 @@ contentDynamic
 contentDynamic sm _ = do           -- content ignores the args
     --TG.liftRun $ EL.logDebug "Dynamic content was asked for"
     txt <- TG.liftRun $ smContentM sm
-    pure $ TG.toGVal $TGH.unsafeRawHtml txt
+    pure $ TG.toGVal $ TGH.unsafeRawHtml txt
 
 
--- | fetch the summary of the page, as raw html
+-- | fetch the summary of the page, as raw html, and whether it was truncated
 -- TODO: match the args for plain=True to select for plain summary rather than
 --       rich summary
 summaryDynamic
@@ -102,8 +102,10 @@ summaryDynamic
     => SourceMetadata
     -> TG.Function (RunSem r)
 summaryDynamic sm _ = do   -- summary ignores the args, and selects for Rich only
-    txt <- TG.liftRun $ smSummaryM sm True
-    pure $ TG.toGVal $ TGH.unsafeRawHtml txt
+    (txt, truncated) <- TG.liftRun $ smSummaryM sm True
+    pure $ TG.dict ["Html"      ~> TGH.unsafeRawHtml txt
+                   ,"Truncated" ~> truncated
+                   ]
 
 
 -- | fetch the table of contents for the page.

@@ -172,7 +172,7 @@ runSiteGen args = do
         & mapError @LocaleException mapSiteGenError
         & printToIO @IO
         & errorToIOFinal @SiteGenError
-        & runLogAction @IO (logActionLevel I)
+        & runLogAction @IO (logActionLevel D)
         & runLogAction @IO logStringStderr
         & embedToFinal @IO
         & runFinal @IO

@@ -2,8 +2,8 @@
 
 ## Still to be done
 
-[x] enable cleaning of output directories based on what is written and
-    copied.
+[ ] Add reading time to the app; work on 270 words per minute and could the
+    words (Str items) in a document.
 [ ] Document how to make it all work.
 [ ] Expand out the example site so that it serves as an example.
 [ ] Doing less work:
@@ -39,6 +39,14 @@
     the URLs so that they can be explored using the file brower.  At present
     they stick to the /.  Perhaps something to do with the absURL function and
     removing the abs bit if a flag is set and just doing everything relatively?
+[ ] Need a hugo directory replication mode for routes.  Essentially, it appears
+    to take the directory name and strip off a date part and construct the
+    link for the page from that + the slug (which we get from the route).  This
+    is different to the organisation scheme that.  The problem is that the route
+    and the location are different things in hugo, but are represented as the
+    same in VPS.  Thus we need a hack to ensure that the route allows us to find
+    the templates, etc, but the final file that is written goes to the correct
+    place AND when links are processed, they end up pointing to the right thing.
 
 ## Done
 
@@ -108,6 +116,8 @@
     pointless having both.  Turn them both into the `SourceMetadata` as that's
     a better description and stops them being confused with Context which is
     a Ginger variable thing.
+[x] enable cleaning of output directories based on what is written and
+    copied.
 
 I really like the idea of using the top level values as Initial caps, and
 functions as lowercased.

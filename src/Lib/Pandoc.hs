@@ -62,7 +62,7 @@ import qualified Lib.SiteGenConfig      as SGC
 import           Lib.PandocUtils        (extractToc, pandocToContentTextEither,
                                          pandocToSummaryTextEither,
                                          parseMarkdown, processPandocAST,
-                                         renderTocItemsToHtml)
+                                         renderTocItemsToHtml, stripMoreIndicator)
 
 
 type PandocSemEffects r
@@ -102,14 +102,14 @@ cachedProcessSMToPandocAST sm = do
 
 smContentM :: PandocSemEffects r => H.SourceMetadata -> Sem r Text
 smContentM sm =
-    PE.fromEither =<< pandocToContentTextEither <$> cachedProcessSMToPandocAST sm
+    PE.fromEither =<< pandocToContentTextEither . stripMoreIndicator <$> cachedProcessSMToPandocAST sm
 
 
 smSummaryM
     :: PandocSemEffects r
     => H.SourceMetadata
     -> Bool
-    -> Sem r Text
+    -> Sem r (Text, Bool)
 smSummaryM sm isRich = do
     maxSummaryWords <- PR.asks @SiteGenConfig SGC.sgcMaxSummaryWords
     -- get Either err (plain, rick) as a Summary

@@ -207,9 +207,9 @@ copyAndMemoFile
 copyAndMemoFile sourceDir targetDir path = do
     let srcFile = normalise (sourceDir </> path)
         toFile  = normalise (targetDir </> path)
-    EL.logDebug $ T.pack $ "path is: " <> path
+    {-EL.logDebug $ T.pack $ "path is: " <> path-}
     ensureDirectoriesExistFor targetDir path
-    EL.logInfo $ T.pack $ "    - " <> makeRelative sourceDir srcFile
+    EL.logDebug $ T.pack $ "    - " <> makeRelative sourceDir srcFile
     EF.copyFile srcFile toFile
     recordMemo $ FileMemo toFile
 
