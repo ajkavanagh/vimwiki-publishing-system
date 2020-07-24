@@ -15,6 +15,7 @@
 module Lib.Header
     ( HeaderContext(..)
     , SourceMetadata(..)
+    , resolveLinkFor
     , dropWithNewLine
     , emptySourceMetadata
     , findEndSiteGenHeader
@@ -100,6 +101,7 @@ import           Lib.Utils             (fixRoute, strToLower)
 
 data RawPageHeader = RawPageHeader
     { _route     :: !(Maybe String)
+    , _permalink :: !(Maybe String)
     , _title     :: !(Maybe String)
     , _template  :: !(Maybe String)
     , _tags      :: ![String]
@@ -117,6 +119,7 @@ data RawPageHeader = RawPageHeader
 instance Y.FromJSON RawPageHeader where
     parseJSON (Y.Object v) = RawPageHeader
         <$> v .:? "route"
+        <*> v .:? "permalink"
         <*> v .:? "title"
         <*> v .:? "template"
         <*> v .:? "tags"     .!= []
@@ -209,6 +212,7 @@ makeSourceMetadataFromRawPageHeader rph len = do
     let defTemplate = if _indexPage rph then "index" else "default"
     pure SourceMetadata
         { smRoute           = fixRoute $ pick (assembleRoute rc <$> _route rph) (hcAutoSlug rc)
+        , smPermalink       = _permalink rph
         , smAbsFilePath     = Just $ hcAbsFilePath rc
         , smRelFilePath     = Just $ hcRelFilePath rc
         , smVimWikiLinkPath = hcVimWikiLinkPath rc
@@ -238,6 +242,17 @@ assembleRoute hc route@(c:_)
        in if '/' `elem` route
             then route
             else dir' </> route
+
+
+-- | For the page, resolve what the actual link will be
+-- If there is a permalink set, then that overrides the route.  Permalinks are
+-- used to place pages in specific locations that are not relative to the route
+-- that they are in.  Note that routes determine sibling pages, and what
+-- template is used; the permalinks then determines (if used) where the page
+-- actually goes.
+resolveLinkFor :: SourceMetadata -> String
+resolveLinkFor sm = fromMaybe (smRoute sm) (smPermalink sm)
+
 
 makeHeaderContextFromFileName
     :: Members '[ File

@@ -268,10 +268,11 @@ maybeRewriteLink hmap link@(TPD.Link attr desc (url, title)) =
                 Nothing -> if null desc
                             then B.toList $ B.text title
                             else desc
-                -- otherwise re-write it to the route; note we need to add back in
-                -- any of the other bits of the url (query and fragment)
+                -- otherwise re-write it to the route (or permalink override);
+                -- note we need to add back in any of the other bits of the url
+                -- (query and fragment)
                 Just sm ->
-                    let newUri = show (uri {NU.uriPath=H.smRoute sm})
+                    let newUri = show (uri {NU.uriPath=H.resolveLinkFor sm})
                     in [TPD.Link attr desc (T.pack newUri, title)]
           -- it was absolute or something else; thus we just ignore the link
           else [link]

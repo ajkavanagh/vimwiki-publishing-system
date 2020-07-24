@@ -8,6 +8,7 @@ import qualified Data.Yaml          as Y
 
 data SourceMetadata = SourceMetadata
     { smRoute           :: !String
+    , smPermalink       :: !(Maybe String)
     , smAbsFilePath     :: !(Maybe FilePath)
     , smRelFilePath     :: !(Maybe FilePath)
     , smVimWikiLinkPath :: !String
@@ -30,6 +31,7 @@ data SourceMetadata = SourceMetadata
 instance Default SourceMetadata where
     def = SourceMetadata
         { smRoute=def
+        , smPermalink=def
         , smAbsFilePath=def
         , smRelFilePath=def
         , smVimWikiLinkPath=def

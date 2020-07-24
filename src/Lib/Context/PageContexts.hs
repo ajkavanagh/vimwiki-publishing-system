@@ -67,6 +67,7 @@ import           Lib.Context.Core            (contextFromList, tryExtractIntArg,
                                               tryExtractStringArg)
 import           Lib.Context.DynamicContexts (contentDynamic, summaryDynamic,
                                               tocDynamic)
+import           Lib.Header                  (resolveLinkFor)
 import           Lib.RouteUtils              (sameLevelRoutesAs)
 import           Lib.SiteGenConfig           (SiteGenConfig)
 import           Lib.SiteGenState            (SiteGenReader (..),
@@ -101,7 +102,7 @@ instance GingerSemEffects r => TG.ToGVal (RunSem r) SourceMetadata where
     toGVal sm =
         TG.dict
             [ gValContextObjectTypeDictItemFor SMObjectType
-            , "Permalink"       ~> smRoute sm  -- the permalink is currently just the route
+            , "Permalink"       ~> resolveLinkFor sm  -- the permalink is an override over the route
             , "Route"           ~> smRoute sm
             , "AbsFilePath"     ~> smAbsFilePath sm
             , "RelFilePath"     ~> smRelFilePath sm

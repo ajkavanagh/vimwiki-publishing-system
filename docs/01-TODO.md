@@ -39,7 +39,7 @@
     the URLs so that they can be explored using the file brower.  At present
     they stick to the /.  Perhaps something to do with the absURL function and
     removing the abs bit if a flag is set and just doing everything relatively?
-[ ] Need a hugo directory replication mode for routes.  Essentially, it appears
+[x] Need a hugo directory replication mode for routes.  Essentially, it appears
     to take the directory name and strip off a date part and construct the
     link for the page from that + the slug (which we get from the route).  This
     is different to the organisation scheme that.  The problem is that the route

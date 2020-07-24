@@ -55,6 +55,8 @@ import           Types.Errors        (SiteGenError (..))
 import           Types.Header        (SourceMetadata (..))
 import           Types.RouteUtils
 
+import           Lib.Header          (resolveLinkFor)
+
 
 -- see if a route exists in the list of pages to render, or the pages that have
 -- been rendered.  This is so that functions can avoid dynamically generating
@@ -116,7 +118,7 @@ validateRoutesInSMs doIndexFileNames ext sms =
 
 -- | check for duplicate routes in [SourceMetadata]
 checkDuplicateRoutes :: [SourceMetadata] -> [RouteError]
-checkDuplicateRoutes = checkDuplicateUsing smRoute
+checkDuplicateRoutes = checkDuplicateUsing resolveLinkFor
 
 
 -- | check for duplicate files in [SourceMetadata]
@@ -240,9 +242,11 @@ makeVSMForIndex route = def { smRoute = route
 -}
 
 -- | make an filename from the source page SourceMetadata.
+-- If the permalink is defined, then that is used, otherwise it is derived from
+-- the route.
 makeFileNoExtNameFrom :: Bool -> SourceMetadata -> FilePath
 makeFileNoExtNameFrom doIndexPage sm =
-    let route = "." <> routeToFileName (smRoute sm)
+    let route = "." <> routeToFileName (resolveLinkFor sm)
         isIndex = smIndexPage sm
      in case (isIndex, doIndexPage) of
          (False, False) -> route

@@ -38,3 +38,19 @@ The same goes for categories and tags.  If not real page grabs the route for
 a category (e.g. category/papers) which also needs to be an index page, then
 a virtual context will be created for it.  This means that a web author *can*
 add content to a category index page.  The same goes for tags.
+
+## Permalinks
+
+Hugo, that other program, appears to generate pages according to the date.  In
+order that we can 'fix' pages; we'll add a `permalink` to the head which allows
+the `route` to select the template / section that the page goes in, but the
+`permalink` (if present) forces where the page sits.  We'll have to check that
+permalinks don't clash with routes (which also generate links), etc.
+
+This is simply that if we move a page physically, but we've already published
+it, then we can leave it where it was as a link.
+
+This is now implemented.  If a page has a `permalink: <some link>` in the
+header then that will be used as the link, overriding anything to do with the
+route.  It's fully under the control of the user where to put the page and
+links to that page will be faithful to that location.

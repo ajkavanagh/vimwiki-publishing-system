@@ -176,6 +176,7 @@ defaultSCG = SiteGenConfig
     { sgcSiteYaml="a/file/path"
     , sgcSiteUrl=Nothing
     , sgcSiteId="site1"
+    , sgcRoot="a/file"
     , sgcSource="src/"
     , sgcOutputDir="html/"
     , sgcExtension=".md"
@@ -197,7 +198,7 @@ defaultSCG = SiteGenConfig
 defaultHC :: HeaderContext
 defaultHC = HeaderContext
     { hcAutoSlug="auto/slug"
-    , hcFileTime=fromMaybe undefined (parseDate "2020-03-28T09:00")
+    , hcFileTime=fromMaybe undefined (parseDate "2020-03-28T09:00:00")
     , hcRelFilePath="some-name.md"
     , hcAbsFilePath="/some-name.md"
     , hcVimWikiLinkPath="some-name"
@@ -239,7 +240,7 @@ tags:
   - tag2
 category: category1
 date: 23-02-2010
-updated: 30-04-2020 09:10
+updated: 30-04-2020 09:10:00
 index-page: true
 authors:
   - Alex Kavanagh
@@ -260,7 +261,7 @@ fullHeaderSM = def { smRoute="/the/route"
                    , smTags=["tag1", "tag2"]
                    , smCategory=Just "category1"
                    , smDate=parseDate "23-02-2010"
-                   , smUpdated=parseDate "30-04-2020 09:10"
+                   , smUpdated=parseDate "30-04-2020 09:10:00"
                    , smIndexPage=True
                    , smAuthors=["Alex Kavanagh"]
                    , smPublish=True
@@ -290,4 +291,4 @@ maybeDecodeHeaderSpecs = -- do
 
         it "Should return the full SourceMetadata from a full config" $
             runMaybeDecodeHeader defaultSCG defaultHC fullHeader
-                `shouldBe` ([], Just (fullHeaderSM {smHeaderLen=278}))
+                `shouldBe` ([], Just (fullHeaderSM {smHeaderLen=281}))
