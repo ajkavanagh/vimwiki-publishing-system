@@ -24,3 +24,7 @@ tagsRoutePrefix = tagsRoute <> "/"
 -- / allow up to 2000k for the header
 maxHeaderSize :: Int
 maxHeaderSize = 100 * 20
+
+
+wordsPerMinute :: Int
+wordsPerMinute = 270

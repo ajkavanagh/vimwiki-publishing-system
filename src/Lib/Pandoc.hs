@@ -59,10 +59,12 @@ import qualified Lib.Header             as H
 import           Lib.SiteGenConfig      (SiteGenConfig)
 import qualified Lib.SiteGenConfig      as SGC
 
-import           Lib.PandocUtils        (extractToc, pandocToContentTextEither,
+import           Lib.PandocUtils        (countWords, extractToc,
+                                         pandocToContentTextEither,
                                          pandocToSummaryTextEither,
                                          parseMarkdown, processPandocAST,
-                                         renderTocItemsToHtml, stripMoreIndicator)
+                                         renderTocItemsToHtml,
+                                         stripMoreIndicator)
 
 
 type PandocSemEffects r
@@ -134,3 +136,10 @@ markdownToHTML txt = do
     vws <- PR.asks @SiteGenReader siteVimWikiLinkMap
     let pd' = processPandocAST vws pd
     PE.fromEither $ pandocToContentTextEither pd'
+
+
+wordCountM
+    :: PandocSemEffects r
+    => H.SourceMetadata
+    -> Sem r Int
+wordCountM sm = countWords <$> cachedProcessSMToPandocAST sm

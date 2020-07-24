@@ -65,8 +65,10 @@ import           Types.Pager                 (Pager (..), makePagerList,
 
 import           Lib.Context.Core            (contextFromList, tryExtractIntArg,
                                               tryExtractStringArg)
-import           Lib.Context.DynamicContexts (contentDynamic, summaryDynamic,
-                                              tocDynamic)
+import           Lib.Context.DynamicContexts (contentDynamic,
+                                              readingTimeDynamic,
+                                              summaryDynamic, tocDynamic,
+                                              wordCountDynamic)
 import           Lib.Header                  (resolveLinkFor)
 import           Lib.RouteUtils              (sameLevelRoutesAs)
 import           Lib.SiteGenConfig           (SiteGenConfig)
@@ -123,6 +125,8 @@ instance GingerSemEffects r => TG.ToGVal (RunSem r) SourceMetadata where
             , ("content",          TG.fromFunction (contentDynamic sm))
             , ("summary",          TG.fromFunction (summaryDynamic sm))
             , ("toc",              TG.fromFunction (tocDynamic sm))
+            , ("readingTime",      TG.fromFunction (readingTimeDynamic sm))
+            , ("wordCount",        TG.fromFunction (wordCountDynamic sm))
             ]
 
 

@@ -20,7 +20,7 @@
 module Lib.Context.DynamicContexts where
 
 import           Data.Maybe        (isNothing)
-import           Data.Text         (Text)
+import           Data.Text         (Text, pack)
 
 import           Text.Ginger       ((~>))
 import qualified Text.Ginger       as TG
@@ -38,12 +38,13 @@ import           Effect.File       (File)
 import           Effect.Ginger     (GingerSemEffects)
 import qualified Effect.Logging    as EL
 
+import           Types.Constants   (wordsPerMinute)
 import           Types.Context     (Context, RunSem, RunSemGVal)
 import           Types.Errors      (SiteGenError)
 import           Types.Header      (SourceMetadata (..))
 
 import           Lib.Context.Core  (contextFromList, tryExtractIntArg)
-import           Lib.Pandoc        (smContentM, smSummaryM, smTocM)
+import           Lib.Pandoc        (smContentM, smSummaryM, smTocM, wordCountM)
 import           Lib.SiteGenConfig (SiteGenConfig)
 import           Lib.SiteGenState  (SiteGenReader, SiteGenState)
 
@@ -59,7 +60,9 @@ pageFunctionsContext
 pageFunctionsContext sm = contextFromList
     [ ("content",  funcDynamicMGValM contentDynamic sm)
     , ("summary", funcDynamicMGValM summaryDynamic sm)
-    , ("toc", funcDynamicMGValM tocDynamic sm)]
+    , ("toc", funcDynamicMGValM tocDynamic sm)
+    , ("readingTime", funcDynamicMGValM readingTimeDynamic sm)
+    , ("wordCount", funcDynamicMGValM wordCountDynamic sm)]
 
 
 pageFunctionsAsGValDict
@@ -119,3 +122,25 @@ tocDynamic sm args = do
     let mLevels = tryExtractIntArg args
     txt <- TG.liftRun $ smTocM sm mLevels
     pure $ TG.toGVal $ TGH.unsafeRawHtml txt
+
+
+-- | calcuate the reading time of a page based on wordsPerMinute in
+-- Types.Constants.
+readingTimeDynamic
+    :: GingerSemEffects r
+    => SourceMetadata
+    -> TG.Function (RunSem r)
+readingTimeDynamic sm _ = do
+    words <- TG.liftRun $ wordCountM sm
+    pure $ TG.toGVal ((words `quot` wordsPerMinute) +1)
+
+
+-- | Return the word count for the page.
+wordCountDynamic
+    :: GingerSemEffects r
+    => SourceMetadata
+    -> TG.Function (RunSem r)
+wordCountDynamic sm _ = do
+    words <- TG.liftRun $ wordCountM sm
+    TG.liftRun $ EL.logDebug $ pack $ "------- word count: " ++ show words
+    pure $ TG.toGVal words

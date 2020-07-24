@@ -6,6 +6,7 @@
 module Lib.PandocUtils
     ( processPandocLinks
     , convertVimWikiLinks
+    , countWords
     , findSummary
     , takeNWords
     , flattenPandoc
@@ -42,9 +43,10 @@ import qualified Data.ByteString        as BS
 import           Data.HashMap.Strict    (HashMap)
 import qualified Data.HashMap.Strict    as HashMap
 import qualified Data.List              as L
+import           Data.Maybe             (isJust)
+import           Data.Monoid            (Sum (..), getSum)
 import qualified Data.Text              as T
 import           Data.Text.Encoding     (decodeUtf8')
-import           Data.Maybe             (isJust)
 
 import           Data.DList             (DList)
 import qualified Data.DList             as DList
@@ -560,7 +562,68 @@ stripMoreIndicator = TPW.walk stripMoreIndicator'
 
 stripMoreIndicator' :: TP.Inline -> TP.Inline
 stripMoreIndicator' i@(TP.Str s) = if s == "<!--more-->" then TP.Str "" else i
-stripMoreIndicator' x = x
+stripMoreIndicator' x            = x
+
+---
+
+-- Count the words in a Pandoc document; used to calculate reading time for a
+-- document.
+countWords :: TP.Pandoc -> Int
+countWords = getSum . TPW.query countWordsInBlock . stripMoreIndicator
+
+countWordsInBlock :: TP.Block -> Sum Int
+countWordsInBlock (TP.Plain xs)          = countWordsInInlines xs
+countWordsInBlock (TP.Para xs)           = countWordsInInlines xs
+countWordsInBlock (TP.LineBlock xxs)     = mconcat $ map countWordsInInlines xxs
+countWordsInBlock (TP.CodeBlock _ txt)   = countWordsInText txt
+countWordsInBlock (TP.RawBlock _ txt)    = countWordsInText txt
+countWordsInBlock (TP.BlockQuote bs)     = countWordsInBlocks bs
+countWordsInBlock (TP.OrderedList _ bbs) = mconcat $ map countWordsInBlocks bbs
+countWordsInBlock (TP.BulletList bbs)    = mconcat $ map countWordsInBlocks bbs
+countWordsInBlock (TP.DefinitionList ds) = mconcat $ map processDL ds
+  where
+      processDL :: ([TP.Inline], [[TP.Block]]) -> Sum Int
+      processDL (xs, bbs) = countWordsInInlines xs <> mconcat (map countWordsInBlocks bbs)
+countWordsInBlock (TP.Header _ _ xs)     = countWordsInInlines xs
+countWordsInBlock (TP.Table xs _ _ bbs bbbs)
+  =  countWordsInInlines xs
+  <> mconcat (map countWordsInBlocks bbs)
+  <> mconcat (map (mconcat . map countWordsInBlocks) bbbs)
+countWordsInBlock (TP.Div _ bs)          = countWordsInBlocks bs
+countWordsInBlock _                      = Sum 0
+
+
+countWordsInBlocks :: [TP.Block] -> Sum Int
+countWordsInBlocks = mconcat . map countWordsInBlock
+
+
+countWordsInInlines :: [TP.Inline] -> Sum Int
+countWordsInInlines = mconcat . map countWordsInInline
+
+
+countWordsInInline :: TP.Inline -> Sum Int
+countWordsInInline (TP.Str txt)            = countWordsInText txt
+countWordsInInline (TP.Emph xs)            = countWordsInInlines xs
+countWordsInInline (TP.Strong xs)          = countWordsInInlines xs
+countWordsInInline (TP.Strikeout xs)       = countWordsInInlines xs
+countWordsInInline (TP.Superscript xs)     = countWordsInInlines xs
+countWordsInInline (TP.Subscript xs)       = countWordsInInlines xs
+countWordsInInline (TP.SmallCaps xs)       = countWordsInInlines xs
+countWordsInInline (TP.Quoted _ xs)        = countWordsInInlines xs
+countWordsInInline (TP.Cite _ xs)          = countWordsInInlines xs
+countWordsInInline (TP.Code _ txt)         = countWordsInText txt
+countWordsInInline (TP.RawInline _ txt)    = countWordsInText txt
+countWordsInInline (TP.Link _ _ (_, txt))  = countWordsInText txt
+countWordsInInline (TP.Image _ _ (_, txt)) = countWordsInText txt
+countWordsInInline (TP.Note bs)            = mconcat $ map countWordsInBlock bs
+countWordsInInline (TP.Span _ xs)          = countWordsInInlines xs
+countWordsInInline _                       = Sum 0
+
+
+countWordsInText :: T.Text -> Sum Int
+countWordsInText txt = Sum $ length $ T.words txt
+
+
 ---
 
 -- take the first 'n' words from a document for the summary
