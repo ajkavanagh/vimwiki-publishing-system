@@ -2,6 +2,9 @@
 
 ## Still to be done
 
+[x] Re-do the static dir options so that we can have multiple ones; separate
+    out the theme's static dir into a `theme-dir` option that will replace the
+    `templates-dir` option.
 [ ] Find some way to cache the word count of a document so that it doesn't get
     recalculated all the time (performance)
 [ ] Document how to make it all work.
@@ -23,8 +26,8 @@
     - [o] absURL  -- currently disabled, as not sure what to do with it.
     - [ ] urlize (which might be the same as urlencode)
     - [x] enumerate(list) to provide [{item=n, item=item}]  -- we can't produce
-	  pairs, so we'll produce a list of dictionaries that have the index
-	  and them item in them.
+          pairs, so we'll produce a list of dictionaries that have the index
+          and them item in them.
     - [x] markdownify -- convert a Markdown string into html for inclusion
 [ ] - Re-do logging and printing functions so that we can control the output
       nicely.

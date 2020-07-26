@@ -57,7 +57,7 @@ siteGenMGValM = do
         , "indexPageName"      ~> S.sgcIndexPageName sgc
         , "templatesDir"       ~> S.sgcTemplatesDir sgc
         , "templateExt"        ~> S.sgcTemplateExt sgc
-        , "staticDir"          ~> S.sgcStaticDir sgc
+        , "staticDirs"         ~> S.sgcStaticDirs sgc
         , "generateTags"       ~> S.sgcGenerateTags sgc
         , "generateCategories" ~> S.sgcGenerateCategories sgc
         , "publishDrafts"      ~> S.sgcPublishDrafts sgc

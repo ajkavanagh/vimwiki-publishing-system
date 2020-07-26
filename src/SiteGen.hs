@@ -202,11 +202,13 @@ printInfoHeader sgc = do
     let root = sgcRoot sgc
         root' = makeRelative pwd root
         pRoot = if length root' < length root then "./" <> root' else root
-    P.putText $ "Root directory is   : " <> T.pack pRoot
-    P.putText $ "Source Directory is : " <> T.pack (SGC.dirForPrint sgcSource sgc)
-    P.putText $ "Output Directory is : " <> T.pack (SGC.dirForPrint sgcOutputDir sgc)
-    P.putText $ "Statics Directory is: " <> T.pack (SGC.dirForPrint sgcStaticDir sgc)
-    P.putText $ "Extension is        : " <> T.pack (sgcExtension sgc)
+    P.putText $ "Root directory is      : " <> T.pack pRoot
+    P.putText $ "Source Directory is    : " <> T.pack (SGC.dirForPrint sgcSource sgc)
+    P.putText $ "Output Directory is    : " <> T.pack (SGC.dirForPrint sgcOutputDir sgc)
+    P.putText "Statics Directories are: "
+    forM_ (sgcStaticDirs sgc) $ \dir_ ->
+        P.putText $ "  - " <> T.pack (SGC.dirForPrint' dir_ sgc)
+    P.putText $ "Extension is           : " <> T.pack (sgcExtension sgc)
     P.putText ""
 
 

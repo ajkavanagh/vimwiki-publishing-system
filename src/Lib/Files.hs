@@ -187,15 +187,17 @@ copyStaticFiles
     => Sem r ()
 copyStaticFiles = do
     sgc <- PR.ask @SiteGenConfig
-    let sourceDir = sgcStaticDir sgc
-        targetDir = sgcOutputDir sgc
-    -- get all the directories in the statics directory, but don't follow
-    -- any symlinks
-    paths <-  EF.sourceDirectoryDeep False sourceDir
-    let paths' = makeRelative sourceDir <$> paths
-    EL.logInfo $ T.pack $ "Copying static files from '" <> sourceDir <> "' to '" <> targetDir <> "':"
-    forM_ paths' (copyAndMemoFile sourceDir targetDir)
-    EL.logInfo "...done copying."
+    let sourceDirs = sgcStaticDirs sgc
+        targetDir  = sgcOutputDir sgc
+    -- for each sourceDir:
+    forM_ sourceDirs $ \sourceDir -> do
+        -- get all the directories in the statics directory, but don't follow
+        -- any symlinks
+        paths <-  EF.sourceDirectoryDeep False sourceDir
+        let paths' = makeRelative sourceDir <$> paths
+        EL.logInfo $ T.pack $ "Copying static files from '" <> sourceDir <> "' to '" <> targetDir <> "':"
+        forM_ paths' (copyAndMemoFile sourceDir targetDir)
+        EL.logInfo "...done copying."
 
 
 copyAndMemoFile

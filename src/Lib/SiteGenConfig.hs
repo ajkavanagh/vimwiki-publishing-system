@@ -5,7 +5,7 @@
 {-# LANGUAGE PolyKinds           #-}
 {-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications    #-}
+--{-# LANGUAGE TypeApplications    #-}
 {-# LANGUAGE TypeFamilies        #-}
 {-# LANGUAGE TypeOperators       #-}
 
@@ -16,8 +16,10 @@ import           TextShow
 import           System.FilePath (FilePath, makeRelative, pathSeparator,
                                   takeDirectory, (</>))
 
+import           Control.Monad   (forM)
+
 import           Data.List       (intercalate)
-import           Data.Maybe      (fromJust, isNothing)
+import           Data.Maybe      (fromJust, isNothing, catMaybes)
 import           Data.Text       (Text)
 import qualified Data.Text       as T
 import           Data.Yaml       ((.!=), (.:), (.:?))
@@ -74,10 +76,10 @@ data RawSiteGenConfig = RawSiteGenConfig
     , _outputDir          :: !FilePath
     , _extension          :: !String
     , _indexPageName      :: !String
-    , _templatesDir       :: !FilePath
+    , _themeDir           :: !FilePath
     , _templateExt        :: !String
     , _outputFileExt      :: !String
-    , _staticDir          :: !FilePath
+    , _staticDirs         :: ![FilePath]
     , _copyStaticFiles    :: !Bool
     , _generateTags       :: !Bool
     , _generateCategories :: !Bool
@@ -96,10 +98,10 @@ instance Y.FromJSON RawSiteGenConfig where
         <*> v .:? "output-dir"          .!= "./html"           -- where to place output files
         <*> v .:? "extension"           .!= ".md"              -- the extension for source files
         <*> v .:? "index-page-name"     .!= "index"            -- The 'start' page for the site.
-        <*> v .:? "templates-dir"       .!= "./templates"      -- directory to find templates
+        <*> v .:? "theme-dir"           .!= "./theme"          -- directory to find the theme
         <*> v .:? "template-ext"        .!= ".html.j2"         -- the extension used for templates
         <*> v .:? "output-file-ext"     .!= ".html"            -- the extension used for the output files
-        <*> v .:? "static-dir"          .!= "./static"         -- where the static files currently live
+        <*> v .:? "statics-dirs"        .!= []                 -- where the static files currently live
         <*> v .:? "copy-static-files"   .!= True               -- By default we do copy static files as that should be normal
         <*> v .:? "generate-tags"       .!= False              -- should sitegen generate a tags page
         <*> v .:? "generate-categories" .!= False              -- should sitegen generate categories
@@ -133,10 +135,11 @@ data SiteGenConfig = SiteGenConfig
     , sgcOutputDir          :: !FilePath
     , sgcExtension          :: !String
     , sgcIndexPageName      :: !String
+    , sgcThemeDir           :: !FilePath
     , sgcTemplatesDir       :: !FilePath
     , sgcTemplateExt        :: !String
     , sgcOutputFileExt      :: !String
-    , sgcStaticDir          :: !FilePath
+    , sgcStaticDirs         :: ![FilePath]
     , sgcCopyStaticFiles    :: !Bool
     , sgcGenerateTags       :: !Bool
     , sgcGenerateCategories :: !Bool
@@ -176,9 +179,14 @@ makeSiteGenConfigFromRaw configPath rawConfig forceDrafts = do
     let root = takeDirectory configPath
     source_ <- resolvePath (_source rawConfig) root "source dir"
     outputDir_ <- resolvePath (_outputDir rawConfig) root "output dir"
-    templatesDir_ <- resolvePath (_templatesDir rawConfig) root "templates dir"
-    staticDir_ <- resolvePath (_staticDir rawConfig) root "statics dir"
-    if any isNothing [source_, outputDir_, templatesDir_, staticDir_]
+    themeDir_ <- resolvePath (_themeDir rawConfig) root "theme dir"
+    templatesDir_ <- resolvePath (_themeDir rawConfig </> "templates") root "theme templates dir"
+    -- note this one is optional, although it produces an logError if it doesn't
+    -- exist
+    templatesStaticDir_ <- resolvePath (_themeDir rawConfig </> "static") root "theme static dir"
+    staticDirs_ <- forM (_staticDirs rawConfig) $ \_dir ->
+        resolvePath _dir root ("statics dir: " ++ _dir)
+    if any isNothing ([source_, outputDir_, themeDir_, templatesDir_] ++ staticDirs_)
       then throw $ ConfigException "One or more directories didn't exist"
       else pure SiteGenConfig
           { sgcSiteYaml=configPath
@@ -189,10 +197,11 @@ makeSiteGenConfigFromRaw configPath rawConfig forceDrafts = do
           , sgcOutputDir=fromJust outputDir_
           , sgcExtension=_extension rawConfig
           , sgcIndexPageName=_indexPageName rawConfig
+          , sgcThemeDir=fromJust themeDir_
           , sgcTemplatesDir=fromJust templatesDir_
           , sgcTemplateExt=_templateExt rawConfig
           , sgcOutputFileExt=_outputFileExt rawConfig
-          , sgcStaticDir=fromJust staticDir_
+          , sgcStaticDirs=catMaybes (templatesStaticDir_ : staticDirs_)
           , sgcCopyStaticFiles=_copyStaticFiles rawConfig
           , sgcGenerateTags=_generateTags rawConfig
           , sgcGenerateCategories=_generateCategories rawConfig
@@ -234,3 +243,10 @@ dirForPrint f sgc =
         path = f sgc
         p1 = makeRelative root path
      in if length p1 < length path then "<root>/" <> p1 else path
+
+
+dirForPrint' :: FilePath -> SiteGenConfig -> String
+dirForPrint' fp sgc =
+    let root = sgcRoot sgc
+        p1 = makeRelative root fp
+     in if length p1 < length fp then "<root>/" <> p1 else fp
