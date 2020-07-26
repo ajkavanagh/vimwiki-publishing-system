@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 13e97fff9028f709d37c10d888db425e56b8e9b9b49c493105008d049ea4388a
+-- hash: 07af2026d79ea16d7ed447be7f9ef3356a902661ee6b57450e1d18bf706779aa
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -99,6 +99,7 @@ library
     , parser-combinators
     , polysemy
     , polysemy-plugin
+    , safe
     , scientific
     , split
     , system-locale

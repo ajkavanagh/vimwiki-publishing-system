@@ -153,6 +153,7 @@ filePathToMaybeSourceMetadata fp = do
     sfp <- PR.asks @SiteGenConfig sgcSource
     hc <- makeHeaderContextFromFileName sfp fp
     bs <- EF.readFile fp Nothing (Just maxHeaderSize)  -- read up to maxHeaderSize bytes
+    EL.logDebug $ T.pack $ "Processing: " ++ fp
     PR.runReader hc $ maybeDecodeHeader bs   -- add in The Reader HeaderContext to the Sem monad
 
 

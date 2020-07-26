@@ -87,13 +87,13 @@ getAllCategories
     => Sem r [String]
 getAllCategories = do
     sms <- PR.asks @SiteGenReader siteSourceMetadataItems
-    pure $ nub $ sort $ mapMaybe smCategory sms
+    pure $ nub $ sort $ concatMap smCategories sms
 
 
 pagesForCategory :: String -> [SourceMetadata] -> [SourceMetadata]
 pagesForCategory category = filter hasCategory
   where
-      hasCategory s = smCategory s == Just category
+      hasCategory s = category `elem` smCategories s
 
 
 ensureCategoryPageFor

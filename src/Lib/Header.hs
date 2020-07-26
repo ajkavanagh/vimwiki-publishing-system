@@ -100,19 +100,22 @@ import           Lib.Utils             (fixRoute, strToLower)
 
 
 data RawPageHeader = RawPageHeader
-    { _route     :: !(Maybe String)
-    , _permalink :: !(Maybe String)
-    , _title     :: !(Maybe String)
-    , _template  :: !(Maybe String)
-    , _tags      :: ![String]
-    , _category  :: !(Maybe String)
-    , _date      :: !(Maybe String)
-    , _updated   :: !(Maybe String)
-    , _indexPage :: !Bool
-    , _authors   :: ![String]
-    , _publish   :: !Bool
-    , _siteId    :: !(Maybe String)
-    , _params    :: !(Maybe Y.Object)
+    { _route      :: !(Maybe String)
+    , _permalink  :: !(Maybe String)
+    , _title      :: !(Maybe String)
+    , _template   :: !(Maybe String)
+    , _tag        :: !(Maybe String)
+    , _tags       :: ![String]
+    , _category   :: !(Maybe String)
+    , _categories :: ![String]
+    , _date       :: !(Maybe String)
+    , _updated    :: !(Maybe String)
+    , _indexPage  :: !Bool
+    , _author     :: !(Maybe String)
+    , _authors    :: ![String]
+    , _publish    :: !Bool
+    , _siteId     :: !(Maybe String)
+    , _params     :: !(Maybe Y.Object)
     } deriving (Show)
 
 
@@ -122,11 +125,14 @@ instance Y.FromJSON RawPageHeader where
         <*> v .:? "permalink"
         <*> v .:? "title"
         <*> v .:? "template"
+        <*> v .:? "tag"
         <*> v .:? "tags"     .!= []
         <*> v .:? "category"
+        <*> v .:? "categories" .!= []
         <*> v .:? "date"
         <*> v .:? "updated"
         <*> v .:? "index-page" .!= False
+        <*> v .:? "author"
         <*> v .:? "authors" .!= []
         <*> v .:? "publish" .!= False
         <*> v .:? "site"
@@ -218,17 +224,22 @@ makeSourceMetadataFromRawPageHeader rph len = do
         , smVimWikiLinkPath = hcVimWikiLinkPath rc
         , smTitle           = pick (_title rph) (hcAutoTitle rc)
         , smTemplate        = pick (_template rph) defTemplate
-        , smTags            = _tags rph
-        , smCategory        = _category rph
+        , smTags            = collateSingleAndMultiple (_tag rph) (_tags rph)
+        , smCategories      = collateSingleAndMultiple (_category rph) (_categories rph)
         , smDate            = pageDate
         , smUpdated         = updatedDate
         , smIndexPage       = _indexPage rph
-        , smAuthors         = _authors rph
+        , smAuthors         = collateSingleAndMultiple (_author rph) (_authors rph)
         , smPublish         = _publish rph
         , smSiteId          = pick (_siteId rph) (S.sgcSiteId sgc)
         , smHeaderLen       = len
         , smParams          = _params rph
         }
+
+
+collateSingleAndMultiple :: Maybe a -> [a] -> [a]
+collateSingleAndMultiple Nothing as = as
+collateSingleAndMultiple (Just a) as = a:as
 
 
 assembleRoute :: HeaderContext -> String -> String

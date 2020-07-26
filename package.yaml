@@ -48,6 +48,7 @@ library:
     - parser-combinators
     - polysemy
     - polysemy-plugin
+    - safe
     - scientific
     - split
     - system-locale

@@ -35,6 +35,9 @@ import qualified Data.Text                   as T
 import           Data.Time.Clock             (UTCTime)
 import           Data.Time.LocalTime         (LocalTime, utc, utcToLocalTime)
 
+
+import           Safe                        (headMay)
+
 import           Colog.Polysemy              (Log)
 import qualified Colog.Polysemy              as CP
 import           Polysemy                    (Member, Sem)
@@ -112,7 +115,8 @@ instance GingerSemEffects r => TG.ToGVal (RunSem r) SourceMetadata where
             , "Title"           ~> smTitle sm
             , "Template"        ~> smTemplate sm
             , "Tags"            ~> smTags sm
-            , "Category"        ~> smCategory sm
+            , "Category"        ~> headMay (smCategories sm)
+            , "Categories"      ~> smCategories sm
             , "Date"            ~> (tempToLocalTimeHelper <$> smDate sm)
             , "Updated"         ~> (tempToLocalTimeHelper <$> smUpdated sm)
             , "IndexPage"       ~> smIndexPage sm

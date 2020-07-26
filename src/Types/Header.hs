@@ -15,7 +15,7 @@ data SourceMetadata = SourceMetadata
     , smTitle           :: !String
     , smTemplate        :: !String
     , smTags            :: ![String]
-    , smCategory        :: !(Maybe String)
+    , smCategories      :: ![String]
     , smDate            :: !(Maybe UTCTime)
     , smUpdated         :: !(Maybe UTCTime)
     , smIndexPage       :: !Bool
@@ -38,7 +38,7 @@ instance Default SourceMetadata where
         , smTitle=def
         , smTemplate=def
         , smTags=def
-        , smCategory=def
+        , smCategories=def
         , smDate=def
         , smUpdated=def
         , smIndexPage=False
