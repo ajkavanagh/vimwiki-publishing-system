@@ -21,8 +21,10 @@ import           System.FilePath     (FilePath, isRelative, joinPath,
                                       splitPath, takeDirectory, takeFileName,
                                       (<.>), (</>))
 
-import           Control.Monad       (forM)
+import           Control.Monad       (forM, join)
+import           Safe                (headMay)
 
+import           Data.Maybe          (isNothing)
 import           Data.Text           (Text)
 import qualified Data.Text           as T
 
@@ -127,9 +129,9 @@ resolveTemplateNameForSM sm = do
 -- template so that it can then be re-found when it is included as part of
 -- Ginger.
 _dropLeadingSlash :: String -> String
-_dropLeadingSlash "" = ""
+_dropLeadingSlash ""      = ""
 _dropLeadingSlash ('/':s) = s
-_dropLeadingSlash s = s
+_dropLeadingSlash s       = s
 
 
 resolveTemplateName'
@@ -140,11 +142,14 @@ resolveTemplateName' tName = do
     --EL.logDebug $ T.pack $ "resolveTemplateName: trying to resolve :" <> show tName
     -- try using the filepath we were sent
     sgc <- PR.ask @SiteGenConfig
-    let tDir = sgcTemplatesDir sgc
+    let tDirs = sgcTemplatesDirs sgc
         tExt = sgcTemplateExt sgc
-    resolveTemplatePath tDir tName
-        -- if we got nothing back, try to resolve it with an extension added
-        >>= maybe (resolveTemplatePath tDir (tName <.> tExt)) (pure . Just)
+    -- try resolving with the extension added (i.e. assume that it doesn't have
+    -- it)
+    resolveTemplatePath tDirs (tName <.> tExt)
+        -- if we got nothing back, try to resolve it without the extension added
+        -- i.e. assume that it might already have it.
+        >>= maybe (resolveTemplatePath tDirs tName) (pure . Just)
 
 
 resolveTemplateName
@@ -156,24 +161,25 @@ resolveTemplateName tName =
         maybe (PE.throw $ EF.FileException tName "File Not found") pure
 
 
-resolveTemplateNameRelative
+resolveTemplatePath
     :: ResolvingTemplatesSemEffects r
-    => String
-    -> Sem r FilePath
-resolveTemplateNameRelative tName = do
-    tDir <- PR.asks @SiteGenConfig sgcTemplatesDir
-    makeRelative tDir <$> resolveTemplateName tName
+    => [FilePath]
+    -> FilePath
+    -> Sem r (Maybe FilePath)
+resolveTemplatePath tDirs tPath = do
+    mPossibles <- forM tDirs $ \tDir -> resolveTemplatePath' tDir tPath
+    pure $ join $ headMay $ dropWhile isNothing mPossibles
 
 
--- | resolve the actual path using the tPath and tDir.  If tDir is a
+-- | resolve the actual path using the tPath and single tDir.  If tDir is a
 -- subdirectory of tPAth, remove it, and then check it directly, and then with
 -- the _defaults in front of it. If we can't resolve it return Nothing
-resolveTemplatePath
+resolveTemplatePath'
     :: ResolvingTemplatesSemEffects r
     => FilePath
     -> FilePath
     -> Sem r (Maybe FilePath)
-resolveTemplatePath tDir tPath = do
+resolveTemplatePath' tDir tPath = do
     --EL.logDebug $ T.pack $ "resolveTemplatePath for: " <> tPath <> " at " <> tDir
     let relPath = if isRelative tPath then tPath else makeRelative tDir tPath
         fileName = takeFileName relPath

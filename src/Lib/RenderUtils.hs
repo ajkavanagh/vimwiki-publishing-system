@@ -72,8 +72,7 @@ import           Lib.Context            (makeContextFor)
 import           Lib.Files              (ensureDirectoriesExistFor,
                                          writeAndMemo)
 import           Lib.Ginger             (parseToTemplate, renderTemplate)
-import           Lib.ResolvingTemplates (resolveTemplateNameForSM,
-                                         resolveTemplateNameRelative)
+import           Lib.ResolvingTemplates (resolveTemplateNameForSM)
 import           Lib.RouteUtils         (makeFileNameFrom)
 import           Lib.SiteGenConfig      (ConfigException, SiteGenConfig (..))
 import           Lib.SiteGenState       (SiteGenReader (..), SiteGenState (..),

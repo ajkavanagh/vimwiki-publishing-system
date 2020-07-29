@@ -77,6 +77,7 @@ data RawSiteGenConfig = RawSiteGenConfig
     , _extension          :: !String
     , _indexPageName      :: !String
     , _themeDir           :: !FilePath
+    , _templateDirs       :: ![FilePath]
     , _templateExt        :: !String
     , _outputFileExt      :: !String
     , _staticDirs         :: ![FilePath]
@@ -86,6 +87,7 @@ data RawSiteGenConfig = RawSiteGenConfig
     , _publishDrafts      :: !Bool
     , _indexFiles         :: !Bool
     , _maxSummaryWords    :: !Int
+    , _skylightStyle      :: !(Maybe Text)
     , _params             :: !(Maybe Y.Object)
     } deriving (Show)
 
@@ -99,6 +101,7 @@ instance Y.FromJSON RawSiteGenConfig where
         <*> v .:? "extension"           .!= ".md"              -- the extension for source files
         <*> v .:? "index-page-name"     .!= "index"            -- The 'start' page for the site.
         <*> v .:? "theme-dir"           .!= "./theme"          -- directory to find the theme
+        <*> v .:? "template-dirs"       .!= []                 -- overrides for templates
         <*> v .:? "template-ext"        .!= ".html.j2"         -- the extension used for templates
         <*> v .:? "output-file-ext"     .!= ".html"            -- the extension used for the output files
         <*> v .:? "statics-dirs"        .!= []                 -- where the static files currently live
@@ -108,6 +111,7 @@ instance Y.FromJSON RawSiteGenConfig where
         <*> v .:? "publish-drafts"      .!= False              -- should we publish drafs?
         <*> v .:? "index-files"         .!= True               -- should index files be generated?
         <*> v .:? "max-summary-words"   .!= 70                 -- Number of words to grab for summary
+        <*> v .:? "skylight-style"                             -- the style to use for highlighting (or Not)
         <*> v .:? "params"                                     -- grab any defined parameters
     parseJSON _ = error "Can't parse SitegenConfig from YAML/JSON"
 
@@ -136,7 +140,7 @@ data SiteGenConfig = SiteGenConfig
     , sgcExtension          :: !String
     , sgcIndexPageName      :: !String
     , sgcThemeDir           :: !FilePath
-    , sgcTemplatesDir       :: !FilePath
+    , sgcTemplatesDirs      :: ![FilePath]
     , sgcTemplateExt        :: !String
     , sgcOutputFileExt      :: !String
     , sgcStaticDirs         :: ![FilePath]
@@ -146,6 +150,7 @@ data SiteGenConfig = SiteGenConfig
     , sgcPublishDrafts      :: !Bool
     , sgcIndexFiles         :: !Bool
     , sgcMaxSummaryWords    :: !Int
+    , sgcSkylightStyle      :: !(Maybe Text)
     , sgcParams             :: !(Maybe Y.Object)
     } deriving (Show)
 
@@ -180,13 +185,15 @@ makeSiteGenConfigFromRaw configPath rawConfig forceDrafts = do
     source_ <- resolvePath (_source rawConfig) root "source dir"
     outputDir_ <- resolvePath (_outputDir rawConfig) root "output dir"
     themeDir_ <- resolvePath (_themeDir rawConfig) root "theme dir"
-    templatesDir_ <- resolvePath (_themeDir rawConfig </> "templates") root "theme templates dir"
+    themeTemplatesDir_ <- resolvePath (_themeDir rawConfig </> "templates") root "theme templates dir"
     -- note this one is optional, although it produces an logError if it doesn't
     -- exist
     templatesStaticDir_ <- resolvePath (_themeDir rawConfig </> "static") root "theme static dir"
     staticDirs_ <- forM (_staticDirs rawConfig) $ \_dir ->
         resolvePath _dir root ("statics dir: " ++ _dir)
-    if any isNothing ([source_, outputDir_, themeDir_, templatesDir_] ++ staticDirs_)
+    templatesDirs_ <- forM (_templateDirs rawConfig) $ \_dir ->
+        resolvePath _dir root ("templates dir: " ++ _dir)
+    if any isNothing ([source_, outputDir_, themeDir_, themeTemplatesDir_] ++ staticDirs_ ++ templatesDirs_)
       then throw $ ConfigException "One or more directories didn't exist"
       else pure SiteGenConfig
           { sgcSiteYaml=configPath
@@ -198,7 +205,7 @@ makeSiteGenConfigFromRaw configPath rawConfig forceDrafts = do
           , sgcExtension=_extension rawConfig
           , sgcIndexPageName=_indexPageName rawConfig
           , sgcThemeDir=fromJust themeDir_
-          , sgcTemplatesDir=fromJust templatesDir_
+          , sgcTemplatesDirs=catMaybes (templatesDirs_ ++ [themeTemplatesDir_])
           , sgcTemplateExt=_templateExt rawConfig
           , sgcOutputFileExt=_outputFileExt rawConfig
           , sgcStaticDirs=catMaybes (templatesStaticDir_ : staticDirs_)
@@ -207,8 +214,9 @@ makeSiteGenConfigFromRaw configPath rawConfig forceDrafts = do
           , sgcGenerateCategories=_generateCategories rawConfig
           , sgcPublishDrafts=_publishDrafts rawConfig || forceDrafts
           , sgcIndexFiles=_indexFiles rawConfig
-          , sgcMaxSummaryWords = _maxSummaryWords rawConfig
-          , sgcParams = _params rawConfig
+          , sgcMaxSummaryWords=_maxSummaryWords rawConfig
+          , sgcSkylightStyle=_skylightStyle rawConfig
+          , sgcParams=_params rawConfig
           }
 
 

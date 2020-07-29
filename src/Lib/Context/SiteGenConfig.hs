@@ -55,7 +55,8 @@ siteGenMGValM = do
         , "outputDir"          ~> S.sgcOutputDir sgc
         , "extension"          ~> S.sgcExtension sgc
         , "indexPageName"      ~> S.sgcIndexPageName sgc
-        , "templatesDir"       ~> S.sgcTemplatesDir sgc
+        , "themeDir"           ~> S.sgcThemeDir sgc
+        , "templatesDirs"      ~> S.sgcTemplatesDirs sgc
         , "templateExt"        ~> S.sgcTemplateExt sgc
         , "staticDirs"         ~> S.sgcStaticDirs sgc
         , "generateTags"       ~> S.sgcGenerateTags sgc
@@ -63,5 +64,6 @@ siteGenMGValM = do
         , "publishDrafts"      ~> S.sgcPublishDrafts sgc
         , "indexFiles"         ~> S.sgcIndexFiles sgc
         , "maxSummaryWords"    ~> S.sgcMaxSummaryWords sgc
+        , "skylightStyle"      ~> S.sgcSkylightStyle sgc
         , "Params"             ~> S.sgcParams sgc
         ]

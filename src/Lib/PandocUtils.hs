@@ -36,50 +36,51 @@ module Lib.PandocUtils
 import           TextShow
 
 -- General
-import           Control.Monad          (liftM)
+import           Control.Monad            (liftM)
 
 -- for Pandoc processing
-import qualified Data.ByteString        as BS
-import           Data.HashMap.Strict    (HashMap)
-import qualified Data.HashMap.Strict    as HashMap
-import qualified Data.List              as L
-import           Data.Maybe             (isJust)
-import           Data.Monoid            (Sum (..), getSum)
-import qualified Data.Text              as T
-import           Data.Text.Encoding     (decodeUtf8')
+import qualified Data.ByteString          as BS
+import           Data.HashMap.Strict      (HashMap)
+import qualified Data.HashMap.Strict      as HashMap
+import qualified Data.List                as L
+import           Data.Maybe               (isJust)
+import           Data.Monoid              (Sum (..), getSum)
+import qualified Data.Text                as T
+import           Data.Text.Encoding       (decodeUtf8')
 
-import           Data.DList             (DList)
-import qualified Data.DList             as DList
+import           Data.DList               (DList)
+import qualified Data.DList               as DList
 
-import qualified Text.Pandoc            as TP
-import qualified Text.Pandoc.Builder    as B
-import qualified Text.Pandoc.Definition as TPD
-import qualified Text.Pandoc.Error      as TPE
-import qualified Text.Pandoc.Walk       as TPW
+import qualified Text.Pandoc              as TP
+import qualified Text.Pandoc.Builder      as B
+import qualified Text.Pandoc.Definition   as TPD
+import qualified Text.Pandoc.Error        as TPE
+import qualified Text.Pandoc.Highlighting as TPH
+import qualified Text.Pandoc.Walk         as TPW
 
-import qualified Network.URI            as NU
+import qualified Network.URI              as NU
 
 -- to handle parsing out vimwiki [[text|link]] style links into Links
-import           Text.Parsec            (parse, try)
-import           Text.Parsec.Char       (anyChar, char)
-import           Text.Parsec.Combinator (many1, manyTill, notFollowedBy)
-import           Text.Parsec.Text       (Parser)
+import           Text.Parsec              (parse, try)
+import           Text.Parsec.Char         (anyChar, char)
+import           Text.Parsec.Combinator   (many1, manyTill, notFollowedBy)
+import           Text.Parsec.Text         (Parser)
 
-import           Control.Applicative    ((<|>))
+import           Control.Applicative      ((<|>))
 
 -- for persisting the table of contents as a blob -- we need this for stashing
 -- it and grabbing it as needed
-import           Data.Yaml              ((.!=), (.:), (.:?), (.=))
-import qualified Data.Yaml              as Y
+import           Data.Yaml                ((.!=), (.:), (.:?), (.=))
+import qualified Data.Yaml                as Y
 
-import           Types.Errors           as TE
-import qualified Types.SiteGenState     as SGS
+import           Types.Errors             as TE
+import qualified Types.SiteGenState       as SGS
 
-import qualified Lib.Header             as H
-import           Lib.Utils              (strToLower)
+import qualified Lib.Header               as H
+import           Lib.Utils                (strToLower)
 
 -- testing - remove
-import           Data.Either            (fromRight)
+import           Data.Either              (fromRight)
 
 
 -- Provide the set of options to use with the reader; eventually we'll allow
@@ -139,13 +140,16 @@ pandocMarkdownArgs = TP.def { TP.readerExtensions =
 -- Provide the set of options to use with the writer to HTML.  This only needs
 -- to provide the fragment as we aren't doing complex templates of any kind.  We
 -- aren't even wrapping the content in a div; that'll go in the Ginger template.
-pandocHtmlArgs ::  TP.WriterOptions
-pandocHtmlArgs = TP.def { TP.writerTemplate = Nothing
-                        , TP.writerTableOfContents = False
+pandocHtmlArgs ::  Maybe T.Text -> TP.WriterOptions
+pandocHtmlArgs mStyle =
+    let sStyle = flip L.lookup TPH.highlightingStyles =<< mStyle
+     in TP.def { TP.writerTemplate = Nothing
+               , TP.writerTableOfContents = False
                         --, TP.writerHTMLMathMethod = TP.MathJax "some url"
-                        , TP.writerSectionDivs = True
-                        , TP.writerHtmlQTags = True
-                        }
+               , TP.writerSectionDivs = True
+               , TP.writerHighlightStyle = sStyle
+               , TP.writerHtmlQTags = True
+               }
 
 
 -- | parse a markdown document all the way to html.
@@ -176,9 +180,9 @@ processPandocAST hmap ast = processPandocLinks hmap $ convertVimWikiLinks ast
 
 -- take the Pandoc AST (that's probably been processed) and process it to HTML
 -- for content.  Then return this content.
-pandocToContentTextEither :: TP.Pandoc -> Either TE.SiteGenError T.Text
-pandocToContentTextEither ast =
-    let result = TP.runPure $ TP.writeHtml5String pandocHtmlArgs ast
+pandocToContentTextEither :: Maybe T.Text -> TP.Pandoc -> Either TE.SiteGenError T.Text
+pandocToContentTextEither mStyle ast =
+    let result = TP.runPure $ TP.writeHtml5String (pandocHtmlArgs mStyle) ast
      in case result of
         Left e    -> Left $ TE.PandocWriteError e
         Right txt -> Right txt
@@ -188,23 +192,25 @@ pandocToContentTextEither ast =
 -- Use the SiteGenConfig reader to extract the ProgramDefaults so that we can
 -- use the 'extract' N words as needed.
 pandocToSummaryTextEither
-    :: Int              -- the number of words to use
+    :: Maybe T.Text     -- The text style for skylighting to use
+    -> Int              -- the number of words to use
     -> TP.Pandoc        -- the Pandoc document to fetch the summary from
     -- Plain HTML and marked up HTML versions of the summary
     -> Either TE.SiteGenError ((T.Text, Bool), (T.Text, Bool))
-pandocToSummaryTextEither n ast = do
-    plain <- renderWithOneOfEither getSummaryPlain (getSummaryNPlain n) ast
-    rich <- renderWithOneOfEither getSummaryPandoc (getSummaryNPandoc n) ast
+pandocToSummaryTextEither mStyle n ast = do
+    plain <- renderWithOneOfEither mStyle getSummaryPlain (getSummaryNPlain n) ast
+    rich <- renderWithOneOfEither mStyle getSummaryPandoc (getSummaryNPandoc n) ast
     pure (plain, rich)
 
 
 -- | helper to choose one of the summary functions
 renderWithOneOfEither
-    :: (TP.Pandoc -> Maybe TP.Pandoc)
+    :: Maybe T.Text
+    -> (TP.Pandoc -> Maybe TP.Pandoc)
     -> (TP.Pandoc -> (TP.Pandoc, Bool))
     -> TP.Pandoc
     -> Either TE.SiteGenError (T.Text, Bool) -- ^ return text and truncated flag
-renderWithOneOfEither f1 f2 ast =
+renderWithOneOfEither mStyle f1 f2 ast =
     let mAst1 = f1 ast
         (ast2, truncated) = f2 ast
         mAst = mAst1 <|> pure ast2
@@ -212,7 +218,7 @@ renderWithOneOfEither f1 f2 ast =
      in case mAst of
         Nothing -> Left $ TE.PandocProcessError "Couldn't extract text?"
         Just ast' ->
-            let resultTxt = TP.runPure $ TP.writeHtml5String pandocHtmlArgs ast'
+            let resultTxt = TP.runPure $ TP.writeHtml5String (pandocHtmlArgs mStyle) ast'
              in case resultTxt of
                 Left e    -> Left $ TE.PandocWriteError e
                 Right txt -> Right (txt, truncated')
@@ -770,10 +776,10 @@ byteStringToTocItemsEither bs =
 -- asked for by the template (via Ginger).  Hence, this function expects the TOC
 -- as a [TocItem] and then calls the relevant Pandoc utils to build the Pandoc
 -- document from that.  This is then rendered to Text.
-renderTocItemsToHtml :: Int -> [TocItem] -> Either TE.SiteGenError T.Text
-renderTocItemsToHtml n ts =
+renderTocItemsToHtml :: Maybe T.Text -> Int -> [TocItem] -> Either TE.SiteGenError T.Text
+renderTocItemsToHtml mStyle n ts =
     let pd = buildPandocFromTocItems n ts
-        resultTxt = TP.runPure $ TP.writeHtml5String pandocHtmlArgs pd
+        resultTxt = TP.runPure $ TP.writeHtml5String (pandocHtmlArgs mStyle) pd
      in case resultTxt of
         Left e    -> Left $ TE.PandocWriteError e
         Right txt -> Right txt

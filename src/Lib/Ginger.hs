@@ -102,11 +102,11 @@ includeResolver source = do
     EL.logDebug $ T.pack $ "includeResolver: trying to resolve :" <> show source
     -- try using the filepath we were sent
     sgc <- PR.ask @SiteGenConfig
-    let tDir = sgcTemplatesDir sgc
-        tExt = sgcTemplateExt sgc
-    mFp <- resolveTemplatePath tDir source >>= (\case
+    let tDirs = sgcTemplatesDirs sgc
+        tExt  = sgcTemplateExt sgc
+    mFp <- resolveTemplatePath tDirs source >>= (\case
         -- if we got nothing back, try to resolve it with an extension added
-        Nothing -> resolveTemplatePath tDir (source <.> tExt)
+        Nothing -> resolveTemplatePath tDirs (source <.> tExt)
         fp@(Just _) -> pure fp)
     case mFp of
         Just fp -> Just . DBU.toString <$> EF.readFile fp Nothing Nothing

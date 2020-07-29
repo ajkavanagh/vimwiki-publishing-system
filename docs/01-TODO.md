@@ -2,6 +2,13 @@
 
 ## Still to be done
 
+[x] Add pygments rendering and associated functions to handle it.  The
+    advantage over hightlight.js is that it doesn't require JS to do the
+    highlighting; it's done purely in HTML/CSS.
+[x] Add template overrides directories.  i.e. a list of directories that can
+    override what's in the theme.  The idea is to have a shared theme for
+    a site, but then the site can override specific templates as it sees fit
+    without having to copy the theme.  Could get messy?
 [x] Re-do the static dir options so that we can have multiple ones; separate
     out the theme's static dir into a `theme-dir` option that will replace the
     `templates-dir` option.

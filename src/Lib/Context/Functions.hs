@@ -53,7 +53,7 @@ import           Types.Errors          (SiteGenError)
 import           Lib.Context.Core      (contextFromList, extractBoolArg,
                                         tryExtractListArg, tryExtractStringArg)
 import           Lib.Pandoc            (markdownToHTML, smContentM, smSummaryM,
-                                        smTocM)
+                                        smTocM, styleToCssM)
 import           Lib.SiteGenConfig     (SiteGenConfig (..))
 import           Lib.SiteGenState      (SiteGenReader, SiteGenState)
 
@@ -69,6 +69,7 @@ functionsContext = contextFromList
     , ("markdownify",    pure $ TG.fromFunction markdownifyF)
     , ("categoryUrlFor", pure $ TG.fromFunction categoryUrlFor)
     , ("tagUrlFor",      pure $ TG.fromFunction tagUrlFor)
+    , ("styleToCSS",     pure $ TG.fromFunction styleToCSSForF)
     ]
 
 
@@ -131,6 +132,12 @@ enumerateF args =
     case tryExtractListArg args of
         Nothing -> pure $ TG.list []
         Just l -> pure $ TG.list $ zipWith (\i a -> TG.dict ["index" ~> i, "item" ~> a]) [0..] l
+
+
+-- | return the Pandoc style CSS for a particular passed string
+styleToCSSForF :: GingerSemEffects r => TG.Function (RunSem r)
+styleToCSSForF args =
+    TG.toGVal . TGH.unsafeRawHtml <$> (TG.liftRun . styleToCssM) (tryExtractStringArg args)
 
 
 -- | given a text item in the first argument position, evaluate it as markdown

@@ -22,49 +22,53 @@ module Lib.Pandoc where
 
 import           TextShow
 
-import           Data.ByteString        (ByteString)
-import           Data.Maybe             (fromJust, fromMaybe)
-import           Data.Text              (Text)
-import           Data.Text              as T
-import           Data.Text.Encoding     (decodeUtf8', encodeUtf8)
+import           Control.Applicative      ((<|>))
 
-import           Colog.Polysemy         (Log)
-import qualified Colog.Polysemy         as CP
+import           Data.ByteString          (ByteString)
+import qualified Data.List                as L
+import           Data.Maybe               (fromJust, fromMaybe)
+import           Data.Text                (Text)
+import           Data.Text                as T
+import           Data.Text.Encoding       (decodeUtf8', encodeUtf8)
 
-import           Polysemy               (Member, Sem)
-import           Polysemy.Error         (Error)
-import qualified Polysemy.Error         as PE
-import           Polysemy.Reader        (Reader)
-import qualified Polysemy.Reader        as PR
-import           Polysemy.State         (State)
+import           Colog.Polysemy           (Log)
+import qualified Colog.Polysemy           as CP
 
-import           Text.Pandoc            (Pandoc)
-import qualified Text.Pandoc            as TP
-import qualified Text.Pandoc.Builder    as TPB
-import qualified Text.Pandoc.Definition as TPD
+import           Polysemy                 (Member, Sem)
+import           Polysemy.Error           (Error)
+import qualified Polysemy.Error           as PE
+import           Polysemy.Reader          (Reader)
+import qualified Polysemy.Reader          as PR
+import           Polysemy.State           (State)
 
-import           Effect.Cache           (Cache)
-import qualified Effect.Cache           as EC
-import           Effect.File            (File)
-import qualified Effect.File            as EF
-import           Effect.Logging         (LoggingMessage)
-import qualified Effect.Logging         as EL
-import           Effect.Print           (Print)
+import           Text.Pandoc              (Pandoc)
+import qualified Text.Pandoc              as TP
+import qualified Text.Pandoc.Builder      as TPB
+import qualified Text.Pandoc.Definition   as TPD
+import qualified Text.Pandoc.Highlighting as TPH
 
-import           Types.Errors           (SiteGenError)
-import           Types.SiteGenState     (SiteGenReader, SiteGenState,
-                                         siteVimWikiLinkMap)
+import           Effect.Cache             (Cache)
+import qualified Effect.Cache             as EC
+import           Effect.File              (File)
+import qualified Effect.File              as EF
+import           Effect.Logging           (LoggingMessage)
+import qualified Effect.Logging           as EL
+import           Effect.Print             (Print)
 
-import qualified Lib.Header             as H
-import           Lib.SiteGenConfig      (SiteGenConfig)
-import qualified Lib.SiteGenConfig      as SGC
+import           Types.Errors             (SiteGenError)
+import           Types.SiteGenState       (SiteGenReader, SiteGenState,
+                                           siteVimWikiLinkMap)
 
-import           Lib.PandocUtils        (countWords, extractToc,
-                                         pandocToContentTextEither,
-                                         pandocToSummaryTextEither,
-                                         parseMarkdown, processPandocAST,
-                                         renderTocItemsToHtml,
-                                         stripMoreIndicator)
+import qualified Lib.Header               as H
+import           Lib.SiteGenConfig        (SiteGenConfig)
+import qualified Lib.SiteGenConfig        as SGC
+
+import           Lib.PandocUtils          (countWords, extractToc,
+                                           pandocToContentTextEither,
+                                           pandocToSummaryTextEither,
+                                           parseMarkdown, processPandocAST,
+                                           renderTocItemsToHtml,
+                                           stripMoreIndicator)
 
 
 type PandocSemEffects r
@@ -103,8 +107,11 @@ cachedProcessSMToPandocAST sm = do
 
 
 smContentM :: PandocSemEffects r => H.SourceMetadata -> Sem r Text
-smContentM sm =
-    PE.fromEither =<< pandocToContentTextEither . stripMoreIndicator <$> cachedProcessSMToPandocAST sm
+smContentM sm = do
+    skylightStyle <- PR.asks @SiteGenConfig SGC.sgcSkylightStyle
+    PE.fromEither
+      =<< pandocToContentTextEither  skylightStyle . stripMoreIndicator
+      <$> cachedProcessSMToPandocAST sm
 
 
 smSummaryM
@@ -114,8 +121,9 @@ smSummaryM
     -> Sem r (Text, Bool)
 smSummaryM sm isRich = do
     maxSummaryWords <- PR.asks @SiteGenConfig SGC.sgcMaxSummaryWords
+    skylightStyle <- PR.asks @SiteGenConfig SGC.sgcSkylightStyle
     -- get Either err (plain, rick) as a Summary
-    res <- pandocToSummaryTextEither maxSummaryWords <$> cachedProcessSMToPandocAST sm
+    res <- pandocToSummaryTextEither skylightStyle maxSummaryWords <$> cachedProcessSMToPandocAST sm
     PE.fromEither $ fmap (if isRich then snd else fst) res
 
 
@@ -125,17 +133,19 @@ smTocM
     -> Maybe Int
     -> Sem r Text
 smTocM sm mLevels = do
+    skylightStyle <- PR.asks @SiteGenConfig SGC.sgcSkylightStyle
     tocItems <- extractToc <$> cachedProcessSMToPandocAST sm
     let levels = fromMaybe 6 mLevels
-    PE.fromEither $ renderTocItemsToHtml levels tocItems
+    PE.fromEither $ renderTocItemsToHtml skylightStyle levels tocItems
 
 
 markdownToHTML :: PandocSemEffects r => Text -> Sem r Text
 markdownToHTML txt = do
     pd <- PE.fromEither $ parseMarkdown (encodeUtf8 txt)
     vws <- PR.asks @SiteGenReader siteVimWikiLinkMap
+    skylightStyle <- PR.asks @SiteGenConfig SGC.sgcSkylightStyle
     let pd' = processPandocAST vws pd
-    PE.fromEither $ pandocToContentTextEither pd'
+    PE.fromEither $ pandocToContentTextEither skylightStyle pd'
 
 
 wordCountM
@@ -143,3 +153,18 @@ wordCountM
     => H.SourceMetadata
     -> Sem r Int
 wordCountM sm = countWords <$> cachedProcessSMToPandocAST sm
+
+
+styleToCssM
+    :: PandocSemEffects r
+    => Maybe Text
+    -> Sem r Text
+styleToCssM mStyle = do
+    mStyleSite <- PR.asks @SiteGenConfig SGC.sgcSkylightStyle
+    let sStyle = flip L.lookup TPH.highlightingStyles =<< (mStyle <|> mStyleSite)
+    case sStyle of
+        Nothing -> do
+            EL.logDebug "styleToCssM: asked for style CSS but no style configured not passed to function"
+            pure ""
+        Just s -> pure $ T.pack $ TPH.styleToCss s
+
