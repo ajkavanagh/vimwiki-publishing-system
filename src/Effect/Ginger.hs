@@ -49,6 +49,7 @@ type GingerSemEffects r
   =    ( Member File r
        , Member Locale r
        , Member (Cache Pandoc) r
+       , Member (Cache Int) r
        , Member (State SiteGenState) r
        , Member (Reader SiteGenReader) r
        , Member (Reader SiteGenConfig) r

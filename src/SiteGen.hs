@@ -289,6 +289,7 @@ runSiteGenSem args = do
         $ runReader @SiteGenReader sgr
         $ cacheInHashWith (emptyCache @Pandoc)
         $ cacheInHashWith (emptyCache @(Template SourcePos))
+        $ cacheInHashWith (emptyCache @Int)
         $ runState @SiteGenState emptySiteGenState
         $ do
             addToRenderList scs'

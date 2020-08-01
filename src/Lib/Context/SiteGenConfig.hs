@@ -65,5 +65,6 @@ siteGenMGValM = do
         , "indexFiles"         ~> S.sgcIndexFiles sgc
         , "maxSummaryWords"    ~> S.sgcMaxSummaryWords sgc
         , "skylightStyle"      ~> S.sgcSkylightStyle sgc
+        , "extraDebug"         ~> S.sgcExtraDebug sgc
         , "Params"             ~> S.sgcParams sgc
         ]

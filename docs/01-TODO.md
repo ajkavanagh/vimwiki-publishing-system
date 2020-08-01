@@ -2,8 +2,6 @@
 
 ## Still to be done
 
-[ ] Find some way to cache the word count of a document so that it doesn't get
-    recalculated all the time (performance)
 [ ] Document how to make it all work.
 [ ] Expand out the example site so that it serves as an example.
 [ ] Doing less work:
@@ -132,6 +130,8 @@
     `templates-dir` option.
 [x] Add debug flag to command line to allow controlling how much printing is
     done.
+[x] Find some way to cache the word count of a document so that it doesn't get
+    recalculated all the time (performance)
 
 I really like the idea of using the top level values as Initial caps, and
 functions as lowercased.

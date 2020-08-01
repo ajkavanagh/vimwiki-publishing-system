@@ -74,6 +74,7 @@ import           Lib.PandocUtils          (countWords, extractToc,
 type PandocSemEffects r
   =    ( Member File r
        , Member (Cache Pandoc) r
+       , Member (Cache Int) r
        , Member (State SiteGenState) r
        , Member (Reader SiteGenReader) r
        , Member (Reader SiteGenConfig) r
@@ -152,7 +153,14 @@ wordCountM
     :: PandocSemEffects r
     => H.SourceMetadata
     -> Sem r Int
-wordCountM sm = countWords <$> cachedProcessSMToPandocAST sm
+wordCountM sm = do
+    let key = T.pack (H.smRoute sm) <> "-wordcount"
+    EC.fetch @Int key >>= \case
+        Just wc -> pure wc
+        Nothing -> do
+            wc <- countWords <$> cachedProcessSMToPandocAST sm
+            EC.store @Int key wc
+            pure wc
 
 
 styleToCssM

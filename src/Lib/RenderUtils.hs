@@ -85,6 +85,7 @@ renderSourceMetadata
        , Member Locale r
        , Member (Cache Pandoc) r
        , Member (Cache (Template SourcePos)) r
+       , Member (Cache Int) r
        , Member (State SiteGenState) r
        , Member (Reader SiteGenReader) r
        , Member (Reader SiteGenConfig) r
