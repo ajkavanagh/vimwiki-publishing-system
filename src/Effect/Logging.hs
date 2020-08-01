@@ -77,3 +77,8 @@ logAction = LogAction print
 
 logActionLevel :: Severity -> LogAction IO LoggingMessage
 logActionLevel sev = filterBySeverity sev extractSeverity logAction
+
+
+logActionMaybeLevel :: Maybe Severity -> LogAction IO LoggingMessage
+logActionMaybeLevel (Just sev) = filterBySeverity sev extractSeverity logAction
+logActionMaybeLevel Nothing = LogAction $ \_ -> pure ()

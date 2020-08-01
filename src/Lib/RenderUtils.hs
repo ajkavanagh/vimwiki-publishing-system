@@ -63,6 +63,7 @@ import           Effect.Locale          (Locale)
 import           Effect.Logging         (LoggingMessage)
 import qualified Effect.Logging         as EL
 import           Effect.Print           (Print)
+import qualified Effect.Print           as P
 
 import           Types.Errors           (SiteGenError (..))
 import           Types.Ginger           (GingerException (..))
@@ -98,10 +99,9 @@ renderSourceMetadata
     -> Sem r ()
 renderSourceMetadata sm = do
     let fp = smRelFilePath sm
-    EL.logInfo $ T.pack $ "Rendering route: "
+    P.putText $ T.pack $ "Rendering route: "
                        ++ smRoute sm
-                       ++ (if isJust fp then " for file: " ++ (fromJust fp)
-                                        else " - no source file.")
+                       ++ maybe " - no source file." (" for file: " ++) fp
     --
     -- find the template
     template <- resolveTemplateNameForSM sm
@@ -134,6 +134,7 @@ writeOutputFile
        , Member (Error SiteGenError) r
        , Member (Error FileException) r
        , Member (Log LoggingMessage) r
+       , Member Print r
        )
     => SourceMetadata
     -> Text
@@ -146,7 +147,7 @@ writeOutputFile sm txt = do
         dir = sgcOutputDir sgc
         relFileName = makeFileNameFrom doIndexFiles ext sm
         absFileName = normalise (dir </> relFileName)
-    EL.logInfo $ T.pack $ " Writing to --> " ++ relFileName
+    P.putText $ T.pack $ " Writing to --> " ++ relFileName
     --EL.logDebug $ T.pack $ " --> " ++ absFileName
     -- Need to check that the base output directory exists
     -- Need to test and create any intermediate directories

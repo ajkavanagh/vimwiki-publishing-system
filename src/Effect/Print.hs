@@ -20,6 +20,7 @@ module Effect.Print
 import TextShow
 
 import Control.Monad.IO.Class       (MonadIO, liftIO)
+import Control.Monad                (unless)
 
 import           Prelude             hiding (print, putStrLn)
 import qualified Prelude             as P
@@ -38,11 +39,24 @@ makeSem ''Print
 
 
 
-printToIO :: ( MonadIO m
-             , Member (Embed m) r
-             )
-          => Sem (Print ': r) a
-          -> Sem r a
+printToIO
+    :: ( MonadIO m
+       , Member (Embed m) r
+       )
+    => Sem (Print ': r) a
+    -> Sem r a
 printToIO  = interpret $ \case
     PutText t -> embed $ liftIO $ P.putStrLn (T.unpack t)
     Print t -> embed $ liftIO $ P.print t
+
+
+printMaybeQuietToIO
+    :: ( MonadIO m
+       , Member (Embed m) r
+       )
+    => Bool
+    ->  Sem (Print ': r) a
+    -> Sem r a
+printMaybeQuietToIO  quiet = interpret $ \case
+    PutText t -> unless quiet $ embed $ liftIO $ P.putStrLn (T.unpack t)
+    Print t -> unless quiet $ embed $ liftIO $ P.print t

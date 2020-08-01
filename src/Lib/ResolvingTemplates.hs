@@ -210,7 +210,7 @@ testResolveTemplatePathForSM
     :: ResolvingTemplatesSemEffects r
     => Sem r FilePath
 testResolveTemplatePathForSM = do
-    sgc <- getSiteGenConfig "./example-site/site.yaml" False
+    sgc <- getSiteGenConfig "./example-site/site.yaml" False True
     let file = "./example-site/src/posts/test_post.md"
     fp <- EF.makeAbsolute file
     PR.runReader @SiteGenConfig sgc $ do

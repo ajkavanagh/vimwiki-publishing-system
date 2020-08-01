@@ -151,6 +151,7 @@ data SiteGenConfig = SiteGenConfig
     , sgcIndexFiles         :: !Bool
     , sgcMaxSummaryWords    :: !Int
     , sgcSkylightStyle      :: !(Maybe Text)
+    , sgcExtraDebug         :: !Bool
     , sgcParams             :: !(Maybe Y.Object)
     } deriving (Show)
 
@@ -163,11 +164,12 @@ getSiteGenConfig
                 ] r
     => FilePath
     -> Bool
+    -> Bool
     -> Sem r SiteGenConfig
-getSiteGenConfig configFileName forceDrafts = do
+getSiteGenConfig configFileName forceDrafts extraDebug = do
     configPath <- EF.makeAbsolute configFileName
     rawConfig <- readConfig configPath
-    makeSiteGenConfigFromRaw configPath rawConfig forceDrafts
+    makeSiteGenConfigFromRaw configPath rawConfig forceDrafts extraDebug
 
 
 makeSiteGenConfigFromRaw
@@ -179,8 +181,9 @@ makeSiteGenConfigFromRaw
     => FilePath
     -> RawSiteGenConfig
     -> Bool
+    -> Bool
     -> Sem r SiteGenConfig
-makeSiteGenConfigFromRaw configPath rawConfig forceDrafts = do
+makeSiteGenConfigFromRaw configPath rawConfig forceDrafts extraDebug = do
     let root = takeDirectory configPath
     source_ <- resolvePath (_source rawConfig) root "source dir"
     outputDir_ <- resolvePath (_outputDir rawConfig) root "output dir"
@@ -216,6 +219,7 @@ makeSiteGenConfigFromRaw configPath rawConfig forceDrafts = do
           , sgcIndexFiles=_indexFiles rawConfig
           , sgcMaxSummaryWords=_maxSummaryWords rawConfig
           , sgcSkylightStyle=_skylightStyle rawConfig
+          , sgcExtraDebug=extraDebug
           , sgcParams=_params rawConfig
           }
 

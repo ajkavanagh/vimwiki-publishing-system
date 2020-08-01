@@ -2,16 +2,6 @@
 
 ## Still to be done
 
-[x] Add pygments rendering and associated functions to handle it.  The
-    advantage over hightlight.js is that it doesn't require JS to do the
-    highlighting; it's done purely in HTML/CSS.
-[x] Add template overrides directories.  i.e. a list of directories that can
-    override what's in the theme.  The idea is to have a shared theme for
-    a site, but then the site can override specific templates as it sees fit
-    without having to copy the theme.  Could get messy?
-[x] Re-do the static dir options so that we can have multiple ones; separate
-    out the theme's static dir into a `theme-dir` option that will replace the
-    `templates-dir` option.
 [ ] Find some way to cache the word count of a document so that it doesn't get
     recalculated all the time (performance)
 [ ] Document how to make it all work.
@@ -130,6 +120,18 @@
     place AND when links are processed, they end up pointing to the right thing.
 [x] Add reading time to the app; work on 270 words per minute and could the
     words (Str items) in a document.
+[x] Add pygments rendering and associated functions to handle it.  The
+    advantage over hightlight.js is that it doesn't require JS to do the
+    highlighting; it's done purely in HTML/CSS.
+[x] Add template overrides directories.  i.e. a list of directories that can
+    override what's in the theme.  The idea is to have a shared theme for
+    a site, but then the site can override specific templates as it sees fit
+    without having to copy the theme.  Could get messy?
+[x] Re-do the static dir options so that we can have multiple ones; separate
+    out the theme's static dir into a `theme-dir` option that will replace the
+    `templates-dir` option.
+[x] Add debug flag to command line to allow controlling how much printing is
+    done.
 
 I really like the idea of using the top level values as Initial caps, and
 functions as lowercased.

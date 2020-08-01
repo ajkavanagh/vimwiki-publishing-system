@@ -54,10 +54,13 @@ import           Text.Pandoc               (Pandoc)
 -- Application Effects
 import           Effect.Cache              (Cache, CacheStore, cacheInHashWith,
                                             emptyCache)
-import           Effect.File               (File, FileException, fileToIO, getCurrentDirectory)
+import           Effect.File               (File, FileException, fileToIO,
+                                            getCurrentDirectory)
 import           Effect.Locale             (Locale, LocaleException, localeToIO)
-import           Effect.Logging            (LoggingMessage, logActionLevel)
-import           Effect.Print              (Print, printToIO)
+import           Effect.Logging            (LoggingMessage, logActionLevel,
+                                            logActionMaybeLevel)
+import           Effect.Print              (Print, printMaybeQuietToIO,
+                                            printToIO)
 import qualified Effect.Print              as P
 
 -- Local Libraries
@@ -90,18 +93,19 @@ sitegenProgram = sitegenCli =<< execParser opts
 
 sitegenCli :: SitegenArgs -> IO ()
 sitegenCli args = do
-    {-debug <- isDebug-}
-    {-when debug $ do-}
-        {-putStrLn "-- Debug Trace On --"-}
-        {-debugParams args-}
+    debug <- isDebug
+    when debug $ putStrLn "-- Debug ENV var set --"
     argsOk <- validateSitegenArgs args
-    when argsOk $ runSiteGen args
+    when argsOk $ runSiteGen (args { extraDebug=extraDebug args || debug })
 
 
 data SitegenArgs = SitegenArgs
     { siteConfigArg :: !String
     , draftsArg     :: !Bool
     , cleanArg      :: !Bool
+    , logLevel      :: !(Maybe Severity)
+    , quietOutput   :: !Bool
+    , extraDebug    :: !Bool
     , extraArgs     :: ![String]
     }
     deriving Show
@@ -114,6 +118,9 @@ makeSitegenArgs s f1 f2 fp =
      in SitegenArgs { siteConfigArg=s
                     , draftsArg=f1
                     , cleanArg=f2
+                    , logLevel=Just D
+                    , quietOutput=False
+                    , extraDebug=True
                     , extraArgs=extra
                     }
 
@@ -133,9 +140,33 @@ sitegenArgsOptions = SitegenArgs
         ( long "clean"
        <> short 'x'
        <> help "Clean out target files (.html) that don't aren't linked to a source file" )
+    <*> option severityReader
+        ( long "level"
+       <> short 'l'
+       <> metavar "LOGGING_LEVEL"
+       <> value Nothing
+       <> help "The log level to use" )
+    <*> switch
+        ( long "quiet"
+       <> short 'q'
+       <> help "Suppress all normal printing" )
+    <*> switch
+        ( long "debug"
+       <> short 'D'
+       <> help "Generate extra debug statements (on top of normal ones)" )
     <*> many (argument str
         ( metavar "EXTRA"
        <> help "Extra argments"))
+
+
+severityReader :: ReadM (Maybe Severity)
+severityReader = eitherReader $ \arg ->
+    case strToLower arg of
+        "debug" -> Right (Just D)
+        "error" -> Right (Just E)
+        "info"  -> Right (Just I)
+        "warning" -> Right (Just W)
+        _ -> Left ("log level not one of debug, error, info or warning: " ++ arg)
 
 
 opts :: ParserInfo SitegenArgs
@@ -170,9 +201,9 @@ runSiteGen args = do
         & mapError @GingerException mapSiteGenError
         & mapError @FileException mapSiteGenError
         & mapError @LocaleException mapSiteGenError
-        & printToIO @IO
+        & printMaybeQuietToIO @IO (quietOutput args)
         & errorToIOFinal @SiteGenError
-        & runLogAction @IO (logActionLevel I)
+        & runLogAction @IO (logActionMaybeLevel (logLevel args))
         & runLogAction @IO logStringStderr
         & embedToFinal @IO
         & runFinal @IO
@@ -229,8 +260,9 @@ runSiteGenSem
 runSiteGenSem args = do
     let fp = siteConfigArg args
         draft = draftsArg args
+        debug = extraDebug args
         clean = cleanArg args
-    sgc <- SGC.getSiteGenConfig fp draft
+    sgc <- SGC.getSiteGenConfig fp draft debug
     printInfoHeader sgc
     let sourceDir = SGC.sgcSource sgc
     let ext = SGC.sgcExtension sgc
