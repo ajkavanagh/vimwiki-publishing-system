@@ -13,6 +13,7 @@ data SourceMetadata = SourceMetadata
     , smRelFilePath     :: !(Maybe FilePath)
     , smVimWikiLinkPath :: !String
     , smTitle           :: !String
+    , smDescription     :: !(Maybe String)
     , smTemplate        :: !String
     , smTags            :: ![String]
     , smCategories      :: ![String]
@@ -36,6 +37,7 @@ instance Default SourceMetadata where
         , smRelFilePath=def
         , smVimWikiLinkPath=def
         , smTitle=def
+        , smDescription=def
         , smTemplate=def
         , smTags=def
         , smCategories=def

@@ -101,22 +101,23 @@ import           Lib.Utils             (fixRoute, strToLower)
 
 
 data RawPageHeader = RawPageHeader
-    { _route      :: !(Maybe String)
-    , _permalink  :: !(Maybe String)
-    , _title      :: !(Maybe String)
-    , _template   :: !(Maybe String)
-    , _tag        :: !(Maybe String)
-    , _tags       :: ![String]
-    , _category   :: !(Maybe String)
-    , _categories :: ![String]
-    , _date       :: !(Maybe String)
-    , _updated    :: !(Maybe String)
-    , _indexPage  :: !Bool
-    , _author     :: !(Maybe String)
-    , _authors    :: ![String]
-    , _publish    :: !Bool
-    , _siteId     :: !(Maybe String)
-    , _params     :: !(Maybe Y.Object)
+    { _route       :: !(Maybe String)
+    , _permalink   :: !(Maybe String)
+    , _title       :: !(Maybe String)
+    , _description :: !(Maybe String)
+    , _template    :: !(Maybe String)
+    , _tag         :: !(Maybe String)
+    , _tags        :: ![String]
+    , _category    :: !(Maybe String)
+    , _categories  :: ![String]
+    , _date        :: !(Maybe String)
+    , _updated     :: !(Maybe String)
+    , _indexPage   :: !Bool
+    , _author      :: !(Maybe String)
+    , _authors     :: ![String]
+    , _publish     :: !Bool
+    , _siteId      :: !(Maybe String)
+    , _params      :: !(Maybe Y.Object)
     } deriving (Show)
 
 
@@ -125,6 +126,7 @@ instance Y.FromJSON RawPageHeader where
         <$> v .:? "route"
         <*> v .:? "permalink"
         <*> v .:? "title"
+        <*> v .:? "description"
         <*> v .:? "template"
         <*> v .:? "tag"
         <*> v .:? "tags"     .!= []
@@ -224,6 +226,7 @@ makeSourceMetadataFromRawPageHeader rph len = do
         , smRelFilePath     = Just $ hcRelFilePath rc
         , smVimWikiLinkPath = hcVimWikiLinkPath rc
         , smTitle           = pick (_title rph) (hcAutoTitle rc)
+        , smDescription     = _description rph
         , smTemplate        = pick (_template rph) defTemplate
         , smTags            = collateSingleAndMultiple (_tag rph) (_tags rph)
         , smCategories      = collateSingleAndMultiple (_category rph) (_categories rph)

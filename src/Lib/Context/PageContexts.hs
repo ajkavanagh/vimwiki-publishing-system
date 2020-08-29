@@ -113,6 +113,7 @@ instance GingerSemEffects r => TG.ToGVal (RunSem r) SourceMetadata where
             , "RelFilePath"     ~> smRelFilePath sm
             , "VimWikiLinkPath" ~> smVimWikiLinkPath sm
             , "Title"           ~> smTitle sm
+            , "Description"     ~> smDescription sm
             , "Template"        ~> smTemplate sm
             , "Tags"            ~> smTags sm
             , "Category"        ~> headMay (smCategories sm)
