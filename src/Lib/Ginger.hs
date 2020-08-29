@@ -50,7 +50,7 @@ import           Types.Ginger           (GingerException (..))
 import           Types.SiteGenState     (SiteGenReader, SiteGenState)
 
 import           Lib.Context.Core       (contextLookup)
-import           Lib.ResolvingTemplates (resolveTemplatePath)
+import           Lib.ResolvingTemplates (resolveTemplateToByteString)
 import           Lib.SiteGenConfig      (ConfigException, SiteGenConfig (..))
 
 
@@ -100,17 +100,10 @@ includeResolver
     => IncludeResolver (Sem r)
 includeResolver source = do
     EL.logDebug $ T.pack $ "includeResolver: trying to resolve :" <> show source
-    -- try using the filepath we were sent
-    sgc <- PR.ask @SiteGenConfig
-    let tDirs = sgcTemplatesDirs sgc
-        tExt  = sgcTemplateExt sgc
-    mFp <- resolveTemplatePath tDirs source >>= (\case
-        -- if we got nothing back, try to resolve it with an extension added
-        Nothing -> resolveTemplatePath tDirs (source <.> tExt)
-        fp@(Just _) -> pure fp)
-    case mFp of
-        Just fp -> Just . DBU.toString <$> EF.readFile fp Nothing Nothing
-        Nothing -> PE.throw $ EF.FileException source "File Not found"
+    mBs <- resolveTemplateToByteString source
+    maybe (PE.throw $ EF.FileException source "ginger source couldn't be found")
+          (pure . Just . DBU.toString)
+          mBs
 
 
 -- | Render a template using a context and a parsed Ginger template.  Note the

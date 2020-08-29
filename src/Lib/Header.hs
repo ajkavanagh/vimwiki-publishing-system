@@ -20,6 +20,7 @@ module Lib.Header
     , emptySourceMetadata
     , findEndSiteGenHeader
     , isHeader
+    , isContentFile
     , makeHeaderContextFromFileName
     , maxHeaderSize
     , maybeDecodeHeader
@@ -69,7 +70,7 @@ import           Data.ByteString       (ByteString)
 import qualified Data.ByteString       as BS
 import           Data.Default.Class    (Default, def)
 import qualified Data.List             as L
-import           Data.Maybe            (fromMaybe)
+import           Data.Maybe            (fromMaybe, isJust)
 import qualified Data.Text             as T
 import           Data.Text.Titlecase   (titlecase)
 import           Data.Yaml             ((.!=), (.:?))
@@ -238,7 +239,7 @@ makeSourceMetadataFromRawPageHeader rph len = do
 
 
 collateSingleAndMultiple :: Maybe a -> [a] -> [a]
-collateSingleAndMultiple Nothing as = as
+collateSingleAndMultiple Nothing as  = as
 collateSingleAndMultiple (Just a) as = a:as
 
 
@@ -263,6 +264,12 @@ assembleRoute hc route@(c:_)
 -- actually goes.
 resolveLinkFor :: SourceMetadata -> String
 resolveLinkFor sm = fromMaybe (smRoute sm) (smPermalink sm)
+
+
+-- | isContentFile  -- return a boolean if the header maps to an actual source
+-- file (and isn't an index page)
+isContentFile :: SourceMetadata -> Bool
+isContentFile sm = isJust (smAbsFilePath sm) && not (smIndexPage sm)
 
 
 makeHeaderContextFromFileName

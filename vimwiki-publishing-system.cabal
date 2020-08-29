@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 07af2026d79ea16d7ed447be7f9ef3356a902661ee6b57450e1d18bf706779aa
+-- hash: b903aaca2f1377aad08e90f32f21d3a273fc909da82824a8de14631171d98869
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -33,13 +33,16 @@ library
       Effect.Locale
       Effect.Logging
       Effect.Print
+      Effect.Time
       Experiments.Errors
       Experiments.Logging
       Experiments.SemConduit
+      Lib.BuiltInTemplates
       Lib.Context
       Lib.Context.CategoriesContext
       Lib.Context.Core
       Lib.Context.DynamicContexts
+      Lib.Context.FeedContext
       Lib.Context.Functions
       Lib.Context.PageContexts
       Lib.Context.SiteGenConfig
@@ -48,6 +51,7 @@ library
       Lib.Dates
       Lib.Files
       Lib.Ginger
+      Lib.Hash
       Lib.Header
       Lib.Pandoc
       Lib.PandocUtils
@@ -57,6 +61,7 @@ library
       Lib.SiteGenConfig
       Lib.SiteGenState
       Lib.SpecialPages.Category
+      Lib.SpecialPages.Feed
       Lib.SpecialPages.Four04
       Lib.SpecialPages.Tag
       Lib.Utils
@@ -73,6 +78,7 @@ library
       Paths_vimwiki_publishing_system
   hs-source-dirs:
       src
+      templates
   default-extensions: DataKinds FlexibleContexts GADTs LambdaCase PolyKinds RankNTypes ScopedTypeVariables TypeApplications TypeOperators TypeFamilies
   build-depends:
       aeson
@@ -82,15 +88,20 @@ library
     , co-log-core
     , co-log-polysemy
     , conduit
+    , cryptonite
     , data-default
     , data-default-class
     , directory
     , dlist
+    , file-embed
     , filepath
     , generic-deriving
     , ghc-tcplugins-extra >=0.3 && <0.4
     , ginger
     , hashable
+    , microlens
+    , microlens-platform
+    , microlens-th
     , network-uri
     , optparse-applicative
     , pandoc

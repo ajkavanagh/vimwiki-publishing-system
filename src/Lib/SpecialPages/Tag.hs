@@ -45,7 +45,7 @@ import           Types.Errors           (SiteGenError (..))
 import           Types.Header           (SourceMetadata (..))
 import           Types.SiteGenState     (SiteGenReader (..), SiteGenState (..))
 
-import           Lib.ResolvingTemplates (resolveTemplateName')
+import           Lib.ResolvingTemplates (resolveTemplateName)
 import           Lib.RouteUtils         (checkExistingRoute, routeToConcreteSc)
 import           Lib.SiteGenConfig      (ConfigException, SiteGenConfig (..))
 import           Lib.SiteGenState       (addToRenderList)
@@ -128,7 +128,7 @@ ensureTagPageFor tag = do
                       then EL.logInfo $ T.pack $ "Tag page has already been added for: " ++ tag
                       else do
                         let newTag = makeVSMForTag tagRoute ("Tag: " ++ tag)
-                        mTname <- resolveTemplateName' (smTemplate newTag)
+                        mTname <- resolveTemplateName (smTemplate newTag)
                         -- if it does then add the tag page to the render list
                         case mTname of
                             Nothing -> EL.logError $ T.pack $ "No template for tag page: " ++ tag

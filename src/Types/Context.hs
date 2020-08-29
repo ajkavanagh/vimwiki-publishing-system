@@ -55,6 +55,7 @@ data ContextObjectTypes = SMObjectType
                         | TagObjectType
                         | CategoryObjectType
                         | PagerObjectType
+                        | FeedItemObjectType
                         deriving (Show, Eq)
 
 
@@ -63,15 +64,17 @@ instance ToGVal m ContextObjectTypes where
     toGVal TagObjectType      = toGVal ":tag:"
     toGVal CategoryObjectType = toGVal ":category:"
     toGVal PagerObjectType    = toGVal ":pager:"
+    toGVal FeedItemObjectType = toGVal ":feeditem:"
 
 
 instance FromGVal m ContextObjectTypes where
     fromGVal g = lookupKey "_objectType_" g >>= \g' -> case asText g' of
-            ""        -> Nothing
-            ":sm:"    -> Just SMObjectType
-            ":tag:"   -> Just TagObjectType
-            ":cat:"   -> Just CategoryObjectType
-            ":pager:" -> Just PagerObjectType
+            ""           -> Nothing
+            ":sm:"       -> Just SMObjectType
+            ":tag:"      -> Just TagObjectType
+            ":cat:"      -> Just CategoryObjectType
+            ":pager:"    -> Just PagerObjectType
+            ":feeditem:" -> Just FeedItemObjectType
 
 
 gValContextObjectTypeDictItemFor :: ContextObjectTypes -> Pair m

@@ -24,7 +24,9 @@ dependencies:
 - ghc-tcplugins-extra >= 0.3 && < 0.4
 
 library:
-  source-dirs: src
+  source-dirs:
+    - src
+    - templates
   dependencies:
     - aeson
     - bytestring
@@ -32,15 +34,20 @@ library:
     - co-log-core
     - co-log-polysemy
     - conduit
+    - cryptonite
     - data-default
     - data-default-class
     - directory
     - dlist
     - filepath
+    - file-embed
     - generic-deriving
     - ginger
     - hashable
     - network-uri
+    - microlens
+    - microlens-th
+    - microlens-platform
     - optparse-applicative
     - pandoc
     - pandoc-types

@@ -19,34 +19,37 @@
 
 module Lib.Context.DynamicContexts where
 
-import           Data.Maybe        (isNothing)
-import           Data.Text         (Text, pack)
+import qualified Data.HashMap.Strict       as HashMap
+import           Data.Maybe                (isNothing)
+import           Data.Text                 (Text, pack, toLower)
 
-import           Text.Ginger       ((~>))
-import qualified Text.Ginger       as TG
-import qualified Text.Ginger.Html  as TGH
+import           Text.Ginger               ((~>))
+import qualified Text.Ginger               as TG
+import qualified Text.Ginger.Html          as TGH
+import qualified Text.Ginger.Run.FuncUtils as TF
 
-import           Colog.Polysemy    (Log)
-import qualified Colog.Polysemy    as CP
-import           Polysemy          (Member, Sem)
-import           Polysemy.Error    (Error)
-import           Polysemy.Reader   (Reader)
-import           Polysemy.State    (State)
-import           Polysemy.Writer   (Writer)
+import           Colog.Polysemy            (Log)
+import qualified Colog.Polysemy            as CP
+import           Polysemy                  (Member, Sem)
+import           Polysemy.Error            (Error)
+import           Polysemy.Reader           (Reader)
+import           Polysemy.State            (State)
+import           Polysemy.Writer           (Writer)
 
-import           Effect.File       (File)
-import           Effect.Ginger     (GingerSemEffects)
-import qualified Effect.Logging    as EL
+import           Effect.File               (File)
+import           Effect.Ginger             (GingerSemEffects)
+import qualified Effect.Logging            as EL
 
-import           Types.Constants   (wordsPerMinute)
-import           Types.Context     (Context, RunSem, RunSemGVal)
-import           Types.Errors      (SiteGenError)
-import           Types.Header      (SourceMetadata (..))
+import           Types.Constants           (wordsPerMinute)
+import           Types.Context             (Context, RunSem, RunSemGVal)
+import           Types.Errors              (SiteGenError)
+import           Types.Header              (SourceMetadata (..))
 
-import           Lib.Context.Core  (contextFromList, tryExtractIntArg)
-import           Lib.Pandoc        (smContentM, smSummaryM, smTocM, wordCountM)
-import           Lib.SiteGenConfig (SiteGenConfig)
-import           Lib.SiteGenState  (SiteGenReader, SiteGenState)
+import           Lib.Context.Core          (contextFromList, tryExtractIntArg)
+import           Lib.Pandoc                (smContentM, smSummaryM, smTocM,
+                                            wordCountM)
+import           Lib.SiteGenConfig         (SiteGenConfig)
+import           Lib.SiteGenState          (SiteGenReader, SiteGenState)
 
 
 -- Basically, this module provides the 'content', 'summary' and 'toc' html
@@ -87,6 +90,7 @@ funcDynamicMGValM f sm = pure $ TG.fromFunction $ f sm
 
 -- | fetch the content dynamically as a function call from the context.  i.e. it
 -- has to be called as "content()". Note it provides RAW html, not text.
+-- TODO: needs the plain=True version support as well.
 contentDynamic
     :: GingerSemEffects r
     => SourceMetadata
@@ -104,11 +108,28 @@ summaryDynamic
     :: GingerSemEffects r
     => SourceMetadata
     -> TG.Function (RunSem r)
-summaryDynamic sm _ = do   -- summary ignores the args, and selects for Rich only
-    (txt, truncated) <- TG.liftRun $ smSummaryM sm True
+summaryDynamic sm args = do   -- summary ignores the args, and selects for Rich only
+    let isPlain = extractOptionalPlainArg args
+    (txt, truncated) <- TG.liftRun $ smSummaryM sm (not isPlain)
     pure $ TG.dict ["Html"      ~> TGH.unsafeRawHtml txt
                    ,"Truncated" ~> truncated
                    ]
+
+
+extractOptionalPlainArg
+    :: [(Maybe Text, TG.GVal m)] -- ^ the args provided by Ginger
+    -> Bool                      -- ^ whether plain is set, default is False
+extractOptionalPlainArg args =
+    let (posArgs, _, _, _) = TF.extractArgs ["plain"] args
+     in maybe False (toBoolean . TG.asText) (HashMap.lookup "plain" posArgs)
+
+
+toBoolean :: Text -> Bool
+toBoolean xs = let lxs = toLower xs in case lxs of
+    "false" -> False
+    "0"     -> False
+    ""      -> False
+    _       -> True
 
 
 -- | fetch the table of contents for the page.

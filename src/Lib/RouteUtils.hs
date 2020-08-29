@@ -260,8 +260,14 @@ routeToFileName "/" = "/"
 routeToFileName x   = x
 
 
+-- resolve the filepath for the SourceMetadata
+-- There is a set of special cases (the first is the atom.feed - which just
+-- returns the atom.feed name; we'll make it generic whe the 2nd one is needed
 makeFileNameFrom :: Bool -> String -> SourceMetadata -> FilePath
-makeFileNameFrom doIndexPage ext sm = makeFileNoExtNameFrom doIndexPage sm <> ext
+makeFileNameFrom doIndexPage ext sm =
+    if smRoute sm == atomFeedRoute
+      then "feed.atom"
+      else makeFileNoExtNameFrom doIndexPage sm <> ext
 
 
 -- | work out routes at the same level.  i.e. for the paging functions.

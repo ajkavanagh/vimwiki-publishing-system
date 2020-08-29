@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title>{{ Site.Params.Title }}</title>
+  {% if Site.Params.Subtitle -%}<subtitle>{{ Site.Params.Subtitle }}</subtitle>{% endif -%}
+  <id>{{ Site.SiteURL }}</id>
+  <updated>{{ dateformat(Feed.Updated, "%Y-%m-%dT%H:%M:%SZ") }}</updated>
+  {% if Site.Params.Author -%}
+  <author>
+    <name>{{ Site.Params.Author }}</name>
+  </author>
+  {% endif -%}
+  <link rel="self" href="{{ absURL(Page.Permalink) }}" />
+  {% if Site.Params.Feed.License -%}<rights>{{ Site.Params.Feed.License }}</rights>{% endif -%}
+
+  {% for item in sort(Feed.Items, by="Date", reverse=True) -%}
+  {% if item.Updated -%}
+  <entry>
+    <title>{{ item.Title }}</title>
+    <id>{{ absURL(item.Permalink) }}</id>
+    <updated>{{ dateformat(item.Updated, "%Y-%m-%dT%H:%M:%SZ") }}</updated>
+    {% if item.Authors -%}
+    {% for author in item.Authors -%}
+    <author>
+      <name>{{ author }}</name>
+    </author>
+    {% endfor -%}
+    {% endif -%}
+    {% if item.Published -%}
+    <published>{{ dateformat(item.Published, "%Y-%m-%dT%H:%M:%SZ") }}</published>
+    {% endif -%}
+    {% set summary = item.summary(plain=true).Html -%}
+    {% if summary -%}<summary>{{ escape(summary) }}</summary>{% endif %}
+    {% if item.IncludeContent %}
+    <content>
+      {{ escape(item.content(plain=true)) }}
+    </content>
+    {% else -%}
+    <link rel="alternate" href="{{ absURL(item.Permalink) }}" />
+    {% endif %}
+  </entry>
+  {% endif -%}
+  {% endfor %}
+
+</feed>

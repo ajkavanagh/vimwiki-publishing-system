@@ -19,7 +19,7 @@ import           System.FilePath (FilePath, makeRelative, pathSeparator,
 import           Control.Monad   (forM)
 
 import           Data.List       (intercalate)
-import           Data.Maybe      (fromJust, isNothing, catMaybes)
+import           Data.Maybe      (catMaybes, fromJust, isNothing)
 import           Data.Text       (Text)
 import qualified Data.Text       as T
 import           Data.Yaml       ((.!=), (.:), (.:?))
@@ -84,6 +84,7 @@ data RawSiteGenConfig = RawSiteGenConfig
     , _copyStaticFiles    :: !Bool
     , _generateTags       :: !Bool
     , _generateCategories :: !Bool
+    , _generateFeed       :: !Bool
     , _publishDrafts      :: !Bool
     , _indexFiles         :: !Bool
     , _maxSummaryWords    :: !Int
@@ -108,6 +109,7 @@ instance Y.FromJSON RawSiteGenConfig where
         <*> v .:? "copy-static-files"   .!= True               -- By default we do copy static files as that should be normal
         <*> v .:? "generate-tags"       .!= False              -- should sitegen generate a tags page
         <*> v .:? "generate-categories" .!= False              -- should sitegen generate categories
+        <*> v .:? "generate-feed"       .!= False              -- should sitegen genrate an atom feed page?
         <*> v .:? "publish-drafts"      .!= False              -- should we publish drafs?
         <*> v .:? "index-files"         .!= True               -- should index files be generated?
         <*> v .:? "max-summary-words"   .!= 70                 -- Number of words to grab for summary
@@ -147,6 +149,7 @@ data SiteGenConfig = SiteGenConfig
     , sgcCopyStaticFiles    :: !Bool
     , sgcGenerateTags       :: !Bool
     , sgcGenerateCategories :: !Bool
+    , sgcGenerateFeed       :: !Bool
     , sgcPublishDrafts      :: !Bool
     , sgcIndexFiles         :: !Bool
     , sgcMaxSummaryWords    :: !Int
@@ -200,7 +203,7 @@ makeSiteGenConfigFromRaw configPath rawConfig forceDrafts extraDebug = do
       then throw $ ConfigException "One or more directories didn't exist"
       else pure SiteGenConfig
           { sgcSiteYaml=configPath
-          , sgcSiteUrl=NU.parseAbsoluteURI =<< _siteUrl rawConfig
+          , sgcSiteUrl=fixNullPath <$> (NU.parseAbsoluteURI =<< _siteUrl rawConfig)
           , sgcSiteId=_siteId rawConfig
           , sgcRoot=root
           , sgcSource=fromJust source_
@@ -215,6 +218,7 @@ makeSiteGenConfigFromRaw configPath rawConfig forceDrafts extraDebug = do
           , sgcCopyStaticFiles=_copyStaticFiles rawConfig
           , sgcGenerateTags=_generateTags rawConfig
           , sgcGenerateCategories=_generateCategories rawConfig
+          , sgcGenerateFeed=_generateFeed rawConfig
           , sgcPublishDrafts=_publishDrafts rawConfig || forceDrafts
           , sgcIndexFiles=_indexFiles rawConfig
           , sgcMaxSummaryWords=_maxSummaryWords rawConfig
@@ -222,6 +226,14 @@ makeSiteGenConfigFromRaw configPath rawConfig forceDrafts extraDebug = do
           , sgcExtraDebug=extraDebug
           , sgcParams=_params rawConfig
           }
+
+
+fixNullPath :: NU.URI -> NU.URI
+fixNullPath nu =
+    let path = NU.uriPath nu
+     in if null path
+          then nu { NU.uriPath="/" }
+          else nu
 
 
 resolvePath

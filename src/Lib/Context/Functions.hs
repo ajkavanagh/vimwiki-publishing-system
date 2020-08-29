@@ -6,7 +6,7 @@
 {-# LANGUAGE PolyKinds             #-}
 {-# LANGUAGE RankNTypes            #-}
 {-# LANGUAGE ScopedTypeVariables   #-}
---{-# LANGUAGE TypeApplications      #-}
+{-# LANGUAGE TypeApplications      #-}
 {-# LANGUAGE TypeFamilies          #-}
 {-# LANGUAGE TypeOperators         #-}
 
@@ -75,8 +75,8 @@ functionsContext = contextFromList
 
 absURLF :: GingerSemEffects r => TG.Function (RunSem r)
 absURLF args = do
-    -- mSiteUri <- TG.liftRun (PR.asks @SiteGenConfig sgcSiteUrl)
-    let mSiteUri = Nothing
+    mSiteUri <- TG.liftRun (PR.asks @SiteGenConfig sgcSiteUrl)
+    -- let mSiteUri = Nothing
     let mArg = NU.parseURIReference =<< unpack <$> tryExtractStringArg args -- try to get the relative URI
     case mSiteUri of
         -- if there wasn't a site url, just return the parsed version of the

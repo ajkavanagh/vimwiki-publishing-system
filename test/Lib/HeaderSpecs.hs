@@ -182,16 +182,19 @@ defaultSCG = SiteGenConfig
     , sgcExtension=".md"
     , sgcIndexPageName="index"
     , sgcThemeDir="theme/"
-    , sgcTemplatesDir="theme/templates/"
+    , sgcTemplatesDirs=["theme/templates/"]
     , sgcTemplateExt=".html.j2"
     , sgcOutputFileExt=".html"
     , sgcStaticDirs=["static/"]
     , sgcCopyStaticFiles=False
     , sgcGenerateTags=True
     , sgcGenerateCategories=True
+    , sgcGenerateFeed=True
     , sgcPublishDrafts=True
     , sgcIndexFiles=True
     , sgcMaxSummaryWords=70
+    , sgcSkylightStyle=Nothing
+    , sgcExtraDebug=True
     , sgcParams=Nothing
     }
 
@@ -260,7 +263,7 @@ fullHeaderSM = def { smRoute="/the/route"
                    , smTitle="The title"
                    , smTemplate="not-default"
                    , smTags=["tag1", "tag2"]
-                   , smCategory=Just "category1"
+                   , smCategories=["category1"]
                    , smDate=parseDate "23-02-2010"
                    , smUpdated=parseDate "30-04-2020 09:10:00"
                    , smIndexPage=True

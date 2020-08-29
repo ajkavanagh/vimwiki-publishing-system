@@ -151,6 +151,9 @@ pandocHtmlArgs mStyle =
                , TP.writerHtmlQTags = True
                }
 
+pandocPlainArgs :: TP.WriterOptions
+pandocPlainArgs = TP.def
+
 
 -- | parse a markdown document all the way to html.
 -- Firstly we have to get the initial AST.  Then we munge the AST for
@@ -192,25 +195,31 @@ pandocToContentTextEither mStyle ast =
 -- Use the SiteGenConfig reader to extract the ProgramDefaults so that we can
 -- use the 'extract' N words as needed.
 pandocToSummaryTextEither
-    :: Maybe T.Text     -- The text style for skylighting to use
-    -> Int              -- the number of words to use
-    -> TP.Pandoc        -- the Pandoc document to fetch the summary from
+    :: Maybe T.Text     -- ^ The text style for skylighting to use
+    -> Int              -- ^ the number of words to use
+    -> TP.Pandoc        -- ^ the Pandoc document to fetch the summary from
     -- Plain HTML and marked up HTML versions of the summary
     -> Either TE.SiteGenError ((T.Text, Bool), (T.Text, Bool))
 pandocToSummaryTextEither mStyle n ast = do
-    plain <- renderWithOneOfEither mStyle getSummaryPlain (getSummaryNPlain n) ast
-    rich <- renderWithOneOfEither mStyle getSummaryPandoc (getSummaryNPandoc n) ast
+    plain <- renderWithOneOfEither (TP.writePlain pandocPlainArgs)
+                                   getSummaryPlain
+                                   (getSummaryNPlain n)
+                                   ast
+    rich <- renderWithOneOfEither (TP.writeHtml5String (pandocHtmlArgs mStyle))
+                                  getSummaryPandoc
+                                  (getSummaryNPandoc n)
+                                  ast
     pure (plain, rich)
 
 
 -- | helper to choose one of the summary functions
 renderWithOneOfEither
-    :: Maybe T.Text
+    :: (TP.Pandoc -> TP.PandocPure T.Text)
     -> (TP.Pandoc -> Maybe TP.Pandoc)
     -> (TP.Pandoc -> (TP.Pandoc, Bool))
     -> TP.Pandoc
     -> Either TE.SiteGenError (T.Text, Bool) -- ^ return text and truncated flag
-renderWithOneOfEither mStyle f1 f2 ast =
+renderWithOneOfEither pandocF f1 f2 ast =
     let mAst1 = f1 ast
         (ast2, truncated) = f2 ast
         mAst = mAst1 <|> pure ast2
@@ -218,7 +227,7 @@ renderWithOneOfEither mStyle f1 f2 ast =
      in case mAst of
         Nothing -> Left $ TE.PandocProcessError "Couldn't extract text?"
         Just ast' ->
-            let resultTxt = TP.runPure $ TP.writeHtml5String (pandocHtmlArgs mStyle) ast'
+            let resultTxt = TP.runPure $ pandocF ast'
              in case resultTxt of
                 Left e    -> Left $ TE.PandocWriteError e
                 Right txt -> Right (txt, truncated')

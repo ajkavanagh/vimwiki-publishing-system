@@ -21,6 +21,14 @@ tagsRoutePrefix :: Route
 tagsRoutePrefix = tagsRoute <> "/"
 
 
+atomFeedRoute :: Route
+atomFeedRoute = "/feed.atom"
+
+
+atomFeedTemplate :: String
+atomFeedTemplate = "feed.atom"
+
+
 -- / allow up to 2000k for the header
 maxHeaderSize :: Int
 maxHeaderSize = 100 * 20

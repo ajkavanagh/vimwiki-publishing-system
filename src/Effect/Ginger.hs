@@ -35,6 +35,7 @@ import           Effect.File        (File, FileException)
 import           Effect.Locale      (Locale)
 import           Effect.Logging     (LoggingMessage)
 import           Effect.Print       (Print)
+import           Effect.Time        (Time)
 
 import           Types.Errors       (SiteGenError)
 import           Types.SiteGenState (SiteGenReader, SiteGenState)
@@ -48,6 +49,7 @@ import           Lib.SiteGenConfig  (ConfigException, SiteGenConfig)
 type GingerSemEffects r
   =    ( Member File r
        , Member Locale r
+       , Member Time r
        , Member (Cache Pandoc) r
        , Member (Cache Int) r
        , Member (State SiteGenState) r
@@ -66,6 +68,7 @@ type GingerSemEffects r
 type GingerSemEffectsToGVal r a
   =    ( Member File r
        , Member Locale r
+       , Member Time r
        , Member (Cache Pandoc) r
        , Member (State SiteGenState) r
        , Member (Reader SiteGenReader) r

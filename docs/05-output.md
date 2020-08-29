@@ -144,3 +144,36 @@ i.e. *most* of the time the template doesn't need to be specified as it will it
 will either be the `default` or `index` in the `templates` directory that
 matches the route or a `_defaults` one.  The template is only needed if the
 none of those match.
+
+
+## Site Atom Feeds
+
+We want to produce Atom feeds (maybe RSS later) for things from the site.
+However, as we are not particulary in control of *what* constitutes a thing to
+put in a feed, we need to allow the user to specify what it is going to be.
+
+The initial version just generates an updated feed with every run; it is assumed
+that the run to to correct something, and therefore the feed is updated.  If
+this is not the case then don't update the feed (don't use --update-feed)
+
+In future we might want to:
+
+We have two problems:
+
+1. Knowing when to regenerate the feed.  This can be driven from config, and
+   around 'searches' of posts.
+2. Knowing what to gerenate them with.
+
+But first, we have to detect if something has changed; because if nothing has
+changed (for a feed) then it shouldn't be regenerated.
+
+We can do that by storing the size and hash of the original source file (we
+only consider source files that have sitegen headers).  If it has changed then
+we regenerate the RSS feed data, otherwise we just use the date we have stored.
+
+Thus we need to store the last feed generation date (which we could grab from
+the output file) or store it along with the sizes/hashes of the source files.
+
+So we'll need the hashing algo from the other branch, as an effect, and then
+a way of persisting the data, most likely using YAML (as it's nice to dump and
+has a representation for integers).  We'll use a class for that.

@@ -45,7 +45,7 @@ import           Types.Errors           (SiteGenError (..))
 import           Types.Header           (SourceMetadata (..))
 import           Types.SiteGenState     (SiteGenReader (..), SiteGenState (..))
 
-import           Lib.ResolvingTemplates (resolveTemplateName')
+import           Lib.ResolvingTemplates (resolveTemplateName)
 import           Lib.RouteUtils         (checkExistingRoute, routeToConcreteSc)
 import           Lib.SiteGenConfig      (ConfigException, SiteGenConfig (..))
 import           Lib.SiteGenState       (addToRenderList)
@@ -129,7 +129,7 @@ ensureCategoryPageFor category = do
                       then EL.logInfo $ T.pack $ "Category page has already been added for: " ++ category
                       else do
                         let newCat = makeVSMForCategory catRoute ("Category: " ++ category)
-                        mTname <- resolveTemplateName' (smTemplate newCat)
+                        mTname <- resolveTemplateName (smTemplate newCat)
                         -- if it does then add the category page to the render list
                         case mTname of
                             Nothing -> EL.logError $ T.pack $ "No template for category page: " ++ category

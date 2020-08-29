@@ -16,51 +16,53 @@
 
 module Lib.ResolvingTemplates where
 
-import           System.FilePath     (FilePath, isRelative, joinPath,
-                                      makeRelative, normalise, pathSeparator,
-                                      splitPath, takeDirectory, takeFileName,
-                                      (<.>), (</>))
+import           System.FilePath      (FilePath, isRelative, joinPath,
+                                       makeRelative, normalise, pathSeparator,
+                                       splitPath, takeDirectory, takeFileName,
+                                       (<.>), (</>))
 
-import           Control.Monad       (forM, join)
-import           Safe                (headMay)
+import           Control.Monad        (forM, join)
+import           Safe                 (headMay)
 
-import           Data.Maybe          (isNothing)
-import           Data.Text           (Text)
-import qualified Data.Text           as T
+import           Data.ByteString      (ByteString)
+import           Data.Maybe           (isNothing)
+import           Data.Text            (Text)
+import qualified Data.Text            as T
 
-import           Polysemy            (Embed, Member, Sem, embed, embedToFinal,
-                                      runFinal)
-import           Polysemy.Error      (Error, throw)
-import qualified Polysemy.Error      as PE
-import           Polysemy.Reader     (Reader)
-import qualified Polysemy.Reader     as PR
-import           Polysemy.State      (State)
+import           Polysemy             (Embed, Member, Sem, embed, embedToFinal,
+                                       runFinal)
+import           Polysemy.Error       (Error, throw)
+import qualified Polysemy.Error       as PE
+import           Polysemy.Reader      (Reader)
+import qualified Polysemy.Reader      as PR
+import           Polysemy.State       (State)
 
-import           Effect.File         (File, FileException)
-import qualified Effect.File         as EF
-import           Effect.Logging      (LoggingMessage)
-import qualified Effect.Logging      as EL
+import           Effect.File          (File, FileException)
+import qualified Effect.File          as EF
+import           Effect.Logging       (LoggingMessage)
+import qualified Effect.Logging       as EL
 
-import           Types.Header        (SourceMetadata (..))
+import           Types.Errors         (SiteGenError (..), mapSiteGenError)
+import           Types.Header         (SourceMetadata (..))
 
-import           Lib.SiteGenConfig   (ConfigException, SiteGenConfig (..),
-                                      getSiteGenConfig)
+import           Lib.SiteGenConfig    (ConfigException, SiteGenConfig (..),
+                                       getSiteGenConfig)
 -- for tests -- remove when removing test code
-import           Colog.Core          (logStringStderr)
-import           Colog.Core.Severity (pattern D, pattern E, pattern I, Severity,
-                                      pattern W)
-import           Colog.Polysemy      (Log, runLogAction)
-import qualified Colog.Polysemy      as CP
+import           Colog.Core           (logStringStderr)
+import           Colog.Core.Severity  (pattern D, pattern E, pattern I,
+                                       Severity, pattern W)
+import           Colog.Polysemy       (Log, runLogAction)
+import qualified Colog.Polysemy       as CP
 
-import           Data.Function       ((&))
-import           Data.List           (dropWhile, inits, intercalate)
-import           Data.List.Split     (splitOn)
+import           Data.Function        ((&))
+import           Data.List            (dropWhile, inits, intercalate)
+import           Data.List.Split      (splitOn)
 
-import           Lib.Files           (filePathToMaybeSourceMetadata)
-import qualified Lib.Header          as H
-import           Lib.SiteGenState    (SiteGenReader, SiteGenState,
-                                      makeSiteGenReader)
-import           Types.Errors        (SiteGenError (..), mapSiteGenError)
+import           Lib.BuiltInTemplates (textForTemplate)
+import           Lib.Files            (filePathToMaybeSourceMetadata)
+import qualified Lib.Header           as H
+import           Lib.SiteGenState     (SiteGenReader, SiteGenState,
+                                       makeSiteGenReader)
 
 
 {-
@@ -97,21 +99,17 @@ type ResolvingTemplatesSemEffects r
       )
 
 
--- | resolve the template name for an SourceMetadata
--- This looks at the template name and the route of the page and resolves the
--- template to that.  e.g. a route of thing/hello with a template "default" will
--- result in "thing/default".  This is so that the resolveTemplatePath will
--- attempt to find "thing/default.<ext>", then "_defaults/thing/default.<ext>"
--- and finally "_defaults/default.<ext>".
+-- | resolve the template name for an SourceMetadata to a searchable template.
+-- This function is used to provide the initial template name to Ginger for
+-- resolving.
 resolveTemplateNameForSM
     :: ResolvingTemplatesSemEffects r
     => H.SourceMetadata
     -> Sem r String
 resolveTemplateNameForSM sm = do
     sgc <- PR.ask @SiteGenConfig
-    let tBaseName = smTemplate sm
-        hasPath = '/' `elem` tBaseName
-        tFileName = tBaseName <.> sgcTemplateExt sgc
+    let tFileName = smTemplate sm
+        hasPath = '/' `elem` tFileName
         sPath = H.smRoute sm
         sHasPath = '/' `elem` sPath
         dir = intercalate "/" $ init $ splitOn "/" sPath
@@ -120,7 +118,7 @@ resolveTemplateNameForSM sm = do
             (False, True)  -> _dropLeadingSlash dir </> tFileName
             (False, False) -> tFileName
     EL.logDebug $ T.pack $ " >> resolveTemplateNameforSM: template: "
-          <> show tBaseName <> ", route: " <> show sPath <> " -> " <> show tName
+          <> show tFileName <> ", route: " <> show sPath <> " -> " <> show tName
     pure tName
 
 
@@ -134,11 +132,14 @@ _dropLeadingSlash ('/':s) = s
 _dropLeadingSlash s       = s
 
 
-resolveTemplateName'
+-- These functions are called from Ginger to resolve a template name to an
+-- actual file that exists and can be loaded.
+
+resolveTemplateName
     :: ResolvingTemplatesSemEffects r
     => String
     -> Sem r (Maybe FilePath)
-resolveTemplateName' tName = do
+resolveTemplateName tName = do
     --EL.logDebug $ T.pack $ "resolveTemplateName: trying to resolve :" <> show tName
     -- try using the filepath we were sent
     sgc <- PR.ask @SiteGenConfig
@@ -146,19 +147,31 @@ resolveTemplateName' tName = do
         tExt = sgcTemplateExt sgc
     -- try resolving with the extension added (i.e. assume that it doesn't have
     -- it)
-    resolveTemplatePath tDirs (tName <.> tExt)
+    resolveTemplatePath tDirs tName
         -- if we got nothing back, try to resolve it without the extension added
         -- i.e. assume that it might already have it.
-        >>= maybe (resolveTemplatePath tDirs tName) (pure . Just)
+        >>= maybe (resolveTemplatePath tDirs (tName <.> tExt)) (pure . Just)
 
 
-resolveTemplateName
+resolveTemplateToByteString
     :: ResolvingTemplatesSemEffects r
     => String
-    -> Sem r FilePath
-resolveTemplateName tName =
-    resolveTemplateName' tName >>=
-        maybe (PE.throw $ EF.FileException tName "File Not found") pure
+    -> Sem r (Maybe ByteString)
+resolveTemplateToByteString tName = do
+    mFp <- resolveTemplateName tName
+    case mFp of
+        Nothing -> do
+            let mBs = textForTemplate tName
+            case mBs of
+                Nothing -> do
+                    EL.logDebug $ T.pack $ " No builtin template for template name: " <> tName
+                    pure Nothing
+                Just bs -> do
+                    EL.logDebug $ T.pack $ " Using builtin template for: " <> tName
+                    pure $ Just bs
+        Just fp -> do
+            EL.logDebug $ T.pack $ "Found template name: " <> tName
+            Just <$> EF.readFile fp Nothing Nothing
 
 
 resolveTemplatePath
@@ -168,7 +181,9 @@ resolveTemplatePath
     -> Sem r (Maybe FilePath)
 resolveTemplatePath tDirs tPath = do
     mPossibles <- forM tDirs $ \tDir -> resolveTemplatePath' tDir tPath
-    pure $ join $ headMay $ dropWhile isNothing mPossibles
+    let cPath = join $ headMay $ dropWhile isNothing mPossibles
+    {-EL.logDebug $ T.pack $ "  resolveTemplatePath: chosen template: " <> maybe "<not-found>" show cPath-}
+    pure cPath
 
 
 -- | resolve the actual path using the tPath and single tDir.  If tDir is a
@@ -198,7 +213,7 @@ resolveTemplatePath' tDir tPath = do
           pure Nothing
       else do
           let rFileName = fst $ head pairs
-          --EL.logDebug $ T.pack $ "Using " <> show rFileName
+          {-EL.logDebug $ T.pack $ "  resolveTemplatePath': chosen template: " <> show rFileName-}
           pure $ Just rFileName
 
 

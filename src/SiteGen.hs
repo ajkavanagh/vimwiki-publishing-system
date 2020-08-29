@@ -62,6 +62,7 @@ import           Effect.Logging            (LoggingMessage, logActionLevel,
 import           Effect.Print              (Print, printMaybeQuietToIO,
                                             printToIO)
 import qualified Effect.Print              as P
+import           Effect.Time               (Time, timeToIO)
 
 -- Local Libraries
 import           Types.Errors              (SiteGenError (..), mapSiteGenError)
@@ -81,10 +82,13 @@ import           Lib.SiteGenState          (SiteGenReader, SiteGenState,
 import           Lib.SpecialPages.Category (resolveCategoriesPage)
 import           Lib.SpecialPages.Four04   (resolve404page)
 import           Lib.SpecialPages.Tag      (resolveTagsPage)
+import           Lib.SpecialPages.Feed     (resolveFeedPage)
 import           Lib.Utils                 (isDebug, isMarkDownFile,
                                             isMarkDownStr, printIfDoesntExist,
                                             strToLower, validateFileExists,
                                             validateWithTests)
+
+import          Lib.Hash (hashFile)
 
 
 sitegenProgram :: IO ()
@@ -106,6 +110,7 @@ data SitegenArgs = SitegenArgs
     , logLevel      :: !(Maybe Severity)
     , quietOutput   :: !Bool
     , extraDebug    :: !Bool
+    , updateFeed    :: !Bool
     , extraArgs     :: ![String]
     }
     deriving Show
@@ -121,6 +126,7 @@ makeSitegenArgs s f1 f2 fp =
                     , logLevel=Just D
                     , quietOutput=False
                     , extraDebug=True
+                    , updateFeed=True
                     , extraArgs=extra
                     }
 
@@ -154,6 +160,10 @@ sitegenArgsOptions = SitegenArgs
         ( long "debug"
        <> short 'D'
        <> help "Generate extra debug statements (on top of normal ones)" )
+    <*> switch
+        ( long "update-feed"
+       <> short 'u'
+       <> help "Update/Generate the feed file if a feed is specified in site config")
     <*> many (argument str
         ( metavar "EXTRA"
        <> help "Extra argments"))
@@ -196,6 +206,7 @@ runSiteGen args = do
     res <- runSiteGenSem args
         & fileToIO
         & localeToIO
+        & timeToIO
         & mapError @ConfigException mapSiteGenError
         & mapError @FileException mapSiteGenError
         & mapError @GingerException mapSiteGenError
@@ -251,6 +262,7 @@ runSiteGenSem
                 , File
                 , Locale
                 , Print
+                , Time
                 , Error FileException
                 , Error ConfigException
                 , Error GingerException
@@ -296,6 +308,7 @@ runSiteGenSem args = do
             resolve404page
             when (sgcGenerateCategories sgc) resolveCategoriesPage
             when (sgcGenerateTags sgc) resolveTagsPage
+            when (sgcGenerateFeed sgc && updateFeed args) resolveFeedPage
             numToRender <- lengthRenderList
             P.putText $ T.pack $ "Rendering " ++ show numToRender ++ " main files:\n"
             let go = do mSm <- nextSMToRender
@@ -312,3 +325,22 @@ runSiteGenSem args = do
                 F.deleteNonMemoedFiles
 
     P.putText "Done."
+
+
+-- debug: delete it when committing.
+
+testHashFile :: FilePath -> IO ()
+testHashFile fp = do
+    res <- hashFile fp
+        & fileToIO
+        & mapError @FileException mapSiteGenError
+        & errorToIOFinal @SiteGenError
+        & embedToFinal @IO
+        & runFinal @IO
+    case res of
+        Right res' -> do
+            putStrLn $ T.unpack res'
+            return ()
+        Left ex -> do
+            print ex
+            exitWith (ExitFailure 1)

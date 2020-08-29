@@ -64,6 +64,7 @@ import           Effect.Logging         (LoggingMessage)
 import qualified Effect.Logging         as EL
 import           Effect.Print           (Print)
 import qualified Effect.Print           as P
+import           Effect.Time            (Time)
 
 import           Types.Errors           (SiteGenError (..))
 import           Types.Ginger           (GingerException (..))
@@ -83,6 +84,7 @@ import           Lib.SiteGenState       (SiteGenReader (..), SiteGenState (..),
 renderSourceMetadata
     :: ( Member File r
        , Member Locale r
+       , Member Time r
        , Member (Cache Pandoc) r
        , Member (Cache (Template SourcePos)) r
        , Member (Cache Int) r

@@ -29,6 +29,7 @@ import           Effect.Ginger                 (GingerSemEffects)
 import           Lib.Context.CategoriesContext (categoriesContext)
 import           Lib.Context.Core              (mergeContexts)
 import           Lib.Context.DynamicContexts   (pageFunctionsContext)
+import           Lib.Context.FeedContext       (feedContext)
 import           Lib.Context.Functions         (functionsContext)
 import           Lib.Context.PageContexts      (pageHeaderContextFor)
 import           Lib.Context.SiteGenConfig     (siteGenConfigContext)
@@ -49,4 +50,5 @@ makeContextFor sm =
                          , functionsContext
                          , categoriesContext sm
                          , tagsContext sm
+                         , feedContext sm
                          ]

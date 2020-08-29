@@ -13,12 +13,8 @@
     [ ] Ensure that index files don't need to be reprocessed if none of the
         dependent files have changed.
 [ ] Generate a sitemap.xml file for the site as needed.
-[ ] Generate an RSS feed for the site to describe what's new/published, etc.
-    - [ ] Probably use: https://github.com/bergmark/feed
-    - [ ] Generate RSS and Atom feeds.
-    - [ ] link them somehow to some config or something.
 [ ] implement functions for:
-    - [o] absURL  -- currently disabled, as not sure what to do with it.
+    - [x] absURL  -- currently disabled, as not sure what to do with it.
     - [ ] urlize (which might be the same as urlencode)
     - [x] enumerate(list) to provide [{item=n, item=item}]  -- we can't produce
           pairs, so we'll produce a list of dictionaries that have the index
@@ -37,6 +33,13 @@
     the URLs so that they can be explored using the file brower.  At present
     they stick to the /.  Perhaps something to do with the absURL function and
     removing the abs bit if a flag is set and just doing everything relatively?
+[ ] Add a 'server' mode for use when writing that allows reloading of a page
+    after a save.  It can be pretty dumb and just match of the route that
+    exists.
+[ ] Consider dumping Polysemy for a RWS monad stack for performance reasons.
+    Whilst Polysemy is nice, it *is* really complicated and it might be simpler
+    to just use a simpler monad stack. Or consider the Has pattern, instead.  It
+    wouldn't need as many language extensions.
 
 ## Done
 
@@ -132,6 +135,9 @@
     done.
 [x] Find some way to cache the word count of a document so that it doesn't get
     recalculated all the time (performance)
+[x] Generate an Atom feed for the site to describe what's new/published, etc.
+    - [x] Generate Atom feeds.
+    - [x] link them somehow to some config or something.
 
 I really like the idea of using the top level values as Initial caps, and
 functions as lowercased.
