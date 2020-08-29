@@ -14,21 +14,12 @@
         dependent files have changed.
 [ ] Generate a sitemap.xml file for the site as needed.
 [ ] implement functions for:
-    - [x] absURL  -- currently disabled, as not sure what to do with it.
+    - [x] absURL
     - [ ] urlize (which might be the same as urlencode)
     - [x] enumerate(list) to provide [{item=n, item=item}]  -- we can't produce
           pairs, so we'll produce a list of dictionaries that have the index
           and them item in them.
     - [x] markdownify -- convert a Markdown string into html for inclusion
-[ ] - Re-do logging and printing functions so that we can control the output
-      nicely.
-    - [x] Write a logging effect that provide severity and optional module
-          logs.
-    - [x] Write a Print effect that provides colorised printing output options.
-    - [ ] Add a '--debug=xxx' option to extract the level of debugging wanted.
-          Default is None.
-    - [x] Go through the app to change all the log @String to either the print
-          or the logging effect.
 [ ] Need to work out / have a flag to generate a site without '/' prefixes on
     the URLs so that they can be explored using the file brower.  At present
     they stick to the /.  Perhaps something to do with the absURL function and
@@ -138,6 +129,12 @@
 [x] Generate an Atom feed for the site to describe what's new/published, etc.
     - [x] Generate Atom feeds.
     - [x] link them somehow to some config or something.
-
-I really like the idea of using the top level values as Initial caps, and
-functions as lowercased.
+[x] - Re-do logging and printing functions so that we can control the output
+      nicely.
+    - [x] Write a logging effect that provide severity and optional module
+          logs.
+    - [x] Write a Print effect that provides colorised printing output options.
+    - [x] Add a '--debug=xxx' option to extract the level of debugging wanted.
+          Default is None.
+    - [x] Go through the app to change all the log @String to either the print
+          or the logging effect.

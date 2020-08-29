@@ -1,5 +1,8 @@
 # How Pagination works
 
+**NOTE: this is not really tested yet, and there is no pagination.html.j2
+template to enable it.**
+
 So, if we have index pages, with a list of summary blocks for the pages in that
 index, then we need a way of paging them into blocks.  Without that, the page
 could end up being really deep.

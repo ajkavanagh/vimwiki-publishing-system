@@ -42,9 +42,9 @@ add content to a category index page.  The same goes for tags.
 ## Permalinks
 
 Hugo, that other program, appears to generate pages according to the date.  In
-order that we can 'fix' pages; we'll add a `permalink` to the head which allows
+order that we can 'fix' pages; we'll add a `Permalink` to the head which allows
 the `route` to select the template / section that the page goes in, but the
-`permalink` (if present) forces where the page sits.  We'll have to check that
+`Permalink` (if present) forces where the page sits.  We'll have to check that
 permalinks don't clash with routes (which also generate links), etc.
 
 This is simply that if we move a page physically, but we've already published

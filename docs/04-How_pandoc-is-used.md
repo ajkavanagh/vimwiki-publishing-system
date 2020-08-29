@@ -47,5 +47,3 @@ afterwards.
 So an `Inline -> [InLine]` function is needed, but probably doesn't exist.  So
 what is available is `[Inline] -> [Inline]` and then just match the the
 `Inline str` elements, and maybe split them.
-
-
