@@ -41,7 +41,7 @@ import qualified Effect.Logging  as EL
 
 -- | define the biggest file we are willing to process
 maxFileToProcessSize :: Int
-maxFileToProcessSize = 20 * 1024
+maxFileToProcessSize = 100 * 1024
 
 
 data ConfigException = ConfigException Text

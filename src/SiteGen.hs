@@ -251,7 +251,15 @@ printInfoHeader sgc = do
     forM_ (sgcStaticDirs sgc) $ \dir_ ->
         P.putText $ "  - " <> T.pack (SGC.dirForPrint' dir_ sgc)
     P.putText $ "Extension is           : " <> T.pack (sgcExtension sgc)
+    P.putText $ "Generating drafts      : " <> T.pack (if sgcPublishDrafts sgc then "On" else "Off")
     P.putText ""
+
+
+maybeFilterOutDrafts :: SiteGenConfig -> [SourceMetadata] -> [SourceMetadata]
+maybeFilterOutDrafts sgc sms =
+    if SGC.sgcPublishDrafts sgc
+      then sms
+      else filter smPublish sms
 
 
 -- we've now got some validated args; now we need to use those args to create
@@ -279,12 +287,13 @@ runSiteGenSem args = do
     let sourceDir = SGC.sgcSource sgc
     let ext = SGC.sgcExtension sgc
     sms <- runReader sgc $ F.filePathToSourceMetadataItems sourceDir ext
-    let dr = RU.checkDuplicateRoutes sms
+    let sms' = maybeFilterOutDrafts sgc sms
+    let dr = RU.checkDuplicateRoutes sms'
     unless (null dr) $ PE.throw @SiteGenError $ OtherError
         $ T.pack $ "Duplicate routes: " ++ intercalate ", " (map show dr)
-    let mr = RU.findMissingIndexRoutes sms
-    let sms' = RU.ensureIndexRoutesIn sms
-        scs = RU.addVSMIndexPages sms'
+    let mr = RU.findMissingIndexRoutes sms'
+    let sms'' = RU.ensureIndexRoutesIn sms'
+        scs = RU.addVSMIndexPages sms''
     let sgr = makeSiteGenReader scs
 
     -- TODO: filtering whilst in debug; pass in from the command line.
