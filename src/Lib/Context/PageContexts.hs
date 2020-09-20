@@ -124,6 +124,7 @@ instance GingerSemEffects r => TG.ToGVal (RunSem r) SourceMetadata where
             , "Authors"         ~> smAuthors sm
             , "Publish"         ~> smPublish sm
             , "Draft"           ~> not (smPublish sm)
+            , "Comments"        ~> smComments sm
             , "SiteId"          ~> smSiteId sm
             -- note these are lower case initial as they are functions and need to
             -- be called from the template

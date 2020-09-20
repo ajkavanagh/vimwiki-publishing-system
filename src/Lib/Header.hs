@@ -116,6 +116,7 @@ data RawPageHeader = RawPageHeader
     , _author      :: !(Maybe String)
     , _authors     :: ![String]
     , _publish     :: !Bool
+    , _comments    :: !Bool
     , _siteId      :: !(Maybe String)
     , _params      :: !(Maybe Y.Object)
     } deriving (Show)
@@ -129,15 +130,16 @@ instance Y.FromJSON RawPageHeader where
         <*> v .:? "description"
         <*> v .:? "template"
         <*> v .:? "tag"
-        <*> v .:? "tags"     .!= []
+        <*> v .:? "tags"       .!= []
         <*> v .:? "category"
         <*> v .:? "categories" .!= []
         <*> v .:? "date"
         <*> v .:? "updated"
         <*> v .:? "index-page" .!= False
         <*> v .:? "author"
-        <*> v .:? "authors" .!= []
-        <*> v .:? "publish" .!= False
+        <*> v .:? "authors"    .!= []
+        <*> v .:? "publish"    .!= False
+        <*> v .:? "comments"   .!= False
         <*> v .:? "site"
         <*> v .:? "params"
     parseJSON _ = error "Can't parse RawPageHeader from YAML/JSON"
@@ -235,6 +237,7 @@ makeSourceMetadataFromRawPageHeader rph len = do
         , smIndexPage       = _indexPage rph
         , smAuthors         = collateSingleAndMultiple (_author rph) (_authors rph)
         , smPublish         = _publish rph
+        , smComments        = _comments rph
         , smSiteId          = pick (_siteId rph) (S.sgcSiteId sgc)
         , smHeaderLen       = len
         , smParams          = _params rph

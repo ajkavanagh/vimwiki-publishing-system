@@ -22,6 +22,7 @@ data SourceMetadata = SourceMetadata
     , smIndexPage       :: !Bool
     , smAuthors         :: ![String]
     , smPublish         :: !Bool
+    , smComments        :: !Bool
     , smSiteId          :: !String
     , smHeaderLen       :: !Int   -- the length of the headerblock; i.e. what to drop to get to the content.
     , smParams          :: !(Maybe Y.Object)
@@ -46,6 +47,7 @@ instance Default SourceMetadata where
         , smIndexPage=False
         , smAuthors=def
         , smPublish=False
+        , smComments=True
         , smSiteId=def
         , smHeaderLen=def
         , smParams=def
