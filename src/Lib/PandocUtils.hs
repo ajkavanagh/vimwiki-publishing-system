@@ -4,8 +4,8 @@
 
 
 module Lib.PandocUtils
-    ( processPandocLinks
-    , convertVimWikiLinks
+    {-( processPandocLinks-}
+    ( convertVimWikiLinks
     , countWords
     , findSummary
     , takeNWords
@@ -171,13 +171,14 @@ parseMarkdown bs =
                 Right ast -> Right ast
 
 
+-- TODO: remove -- now outdated and replaced by Monad version
 -- | process the pandoc AST so that:
 --  * wikilink links are discovered and turned into Pandoc AST links
 --  * local links that don't point to any pages are removed.
 --  * links are 'fixed up' so they point to the right place in the eventual
 --    site.
-processPandocAST :: SGS.VimWikiLinkToSM -> TP.Pandoc -> TP.Pandoc
-processPandocAST hmap ast = processPandocLinks hmap $ convertVimWikiLinks ast
+{-processPandocAST :: SGS.VimWikiLinkToSM -> TP.Pandoc -> TP.Pandoc-}
+{-processPandocAST hmap ast = processPandocLinks hmap $ convertVimWikiLinks ast-}
 
 
 -- take the Pandoc AST (that's probably been processed) and process it to HTML
@@ -240,26 +241,27 @@ renderWithOneOfEither pandocF f1 f2 ast =
 -- The Link, if it's local, will be the filename minus the extension.  i.e. we
 -- have to add the extension and then try to match it to the filepath
 
-processPandocLinks :: SGS.VimWikiLinkToSM -> TP.Pandoc -> TP.Pandoc
-processPandocLinks hmap = TPW.walk (walkLinksInInlines hmap)
+-- TODO: remove as replaced by processPandocLinksM in Pandoc.hs
+{-processPandocLinks :: SGS.VimWikiLinkToSM -> TP.Pandoc -> TP.Pandoc-}
+{-processPandocLinks hmap = TPW.walk (walkLinksInInlines hmap)-}
 
 
-walkLinksInInlines :: SGS.VimWikiLinkToSM -> [TP.Inline] -> [TP.Inline]
-walkLinksInInlines hmap xs = L.concat $ walkLinksInInlines' hmap [] xs
+{-walkLinksInInlines :: SGS.VimWikiLinkToSM -> [TP.Inline] -> [TP.Inline]-}
+{-walkLinksInInlines hmap xs = L.concat $ walkLinksInInlines' hmap [] xs-}
 
 
-walkLinksInInlines' :: SGS.VimWikiLinkToSM
-                    -> [[TP.Inline]]
-                    -> [TP.Inline]
-                    -> [[TP.Inline]]
-walkLinksInInlines' hmap ds xs =
-    let (as, bs) = L.break findLink xs
-     in case bs of
-         [] -> L.reverse $ as : ds
-         (b:bs') -> walkLinksInInlines' hmap (maybeRewriteLink hmap b : as : ds) bs'
-  where
-      findLink TPD.Link {} = True
-      findLink _           = False
+{-walkLinksInInlines' :: SGS.VimWikiLinkToSM-}
+                    {--> [[TP.Inline]]-}
+                    {--> [TP.Inline]-}
+                    {--> [[TP.Inline]]-}
+{-walkLinksInInlines' hmap ds xs =-}
+    {-let (as, bs) = L.break findLink xs-}
+     {-in case bs of-}
+         {-[] -> L.reverse $ as : ds-}
+         {-(b:bs') -> walkLinksInInlines' hmap (maybeRewriteLink hmap b : as : ds) bs'-}
+  {-where-}
+      {-findLink TPD.Link {} = True-}
+      {-findLink _           = False-}
 
 
 -- rewrite the Link.  Options
@@ -271,28 +273,29 @@ walkLinksInInlines' hmap ds xs =
 -- use Network.URI to detect the whether it is relative or a URI.  If it is
 -- relative, parse it, pull out the relative bit, and match it against the
 -- relative link of the the SourceMetadata items.
-maybeRewriteLink :: SGS.VimWikiLinkToSM -> TP.Inline -> [TP.Inline]
-maybeRewriteLink hmap link@(TPD.Link attr desc (url, title)) =
-    let url' = T.unpack url
-  -- it's a relative reference; they should ALL be within the site
-     in if NU.isRelativeReference url'
-          -- can we parse it
-          then case NU.parseRelativeReference url' of
-            Nothing -> [link]   -- assume it's something else and leave it alone
-            Just uri -> case HashMap.lookup (strToLower $ NU.uriPath uri) hmap of
-                -- if we don't find it, then convert it to text
-                Nothing -> if null desc
-                            then B.toList $ B.text title
-                            else desc
-                -- otherwise re-write it to the route (or permalink override);
-                -- note we need to add back in any of the other bits of the url
-                -- (query and fragment)
-                Just sm ->
-                    let newUri = show (uri {NU.uriPath=H.resolveLinkFor sm})
-                    in [TPD.Link attr desc (T.pack newUri, title)]
-          -- it was absolute or something else; thus we just ignore the link
-          else [link]
-maybeRewriteLink _ _ = error "Must only pass a Link to this function"
+-- TODO: remove as replaced by maybeRewriteLinkM
+{-maybeRewriteLink :: SGS.VimWikiLinkToSM -> TP.Inline -> [TP.Inline]-}
+{-maybeRewriteLink hmap link@(TPD.Link attr desc (url, title)) =-}
+    {-let url' = T.unpack url-}
+  {--- it's a relative reference; they should ALL be within the site-}
+     {-in if NU.isRelativeReference url'-}
+          {--- can we parse it-}
+          {-then case NU.parseRelativeReference url' of-}
+            {-Nothing -> [link]   -- assume it's something else and leave it alone-}
+            {-Just uri -> case HashMap.lookup (strToLower $ NU.uriPath uri) hmap of-}
+                {--- if we don't find it, then convert it to text-}
+                {-Nothing -> if null desc-}
+                            {-then B.toList $ B.text title-}
+                            {-else desc-}
+                {--- otherwise re-write it to the route (or permalink override);-}
+                {--- note we need to add back in any of the other bits of the url-}
+                {--- (query and fragment)-}
+                {-Just sm ->-}
+                    {-let newUri = show (uri {NU.uriPath=H.resolveLinkFor sm})-}
+                    {-in [TPD.Link attr desc (T.pack newUri, title)]-}
+          {--- it was absolute or something else; thus we just ignore the link-}
+          {-else [link]-}
+{-maybeRewriteLink _ _ = error "Must only pass a Link to this function"-}
 
 
 ----

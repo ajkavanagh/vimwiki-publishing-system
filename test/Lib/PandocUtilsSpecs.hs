@@ -21,8 +21,8 @@ import qualified Types.SiteGenState     as SGS
 
 
 -- module under test
-import           Lib.PandocUtils        (convertVimWikiLinks,
-                                         processPandocLinks)
+import           Lib.PandocUtils        (convertVimWikiLinks)
+                                         {-processPandocLinks)-}
 
 
 processPandocLinksSpecs :: Spec
@@ -94,16 +94,33 @@ parse :: Text -> TP.Pandoc
 parse = B.doc . B.para . B.text
 
 
-runProcessPandocLinks :: SGS.VimWikiLinkToSM -> TP.Pandoc -> TP.Pandoc
-runProcessPandocLinks hmap = TPW.walk (processPandocLinks hmap)
+{-runProcessPandocLinks :: SGS.VimWikiLinkToSM -> TP.Pandoc -> TP.Pandoc-}
+{-runProcessPandocLinks hmap = TPW.walk (processPandocLinks hmap)-}
 
 
 -- convert the wikilinks and then see if we should re-write them
-process :: SGS.VimWikiLinkToSM -> TP.Pandoc -> TP.Pandoc
-process hmap doc = runProcessPandocLinks hmap $ convertVimWikiLinks doc
+{-process :: SGS.VimWikiLinkToSM -> TP.Pandoc -> TP.Pandoc-}
+{-process hmap doc = runProcessPandocLinks hmap $ convertVimWikiLinks doc-}
 
+
+{-runTest :: SGS.VimWikiLinkToSM -> TP.Pandoc -> Text-}
+{-runTest hmap x =-}
+    {-either (error . show) id-}
+           {-(TP.runPure (TP.writeHtml5String TP.def (process hmap x)))-}
+
+
+-- need to run tests in a Monad for the  Monad version of link management.
+{-type PandocSemEffects r-}
+  {-=    ( Member File r-}
+       {-, Member (Cache Pandoc) r-}
+       {-, Member (Cache Int) r-}
+       {-, Member (State SiteGenState) r-}
+       {-, Member (Reader SiteGenReader) r-}
+       {-, Member (Reader SiteGenConfig) r-}
+       {-, Member (Error SiteGenError) r-}
+       {-, Member (Log LoggingMessage) r-}
+       {-, Member Print r-}
+       {-)-}
 
 runTest :: SGS.VimWikiLinkToSM -> TP.Pandoc -> Text
-runTest hmap x =
-    either (error . show) id
-           (TP.runPure (TP.writeHtml5String TP.def (process hmap x)))
+runTest hmap doc = undefined
