@@ -1,9 +1,13 @@
-site: home
+site: site1
+vimwiki-dir: vw-src
+source: vw-src/site1
+output-dir: output/site1-html
 template-ext: .html.j2
-siteURL: http://example.com
+siteURL: http://site1.com
 index-files: true
-generate-categories: true
-generate-tags: true
+generate-categories: false
+generate-tags: false
+
 params:
   home: Home
   # Select a syntax highight.

@@ -32,6 +32,7 @@ instance Hashable FileMemo
 data SiteGenReader = SiteGenReader
     { siteSourceMetadataItems :: ![SourceMetadata]
     , siteVimWikiLinkMap      :: !VimWikiLinkToSM
+    , siteFilePathToSM        :: !FilePathToSM
     , siteRouteMap            :: !RouteToSM
     } deriving (Show)
 

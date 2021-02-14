@@ -45,7 +45,8 @@ import qualified Colog.Polysemy            as CP
 import           Polysemy
 import           Polysemy.Error            (Error, errorToIOFinal, mapError)
 import qualified Polysemy.Error            as PE
-import           Polysemy.Reader           (runReader)
+import           Polysemy.Reader           (Reader, runReader)
+import qualified Polysemy.Reader           as PR
 import           Polysemy.State            (evalState, runState)
 
 import           Text.Ginger               (SourcePos, Template)
@@ -59,6 +60,7 @@ import           Effect.File               (File, FileException, fileToIO,
 import           Effect.Locale             (Locale, LocaleException, localeToIO)
 import           Effect.Logging            (LoggingMessage, logActionLevel,
                                             logActionMaybeLevel)
+import qualified Effect.Logging            as EL
 import           Effect.Print              (Print, printMaybeQuietToIO,
                                             printToIO)
 import qualified Effect.Print              as P
@@ -68,6 +70,7 @@ import           Effect.Time               (Time, timeToIO)
 import           Types.Errors              (SiteGenError (..), mapSiteGenError)
 import           Types.Ginger              (GingerException)
 import           Types.Header              (SourceMetadata (..))
+import           Types.SiteGenState        (siteVimWikiLinkMap)
 
 import qualified Lib.Files                 as F
 import qualified Lib.Header                as H
@@ -245,7 +248,9 @@ printInfoHeader sgc = do
         root' = makeRelative pwd root
         pRoot = if length root' < length root then "./" <> root' else root
     P.putText $ "Root directory is      : " <> T.pack pRoot
+    P.putText $ "VimwikiRoot directory  : " <> T.pack (SGC.dirForPrint sgcVimWikiRoot sgc)
     P.putText $ "Source Directory is    : " <> T.pack (SGC.dirForPrint sgcSource sgc)
+    P.putText $ "Source Relative dir is : " <> T.pack (SGC.dirForPrint sgcSourceRelDir sgc)
     P.putText $ "Output Directory is    : " <> T.pack (SGC.dirForPrint sgcOutputDir sgc)
     P.putText "Statics Directories are: "
     forM_ (sgcStaticDirs sgc) $ \dir_ ->
@@ -260,6 +265,19 @@ maybeFilterOutDrafts sgc sms =
     if SGC.sgcPublishDrafts sgc
       then sms
       else filter smPublish sms
+
+
+debugPrintVimWikiLinkMap
+    :: ( Member (Log LoggingMessage) r
+       , Member (Reader SiteGenReader) r
+       )
+    => Sem r ()
+debugPrintVimWikiLinkMap = do
+    vws <- PR.asks @SiteGenReader siteVimWikiLinkMap
+    --EL.logInfo $ T.pack $ "VimwikiLinkMap is"
+    EL.logDebug "VimwikiLinkMap:"
+    forM_ (HashMap.toList vws) $ \(k, v) -> -- do
+        EL.logDebug $ T.pack $ show k <> " - " <> show v
 
 
 -- we've now got some validated args; now we need to use those args to create
@@ -318,6 +336,7 @@ runSiteGenSem args = do
             when (sgcGenerateCategories sgc) resolveCategoriesPage
             when (sgcGenerateTags sgc) resolveTagsPage
             when (sgcGenerateFeed sgc && updateFeed args) resolveFeedPage
+            debugPrintVimWikiLinkMap
             numToRender <- lengthRenderList
             P.putText $ T.pack $ "Rendering " ++ show numToRender ++ " main files:\n"
             let go = do mSm <- nextSMToRender

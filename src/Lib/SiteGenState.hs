@@ -40,6 +40,8 @@ import           Data.HashSet        (HashSet)
 import qualified Data.HashSet        as HashSet
 import qualified Data.List           as L
 import           Data.Ord            (comparing)
+import           Data.Maybe          (isJust, fromJust)
+import qualified Data.Bifunctor      as DB
 
 import           Polysemy            (Member, Sem)
 import           Polysemy.State      (State)
@@ -57,6 +59,9 @@ makeSiteGenReader :: [SourceMetadata] -> SiteGenReader
 makeSiteGenReader sms = SiteGenReader
     { siteSourceMetadataItems=sms
     , siteVimWikiLinkMap=HashMap.fromList $ map (\h -> (smVimWikiLinkPath h, h)) sms
+    , siteFilePathToSM=HashMap.fromList $ map (DB.first fromJust)
+                                        $ filter (isJust . fst)
+                                        $ map (\h -> (smAbsFilePath h, h)) sms
     , siteRouteMap=HashMap.fromList $ map (\h -> (smRoute h, h)) sms
     }
 

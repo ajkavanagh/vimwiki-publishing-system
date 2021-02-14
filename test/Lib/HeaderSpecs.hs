@@ -177,6 +177,8 @@ defaultSCG = SiteGenConfig
     , sgcSiteUrl=Nothing
     , sgcSiteId="site1"
     , sgcRoot="a/file"
+    , sgcVimWikiRoot="."
+    , sgcSourceRelDir="."
     , sgcSource="src/"
     , sgcOutputDir="html/"
     , sgcExtension=".md"
@@ -220,6 +222,7 @@ defaultSM = def { smRoute="/auto/slug"
                 , smIndexPage=False
                 , smAuthors=[]
                 , smPublish=False
+                , smComments=True
                 , smSiteId="site1"
                 , smHeaderLen=0 -- the length of the headerblock; i.e. what to drop to get to the content.
                 }
@@ -288,6 +291,7 @@ maybeDecodeHeaderSpecs = -- do
         it "Should return the title and length for a minimal header" $
             runMaybeDecodeHeader defaultSCG defaultHC minimalHeader
                 `shouldBe` ([], Just (defaultSM { smTitle="This is the day"
+                                                , smComments=False
                                                 , smHeaderLen=39}))
 
         it "Should be 'Done.\\n' when dropping 39 chars from minimalHeader" $
@@ -295,4 +299,5 @@ maybeDecodeHeaderSpecs = -- do
 
         it "Should return the full SourceMetadata from a full config" $
             runMaybeDecodeHeader defaultSCG defaultHC fullHeader
-                `shouldBe` ([], Just (fullHeaderSM {smHeaderLen=281}))
+                `shouldBe` ([], Just (fullHeaderSM { smHeaderLen=281
+                                                   , smComments=False}))

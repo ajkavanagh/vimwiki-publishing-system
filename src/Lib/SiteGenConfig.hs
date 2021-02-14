@@ -14,9 +14,9 @@ module Lib.SiteGenConfig where
 import           TextShow
 
 import           System.FilePath (FilePath, makeRelative, pathSeparator,
-                                  takeDirectory, (</>))
+                                  takeDirectory, (</>), normalise)
 
-import           Control.Monad   (forM)
+import           Control.Monad   (forM, when)
 
 import           Data.List       (intercalate)
 import           Data.Maybe      (catMaybes, fromJust, isNothing)
@@ -72,6 +72,7 @@ generate-categories: true  # should sitegen generate categories
 data RawSiteGenConfig = RawSiteGenConfig
     { _siteId             :: !String
     , _siteUrl            :: !(Maybe String)
+    , _vimwikiDir         :: !FilePath
     , _source             :: !FilePath
     , _outputDir          :: !FilePath
     , _extension          :: !String
@@ -97,6 +98,7 @@ instance Y.FromJSON RawSiteGenConfig where
     parseJSON (Y.Object v) = RawSiteGenConfig
         <$> v .:? "site"                .!= "default"          -- site: <site-identifier>
         <*> v .:? "siteURL"                                    -- http(s)://some.domain/
+        <*> v .:? "vimwiki-dir"         .!= "."                 -- optionally the directory relative to the site.yaml for the vimwiki root
         <*> v .:? "source"              .!= "./src"            -- the directory (relative to the site.yaml) to start
         <*> v .:? "output-dir"          .!= "./html"           -- where to place output files
         <*> v .:? "extension"           .!= ".md"              -- the extension for source files
@@ -137,6 +139,8 @@ data SiteGenConfig = SiteGenConfig
     , sgcSiteUrl            :: !(Maybe NU.URI)
     , sgcSiteId             :: !String
     , sgcRoot               :: !FilePath
+    , sgcVimWikiRoot        :: !FilePath
+    , sgcSourceRelDir       :: !FilePath
     , sgcSource             :: !FilePath
     , sgcOutputDir          :: !FilePath
     , sgcExtension          :: !String
@@ -199,13 +203,29 @@ makeSiteGenConfigFromRaw configPath rawConfig forceDrafts extraDebug = do
         resolvePath _dir root ("statics dir: " ++ _dir)
     templatesDirs_ <- forM (_templateDirs rawConfig) $ \_dir ->
         resolvePath _dir root ("templates dir: " ++ _dir)
-    if any isNothing ([source_, outputDir_, themeDir_, themeTemplatesDir_] ++ staticDirs_ ++ templatesDirs_)
+    vimwikiDir_ <- resolvePath (_vimwikiDir rawConfig) root "vimwikiRoot dir"
+    -- now ensure that source_ is a subdir of vimwikiDir_ -- if it's not then we
+    -- need to error out.
+    let sourceRelDir_ = makeRelativeMaybe vimwikiDir_ source_
+    when (isNothing sourceRelDir_)
+        $ throw $ ConfigException $ T.pack $ "vimwikidir: "
+                                          <> show vimwikiDir_
+                                          <> " is not a parent of source: "
+                                          <> show source_
+    if any isNothing ([ source_
+                      , outputDir_
+                      , themeDir_
+                      , themeTemplatesDir_
+                      , vimwikiDir_
+                      , sourceRelDir_] ++ staticDirs_ ++ templatesDirs_)
       then throw $ ConfigException "One or more directories didn't exist"
       else pure SiteGenConfig
           { sgcSiteYaml=configPath
           , sgcSiteUrl=fixNullPath <$> (NU.parseAbsoluteURI =<< _siteUrl rawConfig)
           , sgcSiteId=_siteId rawConfig
           , sgcRoot=root
+          , sgcVimWikiRoot=fromJust vimwikiDir_
+          , sgcSourceRelDir=fromJust sourceRelDir_
           , sgcSource=fromJust source_
           , sgcOutputDir=fromJust outputDir_
           , sgcExtension=_extension rawConfig
@@ -242,7 +262,7 @@ resolvePath
                 , Error FileException
                 ] r
     => FilePath        -- The path to resolve
-    -> FilePath        -- the root to perhaps append to it.
+    -> FilePath        -- the root to perhaps prepend to it.
     -> String          -- A handy error string to log with (maybe)
     -> Sem r (Maybe FilePath)  -- what to return
 resolvePath "" _ errorStr = do
@@ -250,14 +270,27 @@ resolvePath "" _ errorStr = do
     pure Nothing
 resolvePath path root errorStr = do
     resolvedPath <- if head path /= pathSeparator
-                      then EF.makeAbsolute (root </> path)
-                      else pure path
+                      then EF.canonicalizePath (root </> path)
+                      else EF.canonicalizePath path
     exists <- EF.doesDirectoryExist resolvedPath
     if exists
       then pure $ Just resolvedPath
       else do
           EL.logError $ T.pack $ "Path " ++ resolvedPath ++ " doesn't exist for: " ++ errorStr
           pure Nothing
+
+
+-- | return the relative path of root being a parent dir of child.  If it is not
+-- then return Nothing. Note the relative bit needs to be "rooted" (i.e. start
+-- with a '/') so that it can be matched with roots in links.
+makeRelativeMaybe :: Maybe FilePath -> Maybe FilePath -> Maybe FilePath
+makeRelativeMaybe Nothing _ = Nothing
+makeRelativeMaybe _ Nothing = Nothing
+makeRelativeMaybe (Just root) (Just child) =
+    let relative = makeRelative root child
+     in if relative == child
+      then Nothing
+      else Just ("/" <> relative)
 
 
 -- | Modify the directory for printing; returns a string

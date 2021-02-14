@@ -8,7 +8,7 @@ date: 2019-10-11
 updated: 2019-10-12
 route: some/slug-name
 index-page: true
-author: [tinwood]
+author: tinwood
 draft: true
 publish: false
 site: default
