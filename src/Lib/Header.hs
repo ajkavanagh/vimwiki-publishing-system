@@ -391,3 +391,71 @@ findEndSiteGenHeader bs =
          "" -> Nothing
          _ -> let (_, count) = dropWithNewLine (BS.tail remain)
                in Just (block, BS.length block + count +1)
+
+
+{-
+   VimWiki Links and how they are mapped/used in VPS.
+   --------------------------------------------------
+
+  The types of links:
+
+    * Plain Link: [[This is a link]]
+    * Description: [[This is a link|Description of the the link]]
+    * Plain link, rooted [[/index]]  -> index.md in the root of the wiki
+    * Directory link [[some/dir/]] -> NOT SUPPORTED and filtered out.
+    * Interwiki link: [[wiki1:This is the link]]
+    * Named interwiki link: [[wn.WikiName:This is the link|Description of link]]
+    * Diary Link: [[dairy:2020-03-05]]
+    * Anchors: [[#Tomorrow]]
+    * File and local links: [[file:...]] and [[local:...]] -> NOT SUPPORTED
+    * Transclusion: {{link}} -> NOT SUPPORTED
+
+  So, in PandocUtils, it parses the link out, and then it needs to be interpreted
+  in VPS.  So a link looks like:
+
+  wikiN:/some/link#anchor
+  wm.NamedWiki:/some/link#anchor
+
+  So we have a map of wikiN -> named site in the site config.  This is used to
+  get the prefix for the site.  The same is true for wm.NamedWiki -> prefix.
+
+  So links in VimWiki pages are relative to the root of the vimwiki (or page).
+  However, VPS allows multiple sites within a single vimwiki site; or rather, we
+  can pick a 'directory' in the vimwiki site to be the root of the target site.
+
+  So there's two places where we have to manage links:
+
+    1. We need to ensure that when we read the page header, we create the page
+       vimiwikilink to be rooted at the vimwiki root using the relative
+       directory.  i.e. all the page header vimwiki links are rooted as
+       /some/directory/vim-wiki-link
+    2. We substitute spaces for '-' and '_' for '-'.
+    3. We also need to go this conversion when finding links in pages, if they
+       are local links.
+
+  So the prefix for the page header links is the absolute directory of the page
+  with the vimwiki root removed.  Note this might be nearer the root of the
+  filesystem than the website's source (which might be a subdirectory of the
+  vimwiki pages)
+
+  Then, for a link in a page, if it is relative, then it has to be extended with
+  the vimwiki prefix for the site.  This can then be matched to a local page
+  when doing the conversion.  So that's the easy bit.
+
+  The other issue is 'what do we do with local files'.  i.e. static files.  We
+  have two types of things:  The static files that make up the website, things
+  like CSS, scripts or site images.  And then, we have media that are part of
+  the content and are referenced from the content.
+
+  VimWiki allows, via the [[link]] format, to link to any file.  If this is a
+  relative link, then it is relative to the page on which the link is found.  If
+  it is an absolute link, then it is relative to the file system.  This means it
+  could be within one of the static directories, and if so, should be
+  maintained.  So the checking process for the links needs to also verify if the
+  link target is within the site (a page header or some kind) or within a static
+  directory.
+
+  This probably means we need to smuggle a monad into the verification code as
+  it needs to checks to see if files exist if they are not just simple headers.
+
+-}

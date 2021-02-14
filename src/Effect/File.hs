@@ -91,6 +91,7 @@ data File m a where
 
     -- Directory support
     MakeAbsolute :: FilePath -> File m FilePath
+    CanonicalizePath :: FilePath -> File m FilePath
     DoesDirectoryExist :: FilePath -> File m Bool
     CreateDirectory :: FilePath -> File m ()
     CreateDirectoryIfMissing :: Bool -> FilePath -> File m ()
@@ -211,6 +212,10 @@ fileToIO = interpret $ \case
     -- MakeAbsolute :: FilePath -> File m FilePath
     MakeAbsolute fp ->
         throwIfException fp =<< embed ( tryIOError $ SD.makeAbsolute fp)
+
+    -- CanonicalizePath :: FilePath -> File m FilePath
+    CanonicalizePath fp ->
+        throwIfException fp =<< embed ( tryIOError $ SD.canonicalizePath fp)
 
     --DoesDirectoryExist :: FilePath -> File m Bool
     DoesDirectoryExist fp ->

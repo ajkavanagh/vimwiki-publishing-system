@@ -2,22 +2,29 @@
 {-# LANGUAGE OverloadedStrings    #-}
 
 module Lib.Utils
-    ( isMarkDownStr
-    , isMarkDownFile
-    , debugArgs
-    , isDebug
-    , strToLower
-    , validateWithTests
-    , validateFileExists
-    , validateDirExists
-    , printIfDoesntExist
-    , flipUnderscores
-    , flipSpaces
+    ( debugArgs
+    , falseOr
     , fixRoute
+    , flipSpaces
+    , flipUnderscores
+    , fmapToFst
+    , fmapOnFst
+    , isDebug
+    , isMarkDownFile
+    , isMarkDownStr
+    , maybeM
+    , maybeM'
+    , printIfDoesntExist
+    , returnFirstMaybeResultM
+    , strToLower
+    , validateDirExists
+    , validateFileExists
+    , validateWithTests
     ) where
 
 import           Conduit
 import           Control.Applicative (liftA2)
+import           Data.Bifunctor      (first)
 import qualified Data.Char           as C
 import           System.FilePath
 
@@ -123,3 +130,41 @@ validateThingExists test f errorStr args = do
 printIfDoesntExist :: Bool -> String -> String -> IO ()
 printIfDoesntExist True _ _   = pure ()
 printIfDoesntExist False path prefix = putStrLn $ prefix ++ path ++ " doesn't exist!"
+
+
+-- maybeM :: b -> (a -> m b) -> Maybe a -> m b
+maybeM :: Monad m => b -> (a -> m b) -> Maybe a -> m b
+maybeM def f mv = case mv of
+    Nothing -> pure def
+    Just v -> f v
+maybeM' :: Monad m => b -> Maybe a -> (a -> m b) -> m b
+maybeM' def mv f = case mv of
+    Nothing -> pure def
+    Just v -> f v
+
+
+-- Helper that takes a Maybe value (which it doesn't care about), and if Nothing
+-- returns m False, but if Just _ then returns the evaluation of the passed
+-- function.
+falseOr :: Monad m => Maybe a -> m Bool -> m Bool
+falseOr v f = maybe (pure False) (const f) v
+
+
+-- | sequentially apply a supplied list of monadic functions to the input and
+-- return the result of the first one that returns a Just value.
+returnFirstMaybeResultM :: Monad m => a -> [a -> m (Maybe b)] -> m (Maybe b)
+returnFirstMaybeResultM link [] = pure Nothing
+returnFirstMaybeResultM link (f:fs) = f link >>= \case
+    Nothing -> returnFirstMaybeResultM link fs
+    res -> pure res
+
+
+-- | fmap the function onto a functor and return a functor with a tuple of the
+-- result and the original value.
+fmapToFst :: Functor f => (a -> b) -> f a -> f (b, a)
+fmapToFst f = fmap (\x -> (f x, x))
+
+
+-- | Apply a function to the first element of a tuple in a functor.
+fmapOnFst :: Functor f => (a -> b) -> f (a, c) -> f (b, c)
+fmapOnFst f = fmap (first f)

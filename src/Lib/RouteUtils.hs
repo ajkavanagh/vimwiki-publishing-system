@@ -26,7 +26,6 @@ module Lib.RouteUtils
     , sameLevelRoutesAs
     ) where
 
-import           Data.Bifunctor      (first)
 import           Data.Default.Class  (Default, def)
 import           Data.Function       (on)
 import qualified Data.HashMap.Strict as HashMap
@@ -56,6 +55,7 @@ import           Types.Header        (SourceMetadata (..))
 import           Types.RouteUtils
 
 import           Lib.Header          (resolveLinkFor)
+import           Lib.Utils           (falseOr, fmapToFst, fmapOnFst)
 
 
 -- see if a route exists in the list of pages to render, or the pages that have
@@ -75,13 +75,6 @@ checkExistingRoute route = do
         falseOr page' $ do
             srl <- PS.gets @SiteGenState siteRenderList
             pure $ elem route $ map smRoute srl
-
-
--- Helper that takes a Maybe value (which it doesn't care about), and if Nothing
--- returns m False, but if Just _ then returns the evaluation of the passed
--- function.
-falseOr :: Monad m => Maybe a -> m Bool -> m Bool
-falseOr v f = maybe (pure False) (const f) v
 
 
 -- | look up a route to a concrete (actual page) rather than a dynamically
@@ -138,14 +131,6 @@ checkDuplicateUsing f sms = concatMap makeError' $ checkForDuplicates $ fmapToFs
 
 checkForDuplicates :: (Ord a, Eq a) => [(a, b)] -> [[(a, b)]]
 checkForDuplicates ps = L.filter ((>1).length) $ L.groupBy ((==) `on` fst) $ L.sortOn fst ps
-
-
-fmapToFst :: Functor f => (a -> b) -> f a -> f (b, a)
-fmapToFst f = fmap (\x -> (f x, x))
-
-
-fmapOnFst :: Functor f => (a -> b) -> f (a, c) -> f (b, c)
-fmapOnFst f = fmap (first f)
 
 
 makeError' :: Show a => [(a, SourceMetadata)] -> [RouteError]

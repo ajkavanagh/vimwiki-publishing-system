@@ -22,7 +22,6 @@ module Lib.PandocUtils
     , loadTocEither
     , buildPandocFromTocItems
     , parseMarkdown
-    , processPandocAST
     , pandocToContentTextEither
     , pandocToSummaryTextEither
     , extractTocItemsToByteString
@@ -234,8 +233,8 @@ renderWithOneOfEither pandocF f1 f2 ast =
 
 
 -- | re-write Pandoc Links if they map to a source name.  i.e. map it to a
--- route; if a link is removed, then the text needs to be just but back into the
--- list.  However, that is [Inline] and it replaces a Inline.  So we have to
+-- route; if a link is removed, then the text needs to just be put but back into
+-- the list.  However, that is [Inline] and it replaces a Inline.  So we have to
 -- process the list and give back a list.
 --
 -- The Link, if it's local, will be the filename minus the extension.  i.e. we

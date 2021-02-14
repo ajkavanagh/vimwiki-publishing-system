@@ -1,4 +1,4 @@
-example-site/html/*
+example-site/output/*
 dist
 dist-*
 cabal-dev
