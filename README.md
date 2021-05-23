@@ -64,7 +64,7 @@ finished, I'd be happy to accept pull requests!
 
 ## How do you work with it?
 
-The user creates and edits pages as normal in Pandoc pages and links.  i.e. It
+The user creates and edits pages as normal in Vimwiki pages and links.  i.e. It
 looks like a normal wiki of interconnected pages.  Vimwiki can navigate around
 those pages assuming it is configured appropriately.  Vimwiki can also 'publish'
 those pages using `VimwikiAll2HTML` which would convert every page.  In this
