@@ -142,7 +142,7 @@ styleToCSSForF args =
 
 -- | given a text item in the first argument position, evaluate it as markdown
 -- and then return it as parsed text suitable for direct insertion.  Parse
--- links, etc and stabalise them, plust allow wiki links.
+-- links, etc and stabalise them, plus allow wiki links.
 -- Note: this is inherently dangerous; any kind of HTML markup and links can
 -- make it to the document; however, this is the same as the content, summary,
 -- and toc functions which do the same.
