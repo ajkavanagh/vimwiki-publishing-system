@@ -107,14 +107,16 @@ sitegenCli args = do
 
 
 data SitegenArgs = SitegenArgs
-    { siteConfigArg :: !String
-    , draftsArg     :: !Bool
-    , cleanArg      :: !Bool
-    , logLevel      :: !(Maybe Severity)
-    , quietOutput   :: !Bool
-    , extraDebug    :: !Bool
-    , updateFeed    :: !Bool
-    , extraArgs     :: ![String]
+    { siteConfigArg  :: !String
+    , draftsArg      :: !Bool
+    , cleanArg       :: !Bool
+    , logLevel       :: !(Maybe Severity)
+    , quietOutput    :: !Bool
+    , extraDebug     :: !Bool
+    , updateFeed     :: !Bool
+    , runHttpServer  :: !Bool
+    , httpServerPort :: !Int
+    , extraArgs      :: ![String]
     }
     deriving Show
 
@@ -130,6 +132,8 @@ makeSitegenArgs s f1 f2 fp =
                     , quietOutput=False
                     , extraDebug=True
                     , updateFeed=True
+                    , runHttpServer=False
+                    , httpServerPort=8080
                     , extraArgs=extra
                     }
 
@@ -167,6 +171,17 @@ sitegenArgsOptions = SitegenArgs
         ( long "update-feed"
        <> short 'u'
        <> help "Update/Generate the feed file if a feed is specified in site config")
+    <*> switch
+        ( long "server"
+       <> short 's'
+       <> help "Run a local server for viewing the site.  NOT FOR PRODUCTION!")
+    <*> option auto
+        ( long "port"
+       <> short 'p'
+       <> metavar "P"
+       <> showDefault
+       <> value 8080
+       <> help "Specify the port for the local server.  Use with [--server|-s]")
     <*> many (argument str
         ( metavar "EXTRA"
        <> help "Extra argments"))
@@ -309,7 +324,7 @@ runSiteGenSem args = do
     let dr = RU.checkDuplicateRoutes sms'
     unless (null dr) $ PE.throw @SiteGenError $ OtherError
         $ T.pack $ "Duplicate routes: " ++ intercalate ", " (map show dr)
-    let mr = RU.findMissingIndexRoutes sms'
+    {-let mr = RU.findMissingIndexRoutes sms'-}
     let sms'' = RU.ensureIndexRoutesIn sms'
         scs = RU.addVSMIndexPages sms''
     let sgr = makeSiteGenReader scs

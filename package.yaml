@@ -29,6 +29,8 @@ library:
     - templates
   dependencies:
     - aeson
+    - async
+    - blaze-builder
     - bytestring
     - co-log
     - co-log-core
@@ -41,9 +43,11 @@ library:
     - dlist
     - filepath
     - file-embed
+    - fsnotify
     - generic-deriving
     - ginger
     - hashable
+    - http-types
     - network-uri
     - microlens
     - microlens-th
@@ -58,6 +62,7 @@ library:
     - safe
     - scientific
     - split
+    - stm
     - system-locale
     - temporary
     - text
@@ -67,6 +72,8 @@ library:
     - unix
     - unordered-containers
     - utf8-string
+    - wai
+    - warp
     - yaml
   default-extensions:
     - DataKinds

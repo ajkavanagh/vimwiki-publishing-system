@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b903aaca2f1377aad08e90f32f21d3a273fc909da82824a8de14631171d98869
+-- hash: 89f7a9bf6c9565853b312f0affbfe36bccba45ee8f1262ae3ad2113b878d710c
 
 name:           vimwiki-publishing-system
 version:        0.1.0.0
@@ -37,6 +37,7 @@ library
       Experiments.Errors
       Experiments.Logging
       Experiments.SemConduit
+      Lib.BChan
       Lib.BuiltInTemplates
       Lib.Context
       Lib.Context.CategoriesContext
@@ -49,10 +50,13 @@ library
       Lib.Context.TagsContext
       Lib.Context.Utils
       Lib.Dates
+      Lib.DevServer
       Lib.Files
+      Lib.FileWatcher
       Lib.Ginger
       Lib.Hash
       Lib.Header
+      Lib.HttpServer
       Lib.Pandoc
       Lib.PandocUtils
       Lib.RenderUtils
@@ -82,7 +86,9 @@ library
   default-extensions: DataKinds FlexibleContexts GADTs LambdaCase PolyKinds RankNTypes ScopedTypeVariables TypeApplications TypeOperators TypeFamilies
   build-depends:
       aeson
+    , async
     , base >=4.7 && <5
+    , blaze-builder
     , bytestring
     , co-log
     , co-log-core
@@ -95,10 +101,12 @@ library
     , dlist
     , file-embed
     , filepath
+    , fsnotify
     , generic-deriving
     , ghc-tcplugins-extra >=0.3 && <0.4
     , ginger
     , hashable
+    , http-types
     , microlens
     , microlens-platform
     , microlens-th
@@ -113,6 +121,7 @@ library
     , safe
     , scientific
     , split
+    , stm
     , system-locale
     , temporary
     , text
@@ -122,6 +131,8 @@ library
     , unix
     , unordered-containers
     , utf8-string
+    , wai
+    , warp
     , yaml
   default-language: Haskell2010
 
